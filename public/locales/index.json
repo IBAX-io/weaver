@@ -1,0 +1,9 @@
+{
+  "locales": [
+    {
+      "key": "en-US",
+      "name": "English (US)",
+      "enabled": true
+    }
+  ]
+}

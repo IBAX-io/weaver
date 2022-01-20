@@ -1,0 +1,167 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) IBAX All rights reserved.
+ *  See LICENSE in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: none;
+  -moz-text-size-adjust: none;
+  -ms-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+@-moz-document url-prefix() {
+  body {
+    font-weight: lighter !important;
+  }
+}
+
+html,
+body,
+#root,
+#root > div {
+  padding: 0;
+  margin: 0;
+  min-height: 100%;
+  height: 100%;
+}
+
+body {
+  color: #515253;
+  background-color: #e5e9ef;
+}
+
+.no-float {
+  float: none;
+}
+
+.abs-center {
+  height: auto;
+}
+
+.align-top {
+  vertical-align: top;
+}
+
+.align-middle {
+  vertical-align: middle;
+}
+
+.align-bottom {
+  vertical-align: bottom;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex.space-between {
+  justify-content: space-between;
+}
+
+.bg-dark {
+  background-color: #3a3f51;
+}
+
+.elastic {
+  -webkit-box-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  display: -webkit-box !important;
+  display: -ms-flexbox !important;
+  display: flex !important;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: start;
+  -ms-flex-pack: start;
+  justify-content: flex-start;
+  -webkit-box-align: stretch;
+  -ms-flex-align: stretch;
+  align-items: stretch;
+  -ms-flex-line-pack: stretch;
+  align-content: stretch;
+  -ms-flex-item-align: stretch !important;
+  align-self: stretch !important;
+  position: relative;
+}
+
+.switch-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.switch-wrapper > div {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.breadcrumb {
+  margin: -20px -25px 20px -20px;
+  background-color: #fafbfc;
+  border-top: 1px solid #cfdbe2;
+  border-bottom: 1px solid #cfdbe2;
+  font-weight: normal;
+  border-radius: 0;
+  color: #909fa7;
+  padding: 10px 20px;
+  list-style: none;
+}
+
+.content-wrapper {
+  border-top: none;
+}
+
+.btn-icon {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.btn-icon > .btn-label {
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+/* Hide HTML5 input[type="number"] up/down arrows */
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.redux-toastr .top-left,
+.redux-toastr .top-right,
+.redux-toastr .top-center {
+  position: fixed;
+  margin: -12px 0 0 0;
+  top: auto;
+  z-index: 9000;
+  left: 50%;
+  width: 350px;
+  transform: translateX(-175px);
+}
+
+.redux-toastr .toastr.rrt-success {
+  background-color: #23ba43;
+  border: solid 1px #1fa73c;
+}
+
+.redux-toastr .toastr {
+  box-shadow: none;
+  opacity: 1;
+  font-size: 13px;
+}

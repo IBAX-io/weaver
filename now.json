@@ -1,0 +1,17 @@
+{
+    "version": 2,
+    "routes": [
+        {
+            "src": "/(fonts|img|locales|styles|static)/(.*)",
+            "dest": "/$1/$2"
+        },
+        {
+            "src": "/(settings\\.json|asset-manifest\\.json|favicon\\.ico|manifest\\.json|service-worker\\.json)",
+            "dest": "/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/index.html"
+        }
+    ]
+}

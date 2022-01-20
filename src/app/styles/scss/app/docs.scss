@@ -1,0 +1,197 @@
+// Margins
+$sidepad:   30px;  // Padding to the left of the sidebar
+
+// Colors
+$txt:       #505050;
+$accent:    $gray-dark;
+
+// Dimensions
+$sidebar-width:   180px;
+$content-width:   550px;
+$pre-width:       380px;
+
+
+
+@mixin menubar()
+{
+  // Menu items
+  & {
+    &.level-1 > li {
+      > a {
+        padding-top: 25px;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #e1e2e3;
+        pointer-events: none;
+      }
+    }
+    &.level-2 > li + li,
+    &.level-2 > li:first-child {
+      > a {
+        background-color: rgba(255,255,255,.75);
+      }
+    }
+
+    a {
+      position: relative;
+
+      display: block;
+      padding: 10px;
+      padding-right: $sidepad;
+
+      &, &:visited {
+        color: $accent;
+      }
+      &:hover {
+        color: $accent*0.8;
+        background-color: rgba(255,255,255,.75);
+        text-decoration: none;
+      }
+    }
+    a.level-1 {
+      font-family: montserrat, sans-serif;
+      text-transform: uppercase;
+      font-size: 0.9em;
+      font-weight: bold;
+      &, &:visited {
+        color: $gray-dark;
+      }
+      &:hover {
+        color: $gray-dark;
+      }
+    }
+    a.level-2 {
+      font-weight: 600;
+    }
+
+    a.level-3 {
+      font-weight: normal;
+      font-size: 0.9em;
+      padding-left: 15px;
+    }
+
+    a.active {
+      &, &:visited, &:hover {
+        color: $txt !important;
+      }
+      font-weight: bold !important;
+      
+      // Indicator
+      &:after {
+        content: '';
+        display: block;
+        
+        position: absolute;
+        top: 50%;
+        margin-top: -2px;
+        right: ($sidepad / 2);
+
+        width: 9px;
+        height: 3px;
+        border-radius: 2px;
+        background: $accent;
+      }
+    }
+  }
+}
+
+.flatdoc-wrapper {
+  display: block;
+  margin: -15px; // expand over wrapper padding
+  @media only screen and (min-width: $mq-tablet) {
+    margin: -20px; // expand over wrapper padding
+  }
+  
+  .flatdoc {
+    @media only screen and (min-width: $mq-tablet) {
+      display: table;
+      table-layout: fixed;
+      border-spacing: 0;
+    }
+    width: 100%;
+    height: 100%;
+  }
+
+  .flatdoc-menu {
+    @media only screen and (min-width: $mq-tablet) {
+      position: relative;
+      display: table-cell;
+      height: 100%;
+      vertical-align: top;
+      width: $sidebar-width;
+      > ul {
+        padding-top: 20px;
+      }
+    }
+
+    // padding-top: 20px;
+    border-right: 1px solid #e1e2e3;
+    font-size: 14px;
+
+    ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      @include menubar();
+    }
+  }
+  
+  .flatdoc-content {
+    @media only screen and (min-width: $mq-tablet) {
+      display: table-cell;
+      height: 100%;
+      vertical-align: top;
+    }
+
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 1px;
+    padding-bottom: 50px;
+    background-color: #fff;
+    
+    pre {
+      background-color: #f3f6fb;
+      border: 1px solid $gray;
+      code {
+        display: inline-block;
+        white-space: pre;
+        .string, .number {
+          color: $brand-green-dark;
+        }
+        .init {
+          color: $brand-green-dark;
+        }
+        .keyword {
+          color: $gray-dark;
+          font-weight: bold;
+        }
+        .comment {
+          color: $text-muted;
+        }
+      }
+    }
+    
+    > h1 {
+      padding: 11px 0;
+      margin: 0;
+      line-height: 1;
+    }
+
+    > h2,  > h3 {
+      padding: 20px;
+      border-top: 1px solid #f1f2f3;
+      margin: 0 -20px;
+    }
+  }
+  
+  .button {
+    display: inline-block;
+    padding: 6px 16px;
+    font-size: 13px;
+    border-radius: $border-radius-small;
+    text-decoration: none;
+    @include button-variant(#fff, $brand-info, $brand-info);
+  }
+
+}
+

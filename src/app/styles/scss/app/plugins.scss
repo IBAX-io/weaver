@@ -1,0 +1,227 @@
+/* ========================================================================
+     Component: plugins
+// - User this stylesheet to include single css styles and fixes
+//   for plugins
+ ========================================================================== */
+
+@import '../bootstrap/bootstrap/mixins/_buttons';
+
+/**
+ * Bootstrap Slider
+ */
+
+$slider-handle-bg: $brand-primary;
+$slider-track-border: $brand-primary;
+$slider-selection-bg: $slider-track-border;
+$slider-tooltip-color: #2c3037;
+
+body {
+
+
+
+  // Reuse form contrl definition from BS
+  // as a mixin to avoid redeclaration
+  // and extend the styles in other components
+  @mixin form-control()
+  {
+    display: block;
+    width: 100%;
+    height: $input-height-base; // Make inputs at least the height of their button counterpart (base line-height + padding + border)
+    padding: $padding-base-vertical $padding-base-horizontal;
+    font-size: $font-size-base;
+    line-height: $line-height-base;
+    color: $input-color;
+    background-color: $input-bg;
+    background-image: none; // Reset unusual Firefox-on-Android default style; see https://github.com/necolas/normalize.css/issues/214
+    border: 1px solid $input-border;
+    border-radius: $input-border-radius;
+    @include box-shadow(inset 0 1px 1px rgba(0,0,0,.075));
+    @include transition(#{"border-color ease-in-out .15s, box-shadow ease-in-out .15s"});
+
+    // Customize the `:focus` state to imitate native WebKit styles.
+    @include form-control-focus();
+
+    // Placeholder
+    @include placeholder();
+
+    // Disabled and read-only inputs
+    //
+    // HTML5 says that controls under a fieldset > legend:first-child won't be
+    // disabled if the fieldset is disabled. Due to implementation difficulty, we
+    // don't honor that edge case; we style them as disabled anyway.
+    &[disabled],
+    &[readonly],
+    fieldset[disabled] & {
+      cursor: not-allowed;
+      background-color: $input-bg-disabled;
+      opacity: 1; // iOS fix for unreadable disabled content
+    }
+
+  }
+
+
+  .slider-handle,
+  .slider-track,
+  .slider-selection {
+    background-image: none;
+    box-shadow: 0 0 0 #000;
+  }
+
+  .slider-handle {
+    background-color: #fff;
+    border: 1px solid $slider-handle-bg;
+    opacity: 1;
+  }
+  .slider-track {
+    background-color: #fff;
+    border: 1px solid $slider-track-border;
+  }
+  .slider-selection {
+    background-color: $slider-selection-bg;
+  }
+
+  .slider {
+    .tooltip.top .tooltip-arrow {
+      border-top-color: $slider-tooltip-color;
+    }
+    .tooltip.right .tooltip-arrow {
+      border-right-color: $slider-tooltip-color;
+    }
+    .tooltip-inner {
+      background-color: $slider-tooltip-color;
+    }
+  }
+
+  .slider-lg {
+    width: 380px;
+  }
+
+  /**
+   * Chosen
+   */
+
+
+  // MULTIPLE
+
+  $multiple-tag-bg: #f5f6f7;
+
+  .chosen-container {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .chosen-container-multi .chosen-choices {
+    @include form-control();
+  }
+
+  .chosen-container-multi .chosen-choices li.search-field input[type=text] {
+    height: auto;
+    padding: 0;
+  }
+
+  .chosen-container-multi .chosen-choices li.search-choice {
+    margin: 0 5px 3px 0;
+    background-color: $multiple-tag-bg;
+    border: 1px solid darken($multiple-tag-bg, 5%);
+    background-image: none;
+  }
+
+  .chosen-container .chosen-results li.highlighted {
+    background-color: #a1a2a3;
+    background-image: none;
+  }
+  .chosen-container .chosen-drop {
+    border-color: #ddd;
+  }
+  .chosen-container .chosen-results li.group-result {
+    color: #747576;
+    letter-spacing: 0.02em;
+  }
+  // SINGLE
+  .chosen-container-single .chosen-single,
+  .chosen-container-active.chosen-with-drop .chosen-single {
+    @include form-control();
+  }
+
+  .chosen-container-active .chosen-single,
+  .chosen-container-active .chosen-choices {
+      border: 1px solid $input-border-focus;
+  }
+
+  .chosen-container-single .chosen-drop {
+    margin-top: -3px;
+  }
+
+  .chosen-container-single .chosen-single div {
+    top: 6px;
+    right: 5px;
+  }
+
+  .chosen-container-multi .chosen-choices li.search-field input[type=text] {
+    color: $input-color-placeholder;
+  }
+
+  .chosen-container-single .chosen-single abbr,
+  .chosen-container-single .chosen-single div b,
+  .chosen-container-single .chosen-search input[type="text"],
+  .chosen-container-multi .chosen-choices li.search-choice .search-choice-close,
+  .chosen-rtl .chosen-search input[type="text"] {
+    background-image: url('/img/chosen-sprite.png');
+  }
+
+  /**
+   * Filestyle
+   */
+
+  .bootstrap-filestyle {
+    max-width: 380px;
+  }
+
+  // Select 2
+  .select2-container {
+    max-width: 100%;
+  }
+  .select2-container--bootstrap .select2-selection--single,
+  .select2-container--bootstrap .select2-selection--multiple {
+    border: 1px solid $input-border;
+    box-shadow: 0 0 0 #000 !important;
+  }
+
+  // Colorpicker
+
+  .colorpicker-saturation {
+    background-image: url("/img/bootstrap-colorpicker/saturation.png");
+  }
+  .colorpicker-hue {
+    background-image: url("/img/bootstrap-colorpicker/hue.png");
+  }
+  .colorpicker-alpha {
+    background-image: url("/img/bootstrap-colorpicker/alpha.png");
+  }
+  .colorpicker-color {
+    background-image: url("/img/bootstrap-colorpicker/alpha.png");
+  }
+  .colorpicker.colorpicker-horizontal .colorpicker-hue {
+    background-image: url("/img/bootstrap-colorpicker/hue-horizontal.png");
+  }
+  .colorpicker.colorpicker-horizontal .colorpicker-alpha {
+    background-image: url("/img/bootstrap-colorpicker/alpha-horizontal.png");
+  }
+
+  // Bootstrap datetimepicker (fix conflict with x-editable)
+  .bootstrap-datetimepicker-widget {
+    .datepicker > div {
+        display: block;
+    }
+    .datepicker table tr td.today {
+        background-image: none !important;
+        background-color: $brand-yellow !important;
+    }
+    .datepicker table tr td.active,
+    .datepicker table tr td span.active {
+        background-image: none !important;
+        background-color: $brand-primary !important;
+    }
+  }
+
+} // body

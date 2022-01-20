@@ -1,0 +1,229 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) IBAX All rights reserved.
+ *  See LICENSE in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.wrapper {
+  background: #244134;
+  display: flex;
+  flex-direction: column;
+
+  > section {
+    margin: 0 !important;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+}
+
+.monaco-editor .wrapper {
+  background: transparent;
+}
+
+.layout-fixed .wrapper > .aside {
+  background: #fefefe !important;
+  padding-right: 1px;
+  transition: none;
+
+  > nav {
+    overflow: hidden;
+  }
+}
+
+.platform-desktop {
+  .drag {
+    -webkit-app-region: drag;
+    user-select: none;
+    cursor: default;
+  }
+
+  .no-drag {
+    -webkit-user-select: initial;
+    user-select: initial;
+    -webkit-app-region: no-drag;
+  }
+
+  .desktop-flex-col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .desktop-flex-stretch {
+    flex: 1;
+  }
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+textarea.flex-stretch {
+  resize: none;
+}
+
+.flex-stretch {
+  flex: 1;
+}
+
+.flex-center {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+}
+
+.panel {
+  border-radius: 0;
+  box-shadow: none;
+
+  > .panel-heading {
+    border-radius: 0;
+    margin: -1px -1px 0;
+  }
+
+  &.panel-default > .panel-heading {
+    margin: 0;
+  }
+}
+
+.list-group,
+.list-group-item {
+  border-radius: 0 !important;
+}
+
+.btn {
+  border: 0;
+  border-radius: 0;
+  font-size: 14px;
+  padding: 6px 20px;
+  box-shadow: none !important;
+
+  .btn-label {
+    background: 0;
+  }
+
+  &.btn-default {
+    background: #244134;
+  }
+  &.btn-default:hover {
+    background: #27c24c;
+    color:#fff;
+  }
+  &.btn-default:active {
+    background: #27c24c;
+     color:#fff;
+  }
+}
+
+@keyframes btnShiftLeft {
+  0%,
+  50% {
+    transform: translate(20px, 0);
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.btn-tool {
+  -webkit-user-select: none;
+  -webkit-app-region: no-drag;
+  background: none;
+  border: 0;
+  padding: 0 8px;
+  height: 14px;
+  line-height: initial;
+  display: inline-block;
+  font-size: 14px;
+  text-decoration: none !important;
+  cursor: pointer;
+  animation: btnShiftLeft 0.8s;
+
+  &:hover {
+    color: #79bfff;
+  }
+}
+
+.btn-tool > .icon {
+  position: relative;
+  top: 2px;
+  font-size: 16px;
+  margin-right: 6px;
+}
+
+.fullscreen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+
+  &.noscroll {
+    overflow: hidden;
+  }
+}
+
+.fullscreen-wrapper,
+.content-wrapper {
+  height: 100%;
+  margin-top: 0 !important;
+  padding: 20px;
+  width: 100%;
+  flex: 1;
+
+  > .breadcrumb {
+    margin: -20px -25px 20px -20px !important;
+    border-top: 0;
+  }
+}
+
+.fullscreen-wrapper {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.breadcrumb {
+  margin: 0 !important;
+  border-top: 0 !important;
+  background: none !important;
+}
+
+.breadcrumb > li + li:before {
+  content: "\e606";
+  font-family: "simple-line-icons";
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  font-size: 10px;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 0 5px;
+  color: #c1c2c3;
+}
+
+.form-control {
+  border-radius: 0;
+}
+
+.form-element {
+  border: 1px solid #dde6e9;
+}
+
+.switch-wrapper {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+
+  > div {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+}

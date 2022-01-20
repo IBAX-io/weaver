@@ -1,0 +1,30 @@
+/* ========================================================================
+     Component: form-validation
+ ========================================================================== */
+ 
+//
+// Styles for validation results from Parsley
+//
+
+$label-error-color: $brand-danger;
+
+.parsley-error {
+  border-color: $label-error-color!important;
+}
+
+.parsley-errors-list {
+  display: none;
+  margin: 0;
+  padding: 0;
+
+  &.filled {
+    display: block;
+  }
+
+  > li {
+    font-size: 12px;
+    list-style: none;
+    color: $label-error-color;
+  }
+
+}

@@ -1,0 +1,67 @@
+/* ========================================================================
+   Component: alerts.less
+ ========================================================================== */
+
+// Variables
+// ========================================================================
+
+$alerts-position:                               60px;
+$alerts-z-index:                                9090;
+$alerts-width:                                  350px;
+
+// Message container for positioning
+
+.alerts {
+    position: fixed;
+    top: $alerts-position;
+    left: $alerts-position;
+    z-index: $alerts-z-index;
+    width: $alerts-width;
+    @extend .alerts-top-right;
+
+    &:hover .alert .close {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+
+// Position modifiers
+
+
+.alerts-top-right,
+.alerts-bottom-right  {
+    left: auto;
+    right: $alerts-position;
+}
+
+.alerts-top-center,
+.alerts-bottom-center {
+    left: 50%;
+    margin-left: ($alerts-width / -2);
+}
+
+.alerts-bottom-left,
+.alerts-bottom-right,
+.alerts-bottom-center {
+    top: auto;
+    bottom: $alerts-position;
+}
+
+
+// Responsiveness
+
+
+// Phones portrait and smaller */
+@media (max-width: $mq-mobile) {
+
+    // Fit in small screen
+
+    .alerts {
+        left: 10px;
+        right: 10px;
+        width: auto;
+        margin: 0;
+    }
+
+}

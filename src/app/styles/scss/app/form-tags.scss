@@ -1,0 +1,19 @@
+/* ========================================================================
+     Component: form-tags
+ ========================================================================== */
+ 
+ // Define tag input with the same
+ // style like standard from controls
+ body {
+  .bootstrap-tagsinput {
+    @extend .form-control;
+    // Allows to auto expand height
+    height: auto;
+    min-height: $input-height-base;
+    margin-bottom: 0;
+  }
+
+  .bootstrap-tagsinput .tag {
+    color: #fff;
+  }
+}

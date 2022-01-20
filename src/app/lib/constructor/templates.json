@@ -1,0 +1,502 @@
+{
+  "formWithHeader": {
+    "tag": "div",
+    "attr": {
+      "class": "panel panel-primary"
+    },
+    "children": [
+      {
+        "tag": "div",
+        "attr": {
+          "class": "panel-heading"
+        },
+        "children": [
+          {
+            "tag": "text",
+            "text": "Money transfer"
+          }
+        ]
+      },
+      {
+        "tag": "form",
+        "children": [
+          {
+            "tag": "div",
+            "attr": {
+              "class": "list-group-item"
+            },
+            "children": [
+              {
+                "tag": "div",
+                "attr": {
+                  "class": "row df f-valign"
+                },
+                "children": [
+                  {
+                    "tag": "div",
+                    "attr": {
+                      "class": "col-md-3 mt-sm text-right"
+                    },
+                    "children": [
+                      {
+                        "tag": "label",
+                        "children": [
+                          {
+                            "tag": "text",
+                            "text": "Input1"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attr": {
+                      "class": "col-md-9 mc-sm text-left"
+                    },
+                    "children": [
+                      {
+                        "tag": "input",
+                        "attr": {
+                          "class": "form-control",
+                          "name": "Input3",
+                          "type": "text"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "tag": "div",
+            "attr": {
+              "class": "list-group-item"
+            },
+            "children": [
+              {
+                "tag": "div",
+                "attr": {
+                  "class": "row df f-valign"
+                },
+                "children": [
+                  {
+                    "tag": "div",
+                    "attr": {
+                      "class": "col-md-3 mt-sm text-right"
+                    },
+                    "children": [
+                      {
+                        "tag": "label",
+                        "children": [
+                          {
+                            "tag": "text",
+                            "text": "Input2"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attr": {
+                      "class": "col-md-9 mc-sm text-left"
+                    },
+                    "children": [
+                      {
+                        "tag": "input",
+                        "attr": {
+                          "class": "form-control",
+                          "name": "Input3",
+                          "type": "text"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "tag": "div",
+            "attr": {
+              "class": "list-group-item"
+            },
+            "children": [
+              {
+                "tag": "div",
+                "attr": {
+                  "class": "row df f-valign"
+                },
+                "children": [
+                  {
+                    "tag": "div",
+                    "attr": {
+                      "class": "col-md-3 mt-sm text-right"
+                    },
+                    "children": [
+                      {
+                        "tag": "label",
+                        "children": [
+                          {
+                            "tag": "text",
+                            "text": "Input3"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attr": {
+                      "class": "col-md-9 mc-sm text-left"
+                    },
+                    "children": [
+                      {
+                        "tag": "input",
+                        "attr": {
+                          "class": "form-control",
+                          "name": "Input3",
+                          "type": "text"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "tag": "div",
+            "attr": {
+              "class": "panel-footer text-right"
+            },
+            "children": [
+              {
+                "tag": "button",
+                "attr": {
+                  "class": "btn btn-primary",
+                  "contract": "ContractName"
+                },
+                "children": [
+                  {
+                    "tag": "text",
+                    "text": "Send"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+,
+  "tableWithHeader": {
+    "tag": "div",
+    "attr": {
+      "class": "panel panel-primary"
+    },
+    "children": [
+      {
+        "tag": "div",
+        "attr": {
+          "class": "panel-heading"
+        },
+        "children": [
+          {
+            "tag": "text",
+            "text": "Table block"
+          }
+        ]
+      },
+      {
+        "tag": "table",
+        "attr": {
+          "source": "test_key"
+        }
+      },
+      {
+        "tag": "div",
+        "attr": {
+          "class": "panel-footer text-right"
+        },
+        "children": [
+          {
+            "tag": "button",
+            "attr": {
+              "class": "btn btn-primary",
+              "contract": "ContractName"
+            },
+            "children": [
+              {
+                "tag": "text",
+                "text": "More"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+,
+  "searchForm": {
+    "tag": "div",
+    "attr": {
+      "class": "panel panel-primary"
+    },
+    "children": [
+      {
+        "tag": "form",
+        "children": [
+          {
+            "tag": "div",
+            "attr": {
+              "class": "list-group-item"
+            },
+            "children": [
+              {
+                "tag": "div",
+                "attr": {
+                  "class": "row df f-valign"
+                },
+                "children": [
+                  {
+                    "tag": "div",
+                    "attr": {
+                      "class": "col-md-2 mt-sm text-right"
+                    },
+                    "children": [
+                      {
+                        "tag": "label",
+                        "attr": {
+                          "for": "Search"
+                        },
+                        "children": [
+                          {
+                            "tag": "span",
+                            "children": [
+                              {
+                                "tag": "text",
+                                "text": "name"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attr": {
+                      "class": "col-md-8"
+                    },
+                    "children": [
+                      {
+                        "tag": "input",
+                        "attr": {
+                          "class": "form-control",
+                          "name": "Search",
+                          "placeholder": "Search...",
+                          "type": "text",
+                          "value": ""
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attr": {
+                      "class": "col-md-2"
+                    },
+                    "children": [
+                      {
+                        "tag": "button",
+                        "attr": {
+                          "class": "btn btn-default",
+                          "page": "roles_list",
+                          "pageparams": {
+                            "isSearch": {
+                              "text": "1",
+                              "type": "text"
+                            },
+                            "v_Search": {
+                              "text": "",
+                              "type": "text"
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "tag": "em",
+                            "attr": {
+                              "class": "fa fa-search"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "tag": "div",
+            "attr": {
+              "class": "list-group-item"
+            },
+            "children": [
+              {
+                "tag": "table",
+                "attr": {
+                  "columns": "$id$=custom_id,$name$=custom_name,$type$=custom_type,$created$ / $deleted$=custom_date,$status$=custom_status,$creator$=custom_creator,$actions$=actions",
+                  "source": "src_roles_list"
+                }
+              }
+            ]
+          },
+          {
+            "tag": "div",
+            "attr": {
+              "class": "panel-footer clearfix"
+            },
+            "children": [
+              {
+                "tag": "div",
+                "attr": {
+                  "class": "pull-right"
+                },
+                "children": [
+                  {
+                    "tag": "button",
+                    "attr": {
+                      "class": "btn btn-primary",
+                      "page": "roles_create"
+                    },
+                    "children": [
+                      {
+                        "tag": "text",
+                        "text": "create"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "radioPanel": {
+    "tag": "form",
+    "attr": {
+      "class": "panel panel-primary"
+    },
+    "children": [
+      {
+        "tag": "div",
+        "attr": {
+          "class": "panel-heading"
+        },
+        "children": [
+          {
+            "tag": "div",
+            "attr": {
+              "class": "panel-title"
+            },
+            "children": [
+              {
+                "tag": "text",
+                "text": "Payment"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "div",
+        "attr": {
+          "class": "panel-body"
+        },
+        "children": [
+          {
+            "tag": "div",
+            "attr": {
+              "class": "form-group"
+            },
+            "children": [
+              {
+                "tag": "label",
+                "children": [
+                  {
+                    "tag": "text",
+                    "text": "Payment methods"
+                  }
+                ]
+              },
+              {
+                "tag": "radiogroup",
+                "attr": {
+                  "name": "Payments",
+                  "namecolumn": "type",
+                  "source": "payment",
+                  "value": "#value_payment_method#",
+                  "valuecolumn": "id"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "div",
+        "attr": {
+          "class": "panel-footer text-center"
+        },
+        "children": [
+          {
+            "tag": "button",
+            "attr": {
+              "class": "btn btn-default mr-lg",
+              "contract": "ContractName"
+            },
+            "children": [
+              {
+                "tag": "text",
+                "text": "Cancel"
+              }
+            ],
+            "tail": [
+              {
+                "tag": "alert",
+                "attr": {
+                  "cancelbutton": "Cancel",
+                  "confirmbutton": "Confirm",
+                  "icon": "Icon",
+                  "text": "Select the payment method"
+                }
+              }
+            ]
+          },
+          {
+            "tag": "button",
+            "attr": {
+              "class": "btn btn-primary",
+              "contract": "ContractName",
+              "page": "proof_payment"
+            },
+            "children": [
+              {
+                "tag": "text",
+                "text": "Payment"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

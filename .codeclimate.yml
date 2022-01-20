@@ -1,0 +1,23 @@
+version: "2"
+plugins:
+  rubocop:
+    enabled: true
+  eslint:
+    enabled: true
+exclude_patterns:
+- "config/"
+- "db/"
+- "dist/"
+- "features/"
+- "**/node_modules/"
+- "script/"
+- "**/spec/"
+- "**/test/"
+- "**/tests/"
+- "Tests/"
+- "**/vendor/"
+- "public/vs/"
+- "src/app/styles/built/"
+- "**/*.js"
+- "**/*.d.ts"
+- "**/*.test.ts"

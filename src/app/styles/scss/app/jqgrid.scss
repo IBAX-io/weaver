@@ -1,0 +1,266 @@
+/* ========================================================================
+    Component: jqgrid
+ ========================================================================== */
+
+.ui-widget {
+  font-family: inherit;
+}
+
+.ui-jqgrid {
+  // replicates panel style
+  border-radius: $panel-border-radius;
+  border-width: 3px 1px 1px 1px;
+  border-color: $panel-default-border;
+
+  * {
+    max-width: 100%;
+  }
+
+
+  .ui-jqgrid-titlebar {
+    position: relative;
+    padding: 8px 15px;
+    border-bottom: 0;
+    line-height: $line-height-base;
+    text-transform: none;
+    font-size: $font-size-base;
+    font-weight: normal;
+    background-color: #fff;
+    color: #444;
+    height: 40px;
+
+    .ui-jqgrid-titlebar-close {
+      margin-right: 10px;
+    }
+  }
+
+  .ui-jqgrid-pager {
+    position: relative;
+    padding: 8px 14px !important;
+    height: auto !important;
+    max-width: 100%;
+
+    .ui-pg-table {
+      .navtable {
+        .ui-corner-all {
+            border-radius: 0px;
+        }
+      }
+    }
+
+    .ui-pg-input,
+    .ui-pg-selbox {
+      // form-control like styles
+      height: 24px;
+      padding: 4px;
+      font-size: $font-size-small;
+      line-height: $line-height-small;
+      color: $input-color;
+      background-color: $input-bg;
+      background-image: none;
+      border: 1px solid $input-border;
+      border-radius: $input-border-radius;
+      @include box-shadow(inset 0 1px 1px rgba(0,0,0,.075));
+    }
+    .ui-pager-control {
+        position: relative;
+    }
+    .ui-pg-button:hover {
+        padding: 1px;
+        border: 0px;
+    }
+  }
+
+  // Loading indicator
+  .loading {
+    position: absolute;
+    top: 45%;
+    left: 45%;
+    width: auto;
+    height: auto;
+    z-index: 101;
+    padding: 6px;
+    margin: 5px;
+    text-align: center;
+    font-weight: bold;
+    display: none;
+    border-width: 2px !important;
+    font-size: 11px;
+  }
+
+}
+
+
+.ui-state-default,
+.ui-widget-content .ui-state-default,
+.ui-widget-header .ui-state-default {
+  border: 0;
+  // border-top: 1px solid $table-border-color !important;
+  // border-bottom: 1px solid $table-border-color;
+  background: $table-bg-accent;
+  font-weight: bold;
+  color: #888;
+  &.ui-state-hover {
+    background: $table-bg-accent;
+  }
+  .ui-state-default {
+    border-top: 0 !important;
+  }
+}
+
+.ui-widget-header {
+  background-image: none;
+}
+
+// Row Styles
+
+.ui-jqgrid {
+
+  tr.ui-row-ltr {
+    td {
+      // border-right-color: inherit;
+      // border-right-style: solid;
+      // border-right-width: 1px;
+      border-right: 0;
+      text-align: left;
+      border-color: $gray-lighter;
+      background-color: inherit;
+    }
+  }
+  tr.ui-search-toolbar {
+    th {
+      border-top-width: 0px !important;
+      border-top-color: inherit !important;
+      border-top-style: ridge !important;
+    }
+  }
+
+  tr.jqgrow {
+    td {
+      padding: 8px;
+    }
+  }
+
+  .ui-jqgrid-btable {
+    border-collapse: separate;
+  }
+  .ui-jqgrid-htable {
+    border-collapse: separate;
+    th {
+      padding: 14px 8px;
+    }
+  }
+
+  .ui-jqgrid-bdiv,
+  .ui-jqgrid-btable {
+    width: auto !important;
+  }
+
+  tr.jqfoot td {
+    min-height: 25px;
+    padding: 5px 2px;
+  }
+  tr.footrow td {
+    height: 30px;
+  }
+
+  tr.footrow-ltr td {
+    border: 0;
+  }
+}
+
+
+.ui-search-toolbar {
+  input[type="text"] {
+    font-size: 12px;
+    height: 15px;
+    border: 1px solid $gray-light;
+    border-radius: 0px;
+  }
+}
+
+// States
+
+.ui-state-hover,
+.ui-widget-content .ui-state-hover,
+.ui-state-focus,
+.ui-widget-content .ui-state-focus,
+.ui-widget-header .ui-state-focus {
+  background: $gray-lighter;
+  border-collapse: separate;
+  color: #656565;
+}
+.ui-state-highlight,
+.ui-widget-content .ui-state-highlight,
+.ui-widget-header .ui-state-highlight {
+  background: $gray-lighter;
+  color: #656565;
+}
+.ui-widget-content {
+  color: #656565;
+  font-size: $font-size-base - 1;
+  background-image: none;
+}
+tr.ui-widget-content {
+  border: 0;
+}
+
+.ui-state-active,
+.ui-widget-content .ui-state-active,
+.ui-widget-header .ui-state-active {
+  border: 1px solid $gray-lighter;
+  background: #fff;
+  font-weight: normal;
+  color: #888;
+}
+
+.ui-jqdialog {
+  .ui-jqdialog-titlebar {
+      padding: 10px 10px;
+  }
+  .ui-jqdialog-title {
+      float: none !important;
+  }
+  & > .ui-resizable-se {
+      position: absolute;
+  }
+}
+
+.ui-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Override images path to match project structure */
+
+.ui-icon,
+.ui-widget-content .ui-icon {
+    background-image: url("/img/jqui/ui-icons_222222_256x240.png");
+}
+.ui-widget-header .ui-icon {
+    background-image: url("/img/jqui/ui-icons_222222_256x240.png");
+}
+.ui-state-default .ui-icon {
+    background-image: url("/img/jqui/ui-icons_888888_256x240.png");
+}
+.ui-state-hover .ui-icon,
+.ui-state-focus .ui-icon {
+    background-image: url("/img/jqui/ui-icons_454545_256x240.png");
+}
+.ui-state-active .ui-icon {
+    background-image: url("/img/jqui/ui-icons_454545_256x240.png");
+}
+.ui-state-highlight .ui-icon {
+    background-image: url("/img/jqui/ui-icons_2e83ff_256x240.png");
+}
+.ui-state-error .ui-icon,
+.ui-state-error-text .ui-icon {
+    background-image: url("/img/jqui/ui-icons_cd0a0a_256x240.png");
+}
+/* Overlays */
+// .ui-widget-overlay {
+//     background-image: url("/img/jqui/ui-bg_flat_0_aaaaaa_40x100.png");
+// }
+// .ui-widget-shadow {
+//     background-image: url("/img/jqui/ui-bg_flat_0_aaaaaa_40x100.png");
+// }
