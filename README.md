@@ -1,9 +1,3 @@
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
-[![Build Status](https://travis-ci.org/IBAX/ibax-front.svg?branch=master)](https://travis-ci.org/IBAX/ibax-front)
-[![](https://tokei.rs/b1/github/IBAX/ibax-front)](https://github.com/IBAX/ibax-front)
-![](https://reposs.herokuapp.com/?path=IBAX/ibax-front&style=flat)
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/IBAX?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-
 # Weaver
 
 - Provide the user interface for ibax.
@@ -55,7 +49,7 @@
 
 ### Get code
 
-`$ git clone https://github.com/IBAX/ibax-front.git`
+`$ git clone https://github.com/IBAX-io/weaver.git`
 
 ### Installation dependency
 
