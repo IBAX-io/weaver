@@ -74,9 +74,8 @@ const Header: React.SFC<Props> = (props) => (
         }
       />
     )}
-    <div style={{ display: 'none' }}>
-      <LangMenu />
-    </div>
+
+    <LangMenu />
 
     <NotificationsMenu />
     {/*<TransactionsMenu />*/}

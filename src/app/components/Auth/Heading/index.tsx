@@ -7,7 +7,6 @@ import React from 'react';
 
 import themed from 'components/Theme/themed';
 import BackButton from './BackButton';
-
 export interface IHeadingOption {
   icon: string;
   title: string;
@@ -23,7 +22,7 @@ export interface IHeadingProps {
 
 const Heading: React.SFC<IHeadingProps> = (props) => (
   <div className={props.className}>
-    <div className="heading-content">
+    <div className="heading-content" >
       <div className="heading-left">
         {(props.returnUrl || props.onReturn) && (
           <BackButton returnUrl={props.returnUrl} onClick={props.onReturn} />
@@ -32,7 +31,7 @@ const Heading: React.SFC<IHeadingProps> = (props) => (
       <div className="heading-title">{props.children}</div>
       {props.option && <div className="heading-right">{props.option}</div>}
     </div>
-  </div>
+  </div >
 );
 
 export default themed(Heading)`

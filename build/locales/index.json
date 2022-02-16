@@ -4,6 +4,11 @@
       "key": "en-US",
       "name": "English (US)",
       "enabled": true
+    },
+    {
+      "key": "tr-TR",
+      "name": "Türkçe (TR)",
+      "enabled": false
     }
   ]
 }

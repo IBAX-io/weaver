@@ -33,11 +33,11 @@ const LangMenu: React.SFC<Props> = (props) => (
             </Item>
           ))}
         </div>
-      </div>
+      </div >
     }
   >
     <em className="icon icon-globe" />
-  </HeaderButton>
+  </HeaderButton >
 );
 
 export default LangMenu;

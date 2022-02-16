@@ -7,13 +7,13 @@ import React from 'react';
 import { Route, Switch, Redirect } from 'react-router-dom';
 import { FormattedMessage, InjectedIntlProps, injectIntl } from 'react-intl';
 // import imgLogo from 'images/logo.svg';
-
+import LangMenu from 'containers/Main/Header/LangMenu';
 import themed from 'components/Theme/themed';
 import Wallet from 'components/Auth/Wallet';
 import Login from 'containers/Auth/Login';
 import NetworkList from 'containers/Auth/Login/NetworkList';
 import AddNetwork from 'containers/Auth/Login/NetworkList/AddNetwork';
-import { Button } from 'react-bootstrap';
+// import { Button } from 'react-bootstrap';
 
 export interface IAuthProps {
   className?: string;
@@ -57,14 +57,15 @@ const Auth: React.SFC<IAuthProps & InjectedIntlProps> = (props) => (
               </a>
             </div>
           </div>
-          <div className="pull-right" style={{ display: 'none' }}>
-            <Button
+          <div className="pull-right">
+            <LangMenu />
+            {/*  <Button
               bsStyle="link"
               className="p0 m0"
               onClick={props.changeLocale}
             >
               <FormattedMessage id="LANG_NAME" defaultMessage={props.locale} />
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>
