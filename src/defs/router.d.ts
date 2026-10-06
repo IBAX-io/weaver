@@ -3,11 +3,14 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import IField from 'lib/tx/contract/field';
+declare module 'ibax/router' {
+  type TNavigationType = 'POP' | 'PUSH' | 'REPLACE';
 
-// Converters from form values to the types a contract parameter expects
-export interface ISchema {
-    fields: {
-        [type: string]: new () => IField<any>;
-    };
+  interface IRouterLocation {
+    readonly pathname: string;
+    readonly search: string;
+    readonly hash: string;
+    readonly state: unknown;
+    readonly key: string;
+  }
 }

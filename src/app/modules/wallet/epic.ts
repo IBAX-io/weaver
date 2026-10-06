@@ -3,11 +3,11 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import IField from 'lib/tx/contract/field';
+import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
+import fetchBalanceEpic from './epics/fetchBalanceEpic';
+import sendTransferEpic from './epics/sendTransferEpic';
 
-// Converters from form values to the types a contract parameter expects
-export interface ISchema {
-    fields: {
-        [type: string]: new () => IField<any>;
-    };
-}
+export default combineIsolatedEpics({
+    fetchBalanceEpic,
+    sendTransferEpic
+});

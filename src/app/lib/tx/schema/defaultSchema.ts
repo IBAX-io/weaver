@@ -13,7 +13,6 @@ import File from '../contract/field/file';
 import StringCollection from '../contract/field/stringCollection';
 
 const defaultSchema: ISchema = {
-    header: new Uint8Array([0x80]),
     fields: {
         'bool': Boolean,
         'int': Integer,

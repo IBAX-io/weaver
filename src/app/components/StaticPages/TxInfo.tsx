@@ -7,6 +7,7 @@ import React from 'react';
 import { TProtypoElement } from 'ibax/protypo';
 import { ITransaction } from 'ibax/tx';
 import { toHex } from 'lib/tx/convert';
+import { formatAddress } from 'lib/crypto/address';
 
 import Protypo from 'containers/Widgets/Protypo';
 import PrintZone from 'components/PrintZone';
@@ -76,10 +77,24 @@ const TxInfo: React.FC<React.PropsWithChildren<ITxInfoProps>> = props => (
                                             <span><strong>Time:</strong> </span>
                                             <span>{tx.tx.body.Header.Time}</span>
                                         </li>
-                                        <li>
-                                            <span><strong>Params</strong></span>
-                                            <span>{JSON.stringify(tx.tx.body.Params)}</span>
-                                        </li>
+                                        {tx.tx.body.Params && (
+                                            <li>
+                                                <span><strong>Params</strong></span>
+                                                <span>{JSON.stringify(tx.tx.body.Params)}</span>
+                                            </li>
+                                        )}
+                                        {tx.tx.body.UTXO && (
+                                            <li>
+                                                <span><strong>UTXO:</strong> </span>
+                                                <span>{formatAddress(tx.tx.body.UTXO.ToID.toString())} · {tx.tx.body.UTXO.Value}{tx.tx.body.UTXO.Comment && ` · ${tx.tx.body.UTXO.Comment}`}</span>
+                                            </li>
+                                        )}
+                                        {tx.tx.body.TransferSelf && (
+                                            <li>
+                                                <span><strong>TransferSelf:</strong> </span>
+                                                <span>{tx.tx.body.TransferSelf.Source} → {tx.tx.body.TransferSelf.Target} · {tx.tx.body.TransferSelf.Value}</span>
+                                            </li>
+                                        )}
                                     </>
 
                                 ) :

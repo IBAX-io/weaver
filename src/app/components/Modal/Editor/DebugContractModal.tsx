@@ -6,7 +6,8 @@
 import React from 'react';
 import { Button, Card, Row, Col } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
-import { ITransactionCollection, ITxStatus, ITxError } from 'ibax/tx';
+import { ITransactionCollection, ITxError } from 'ibax/tx';
+import { ITxStatus } from 'ibax/api';
 import { TContractFieldType } from 'ibax/api';
 
 import Modal, { IModalProps } from '../';

@@ -20,6 +20,7 @@ import * as notifications from './notifications';
 import * as storage from './storage';
 import * as socket from './socket';
 import * as router from './router';
+import * as wallet from './wallet';
 import { ActionCreator, Failure, Success } from 'typescript-fsa';
 
 export type Epic = NativeEpic<Action, Action, IRootState, IStoreDependencies>;
@@ -42,6 +43,7 @@ export interface IRootState {
     storage: storage.State;
     socket: socket.State;
     router: router.State;
+    wallet: wallet.State;
 }
 
 export const rootEpic = combineEpics(
@@ -56,7 +58,8 @@ export const rootEpic = combineEpics(
     notifications.epic,
     storage.epic,
     socket.epic,
-    router.epic
+    router.epic,
+    wallet.epic
 );
 
 const rootReducer = {
@@ -70,7 +73,8 @@ const rootReducer = {
     notifications: notifications.reducer,
     storage: storage.reducer,
     socket: socket.reducer,
-    router: router.reducer
+    router: router.reducer,
+    wallet: wallet.reducer
 };
 
 export default rootReducer;

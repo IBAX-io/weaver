@@ -207,6 +207,15 @@ test('Login', () => {
     });
 });
 
+test('GetBalance', () => {
+    return paramTestingAPIMock().getBalance({ wallet: '0624-2890-6001-1238-3609', ecosystem: 2 }).then((response: any) => {
+        expect(response).toEqual({
+            __requestUrl: `${paramTestingAPIHost}/${paramTestingAPIEndpoint}/balance/0624-2890-6001-1238-3609?ecosystem=2`,
+            body: null
+        });
+    });
+});
+
 test('GetConfig', () => {
     const testRequest = 'centrifugo';
 

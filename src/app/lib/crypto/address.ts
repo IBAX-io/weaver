@@ -65,3 +65,49 @@ export const formatAddress = (keyID: string) => {
     const value = BigInt.asUintN(64, BigInt(keyID)).toString(10).padStart(ADDRESS_LENGTH, '0');
     return [0, 4, 8, 12, 16].map(i => value.slice(i, i + 4)).join('-');
 };
+
+const INT64_MIN = -(1n << 63n);
+const UINT64_MAX = UINT64_MASK;
+
+const isValidDigits = (digits: string) =>
+    digits.length === ADDRESS_LENGTH && checksumDigit(digits.slice(0, -1)) === digits.charCodeAt(ADDRESS_LENGTH - 1) - 48;
+
+// Account id of an address the user typed, or null when it is not a valid account. Mirrors
+// go-ibax converter.AddressToID: "XXXX-XXXX-XXXX-XXXX-XXXX", a signed int64 id, or an unsigned id,
+// and the checksum digit must match. Id 0 is rejected too: the node accepts it as a UTXO
+// recipient, but it belongs to no key, so the coins would be lost.
+export const parseAddress = (input: string): string | null => {
+    const value = input.trim();
+    let id: bigint;
+    if (/^-\d+$/.test(value)) {
+        id = BigInt(value);
+        if (id < INT64_MIN) {
+            return null;
+        }
+    }
+    else if ((value.match(/-/g) || []).length === 4) {
+        const digits = value.replace(/-/g, '');
+        if (!/^\d{20}$/.test(digits)) {
+            return null;
+        }
+        id = BigInt.asIntN(64, BigInt(digits));
+        if (BigInt(digits) > UINT64_MAX) {
+            return null;
+        }
+    }
+    else if (/^\d+$/.test(value)) {
+        const unsigned = BigInt(value);
+        if (unsigned > UINT64_MAX) {
+            return null;
+        }
+        id = BigInt.asIntN(64, unsigned);
+    }
+    else {
+        return null;
+    }
+
+    if (id === 0n || !isValidDigits(BigInt.asUintN(64, id).toString(10).padStart(ADDRESS_LENGTH, '0'))) {
+        return null;
+    }
+    return id.toString(10);
+};

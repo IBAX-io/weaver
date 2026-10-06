@@ -3,15 +3,9 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-export type TNavigationType = 'POP' | 'PUSH' | 'REPLACE';
+import { IRouterLocation, TNavigationType } from 'ibax/router';
 
-export interface IRouterLocation {
-    readonly pathname: string;
-    readonly search: string;
-    readonly hash: string;
-    readonly state: unknown;
-    readonly key: string;
-}
+export type { IRouterLocation, TNavigationType };
 
 export interface IRouterState {
     readonly location: IRouterLocation;

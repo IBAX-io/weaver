@@ -3,11 +3,13 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import IField from 'lib/tx/contract/field';
+import reducer from './reducer';
+import epic from './epic';
+import * as actions from './actions';
+export type { State } from './reducer';
 
-// Converters from form values to the types a contract parameter expects
-export interface ISchema {
-    fields: {
-        [type: string]: new () => IField<any>;
-    };
-}
+export {
+    actions,
+    reducer,
+    epic
+};

@@ -5,7 +5,7 @@
 
 declare module 'ibax/content' {
   import { TProtypoElement } from 'ibax/protypo';
-  import { IRouterLocation } from 'modules/router/types';
+  import { IRouterLocation } from 'ibax/router';
 
   interface IMenu {
     readonly name: string;

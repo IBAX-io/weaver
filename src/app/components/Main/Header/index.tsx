@@ -57,6 +57,10 @@ const Header: React.FC<Props> = (props) => (
     <HeaderLink to="/editor" active={'editor' === props.app}>
       <FormattedMessage id="editor" defaultMessage="Editor" />
     </HeaderLink>
+    <HeaderSpacer />
+    <HeaderLink to="/wallet" active={'wallet' === props.app}>
+      <FormattedMessage id="wallet" defaultMessage="Wallet" />
+    </HeaderLink>
     <div className="header__filler" />
 
     {props.isAuthorized && (

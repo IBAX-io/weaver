@@ -1,10 +1,3 @@
-/*
- * @Author: abc
- * @Date: 2020-09-14 17:49:33
- * @LastEditors: abc
- * @LastEditTime: 2020-09-15 12:15:46
- * @Description: 
- */
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) IBAX All rights reserved.
  *  See LICENSE in the project root for license information.
@@ -18,13 +11,9 @@ declare module 'ibax/tx' {
         'warning' |
         'panic' |
         'E_GUEST_VIOLATION' |
+        'E_INVALID_TRANSFER' |
         'E_CONTRACT' |
         'E_SERVER';
-
-    interface ITxResult {
-        block: string;
-        result: string;
-    }
 
     interface IErrorRedirect {
         pagename: string;
@@ -36,12 +25,11 @@ declare module 'ibax/tx' {
     interface ITxError {
         errorRedirects?: IErrorRedirect;
         id?: string;
-        type: TTxError;
+        // Client errors above, or whatever type the node reports
+        type: TTxError | (string & {});
         error: string;
         params?: any[];
     }
-
-    interface ITxStatus extends ITxResult, ITxError { }
 
     interface ITransactionParam {
         type: string;
@@ -60,9 +48,19 @@ declare module 'ibax/tx' {
     interface ITransaction {
         name: string,
         hash: string,
-        status: ITxStatus;
+        // Node status once the transaction is in a block (/txstatus)
+        status: import('ibax/api').ITxStatus;
         body: ITransactionBody;
     }
+
+    // UTXO <-> Account balance of the signer (go-ibax smart.TransferSelf)
+    type TTransferSelfDirection = 'toAccount' | 'toUTXO';
+
+    // Value transfers that are not contract calls (go-ibax transaction types 5 and 6).
+    // Amounts are integers in the ecosystem's smallest unit.
+    type TTransferCall =
+        { type: 'utxo'; recipient: string; amount: string; comment: string } |
+        { type: 'transferSelf'; amount: string; direction: TTransferSelfDirection };
 
     interface ITransactionCall {
         uuid: string;
@@ -74,11 +72,13 @@ declare module 'ibax/tx' {
                 [key: string]: any;
             }[];
         }[];
+        transfers?: TTransferCall[];
         errorRedirects?: {
             [key: string]: IErrorRedirect;
         }
     }
 
+    // msgpack payload of a client transaction (go-ibax types.SmartTransaction)
     interface ITransactionBody {
         Header: {
             ID: number;
@@ -88,10 +88,19 @@ declare module 'ibax/tx' {
             NetworkID: number;
             PublicKey: Uint8Array;
         };
-        Params: {
+        Params?: {
             [key: string]: unknown;
         };
-      Lang: string;
-      
+        UTXO?: {
+            ToID: bigint;
+            Value: string;
+            Comment: string;
+        };
+        TransferSelf?: {
+            Value: string;
+            Source: string;
+            Target: string;
+        };
+        Lang: string;
     }
 }

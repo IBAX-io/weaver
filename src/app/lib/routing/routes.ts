@@ -7,6 +7,7 @@ import React from 'react';
 import Header from 'containers/Main/Header';
 import Navigator from 'containers/Main/Navigator';
 import Editor from 'containers/Main/Editor';
+import Wallet from 'components/Main/Wallet';
 
 interface RouteDict {
     [name: string]: {
@@ -31,5 +32,9 @@ export const routes: RouteDict = {
     editor: {
         Header,
         Content: Editor
+    },
+    wallet: {
+        Header,
+        Content: Wallet
     }
 };

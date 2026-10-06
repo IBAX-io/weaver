@@ -69,6 +69,22 @@ declare module 'ibax/api' {
     ecosystems: IEcosystemInfo[];
   }
 
+  interface IBalanceRequest {
+    // Account address or id
+    wallet: string;
+    ecosystem: string | number;
+  }
+
+  // Integers in the ecosystem's smallest unit; digits = decimals of the token
+  interface IBalanceResponse {
+    amount: string;
+    utxo: string;
+    total: string;
+    digits: number;
+    token_symbol: string;
+    token_name: string;
+  }
+
   interface ISystemParamsRequest {
     names: string[];
   }
