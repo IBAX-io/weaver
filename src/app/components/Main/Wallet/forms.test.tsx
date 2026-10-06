@@ -78,6 +78,25 @@ describe('wallet forms', () => {
         expect(onSubmit).not.toHaveBeenCalled();
     });
 
+    it('does not call an untouched recipient missing before the form is sent', async () => {
+        await utxoForm();
+        // Clicking into the field and out again
+        await act(() => {
+            field('wallet-utxo-recipient').focus();
+            field('wallet-utxo-recipient').blur();
+        });
+        expect(feedback()).toEqual([]);
+
+        // A mistyped address shows as soon as the field is left
+        // (the same focus and blur, so this also shows the blur above did reach the form)
+        await type('wallet-utxo-recipient', '0059-7920-1508-6419-2935');
+        await act(() => {
+            field('wallet-utxo-recipient').focus();
+            field('wallet-utxo-recipient').blur();
+        });
+        expect(feedback()).toEqual(['Not a valid address: check every digit']);
+    });
+
     it('ties each error to its field for screen readers', async () => {
         await utxoForm();
         await submit();

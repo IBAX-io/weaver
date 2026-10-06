@@ -31,10 +31,21 @@ const StyledWallet = themed.section`
         word-break: break-all;
     }
 
+    /* A balance stays one number: the font shrinks with the card (container units) rather than
+       the digits breaking onto a second line, which reads as another number */
+    .wallet__balance {
+        container-type: inline-size;
+    }
+
     .wallet__amount {
-        font-size: 1.5rem;
+        font-size: clamp(0.875rem, 6.5cqi, 1.5rem);
         font-weight: 600;
-        word-break: break-word;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.3;
+    }
+
+    .wallet__amount-value {
+        white-space: nowrap;
     }
 
     /* Secondary text that still has to be read: the theme's body color, not the faint muted grey */
@@ -185,16 +196,16 @@ const Wallet: React.FC = () => {
 
                 {balance && (
                     <>
-                        <Row xs={1} md={3} className="g-3 mb-4">
+                        <Row xs={1} lg={3} className="g-3 mb-4">
                             {BALANCES.map(item => (
                                 <Col key={item.key}>
                                     <Card className="h-100">
-                                        <Card.Body>
+                                        <Card.Body className="wallet__balance">
                                             <div className="wallet__hint small">
                                                 <FormattedMessage id={item.id} defaultMessage={item.defaultMessage} />
                                             </div>
                                             <div className="wallet__amount">
-                                                {formatAmount(balance.value[item.key], balance.value.digits)} <small>{balance.value.token_symbol}</small>
+                                                <span className="wallet__amount-value">{formatAmount(balance.value[item.key], balance.value.digits)}</span> <small>{balance.value.token_symbol}</small>
                                             </div>
                                         </Card.Body>
                                     </Card>
