@@ -3,9 +3,10 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import 'rxjs-compat';
 import 'rxjs';
 import 'lib/external/fsa';
-import { createStore, applyMiddleware, compose } from 'redux';
+import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { connectRouter, routerMiddleware } from 'connected-react-router';
 import { createEpicMiddleware } from 'redux-observable';
 import persistState, { mergePersistedState } from 'redux-localstorage';
@@ -13,9 +14,7 @@ import adapter from 'redux-localstorage/lib/adapters/localStorage';
 import filter from 'redux-localstorage-filter';
 import debounce from 'redux-localstorage-debounce';
 
-import { History } from 'history';
-import createHistory from 'history/createBrowserHistory';
-import createMemoryHistory from 'history/createMemoryHistory';
+import { History, createBrowserHistory, createMemoryHistory } from 'history';
 import rootReducer, { rootEpic, IRootState } from './modules';
 import platform from 'lib/platform';
 import dependencies from 'modules/dependencies';
@@ -24,17 +23,27 @@ import { Observable } from 'rxjs';
 
 export const history = platform.select<() => History>({
   desktop: createMemoryHistory,
-  web: createHistory
+  web: createBrowserHistory
 })();
 
-const reducer = platform.select({
-  web: compose(
-    mergePersistedState()
-  )(rootReducer),
-  desktop: rootReducer
-});
+const createRootReducer = (hist: History) => {
+  const combined = combineReducers<any>({
+    ...rootReducer,
+    router: connectRouter(hist)
+  });
+  return combined;
+};
 
-const storageAdapters = [
+const createPersistedReducer = (hist: History) => {
+  return platform.select({
+    web: compose(
+      mergePersistedState()
+    )(createRootReducer(hist)),
+    desktop: createRootReducer(hist)
+  });
+};
+
+const storageAdapters: any[] = [
   filter([
     'storage',
     'auth.isAuthenticated',
@@ -54,11 +63,14 @@ const storage = compose.apply(null, storageAdapters)(adapter(window.localStorage
 
 const configureStore = (initialState?: IRootState) => {
   const enhancers: any[] = [];
+
+  const epicMiddleware = createEpicMiddleware({
+    dependencies
+  });
+
   const middleware = [
     routerMiddleware(history),
-    createEpicMiddleware(rootEpic, {
-      dependencies
-    })
+    epicMiddleware
   ];
 
   if (process.env.NODE_ENV === 'development') {
@@ -78,11 +90,15 @@ const configureStore = (initialState?: IRootState) => {
     ...enhancers
   );
 
-  return createStore<IRootState>(
-    connectRouter(history)(reducer),
-    initialState!,
+  const store = createStore(
+    createPersistedReducer(history) as any,
+    initialState as any,
     composedEnhancers
   );
+
+  epicMiddleware.run(rootEpic as any);
+
+  return store;
 };
 
 const store = platform.select({
@@ -96,7 +112,7 @@ const store = platform.select({
     }) : configureStore();
 
     storeInstance.subscribe(() => {
-      const state = storeInstance.getState();
+      const state: any = storeInstance.getState();
       Electron.ipcRenderer.send('setState', {
         auth: state.auth,
         engine: state.engine,
@@ -111,10 +127,10 @@ const store = platform.select({
 // This is a stub value for observable store. It will be removed in the near future
 const getState$ = (stateStore: typeof store) =>
   new Observable<IRootState>(observer => {
-    observer.next(stateStore.getState());
+    observer.next(stateStore.getState() as any);
 
     const unsubscribe = store.subscribe(() => {
-      observer.next(stateStore.getState());
+      observer.next(stateStore.getState() as any);
     });
 
     return unsubscribe;

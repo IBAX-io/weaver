@@ -15,10 +15,10 @@ const ModalObservable = <T>(action$: ActionsObservable<Action>, params: { modal:
             .take(1)
             .flatMap(result => {
                 if ('RESULT' === result.payload.reason) {
-                    return params.success ? params.success(result.payload.data) : Observable.empty<never>();
+                    return params.success ? params.success(result.payload.data) : Observable.empty();
                 }
                 else {
-                    return params.failure ? params.failure(result.payload.reason) : Observable.empty<never>();
+                    return params.failure ? params.failure(result.payload.reason) : Observable.empty();
                 }
             }),
         Observable.of(modalShow(params.modal))

@@ -3,21 +3,19 @@
     "compilerOptions": {
         "outDir": "build/electron",
         "module": "commonjs",
-        "rootDir": "src/electron"
+        "target": "es2020",
+        "rootDir": "src/electron",
+        "isolatedModules": false,
+        "noEmit": false,
+        "skipLibCheck": true
     },
+    "include": [
+        "src/electron/**/*",
+        "src/defs/**/*",
+        "node_modules/electron/electron.d.ts"
+    ],
     "exclude": [
-        "node_modules",
-        "build",
-        "scripts",
-        "public/vs",
-        "util",
-        "acceptance-tests",
-        "webpack",
-        "jest",
-        "tests",
-        "releases",
-        "src/app/setupTests.ts",
-        "src/index.tsx",
-        "src/app"
+        "src/app",
+        "src/electron/**/*.test.ts"
     ]
 }

@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import * as actions from '../actions';
 import { IRootState } from 'modules';
 
-const copyTagEpic: Epic<Action, IRootState> =
+const copyTagEpic: Epic =
     (action$, store, { constructorModule }) => action$.ofAction(actions.copyTag.started)
         .map(action => {
             const state = store.getState().editor;
@@ -33,7 +33,7 @@ const copyTagEpic: Epic<Action, IRootState> =
                     switch (action.payload.position) {
                         case 'inside':
                             if (tag.el.children) {
-                                tag.el.children = [];
+                                (tag.el as any).children = [];
                             }
                             tag.el.children.push(tagCopy);
                             break;

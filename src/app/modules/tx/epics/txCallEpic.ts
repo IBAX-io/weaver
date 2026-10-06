@@ -21,7 +21,7 @@ const txCallEpic: Epic = (action$, store) => action$.ofAction(txCall)
                 .flatMap(result => Observable.if(
                     () => isType(result, txAuthorize.done),
                     Observable.of(txExec.started(action.payload)),
-                    Observable.empty<never>()
+                    Observable.empty()
                 ))
         )
     ));

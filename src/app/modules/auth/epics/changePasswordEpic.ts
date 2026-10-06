@@ -29,7 +29,7 @@ const changePasswordEpic: Epic = (action$, store, { api }) => action$.ofAction(c
                         }));
                     }
                     else {
-                        return Observable.empty<never>();
+                        return Observable.empty();
                     }
                 })
         );

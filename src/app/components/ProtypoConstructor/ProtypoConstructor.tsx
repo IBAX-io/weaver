@@ -53,7 +53,7 @@ class ProtypoConstructor extends React.Component<IProtypoConstructorProps> {
         return `${this.props.apiHost}${name}`;
     }
 
-    renderHandler(Handler: typeof resolveHandler, element: TProtypoElement, key: string): React.ReactNode {
+    renderHandler(Handler: any, element: TProtypoElement, key: string): React.ReactNode {
         const selected = this.props.selectedTag && this.props.selectedTag.id === element.id;
         return (
             <Handler

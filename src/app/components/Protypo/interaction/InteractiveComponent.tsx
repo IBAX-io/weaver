@@ -54,7 +54,7 @@ const bindComponent: <T>(Component: TComponentConstructor<T & IInteractiveCompon
             return null;
         }
         else {
-            return <Component {...props} />;
+            return <Component {...props as any} />;
         }
     };
     BoundComponent.contextTypes = {

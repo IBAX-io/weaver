@@ -5,7 +5,7 @@
 
 import * as _ from 'lodash';
 import syntax from './monarch';
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import * as monaco from 'monaco-editor';
 
 const langName = 'protypo';
 

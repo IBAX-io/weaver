@@ -5,7 +5,7 @@
 
 import { Action } from 'redux';
 import { Epic } from 'modules';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { txExec } from '../actions';
 import uuid from 'uuid';
 import Contract, { IContractParam } from 'lib/tx/contract';
@@ -26,14 +26,14 @@ export const txExecEpic: Epic = (action$, store, { api }) => action$.ofAction(tx
     const privateKey = state.auth.privateKey;
     const network = store.getState().storage.networks.find(l => l.uuid === state.auth.session.network.uuid);
 
-    return Observable.from(action.payload.contracts).flatMap(contract =>
+    return Observable.from(action.payload.contracts).flatMap((contract: any) =>
       Observable.from(client.getContract({
         name: contract.name
 
-      })).flatMap(proto => Observable.from(contract.params).flatMap(params =>
+      })).flatMap((proto: any) => Observable.from(contract.params).flatMap((params: any) =>
         Observable.from(proto.fields)
-          .filter(l => l.type === 'file' && params[l.name])
-          .flatMap(field => fileObservable(params[field.name])
+          .filter((l: any) => l.type === 'file' && params[l.name])
+          .flatMap((field: any) => fileObservable(params[field.name])
             .map(buffer => {
               const blob = params[field.name] as File;
               return {
@@ -145,7 +145,7 @@ export const txExecEpic: Epic = (action$, store, { api }) => action$.ofAction(tx
               return Observable.of(error).delay(TX_STATUS_INTERVAL);
 
             case 'E_ERROR':
-              return Observable.throw({
+              return throwError({
                 id: error.data.id,
                 type: error.data.type,
                 error: error.data.error,
@@ -153,7 +153,7 @@ export const txExecEpic: Epic = (action$, store, { api }) => action$.ofAction(tx
               });
 
             default:
-              return Observable.throw(error);
+              return throwError(error);
           }
 
         })));

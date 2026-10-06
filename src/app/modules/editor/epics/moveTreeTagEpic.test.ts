@@ -293,7 +293,7 @@ describe('moveTreeTagEpic', () => {
 
     dependencies.constructorModule.idGenerator.setCounter(15);
 
-    moveTreeTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
+    moveTreeTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
       .toArray()
       .subscribe(actualOutput => {
         expect(actualOutput).toEqual(expectedOutput);

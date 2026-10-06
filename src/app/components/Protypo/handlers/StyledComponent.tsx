@@ -13,5 +13,5 @@ interface IStyledComponentProps {
 }
 
 export default function styledComponent<T>(Component: TComponentConstructor<T & IStyledComponentProps>) {
-    return styled(Component) `${props => props.style}`;
+    return styled(Component) `${(props: any) => props.style}`;
 }

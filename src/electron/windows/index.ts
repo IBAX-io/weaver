@@ -20,13 +20,13 @@ export const appUrl =
   ENV !== 'production'
     ? `${PROTOCOL}://${HOST}:${PORT}`
     : url.format({
-      pathname: path.join(__dirname, '../../', 'app', 'index.html'),
+      pathname: path.join(__dirname, '..', '..', 'index.html'),
       protocol: 'file:',
       slashes: true,
     });
 
 export const spawnWindow = () => {
-  let wnd: BrowserWindow = mainWindow();
+  let wnd: BrowserWindow = mainWindow(appUrl);
 
   if (window) {
     window.close();

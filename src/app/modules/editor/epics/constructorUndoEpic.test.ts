@@ -363,7 +363,7 @@ describe('constructorUndoEpic', () => {
             }
         ];
 
-        constructorUndoEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
+        constructorUndoEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
             .toArray()
             .subscribe(actualOutput => {
                 expect(actualOutput).toEqual(expectedOutput);

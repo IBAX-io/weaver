@@ -27,7 +27,7 @@ describe('generatePageTemplateEpic', () => {
             }
         ];
 
-        generatePageTemplateEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
+        generatePageTemplateEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
             .toArray()
             .subscribe(actualOutput => {
                 expect(actualOutput).toEqual(expectedOutput);

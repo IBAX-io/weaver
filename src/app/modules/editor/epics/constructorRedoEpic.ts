@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import * as actions from '../actions';
 import { IRootState } from 'modules';
 import { Observable } from 'rxjs';
 
-const constructorRedoEpic: Epic<Action, IRootState> =
+const constructorRedoEpic: Epic =
     (action$, store, { constructorModule }) => action$.ofAction(actions.constructorRedo.started)
         .flatMap(action => {
             const state = store.getState().editor;

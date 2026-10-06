@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Epic } from 'modules';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { discoverNetwork } from '../actions';
 import NodeObservable from '../util/NodeObservable';
 import { discover } from 'services/network';
@@ -44,7 +44,7 @@ const setNetworkEpic: Epic = (action$, store, { api, defaultKey }) => action$.of
               honorNodes: result.honorNodes
             }))
           ))),
-        Observable.defer(() => Observable.throw(NetworkError.Offline))
+        Observable.defer(() => throwError(NetworkError.Offline))
       )
 
     ).catch((error: NetworkError) => Observable.of(discoverNetwork.failed({

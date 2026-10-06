@@ -7,6 +7,7 @@ import * as React from 'react';
 import { FormattedMessage } from 'react-intl';
 import { Button, Well } from 'react-bootstrap';
 import Cropper from 'react-cropper';
+import CropperJS from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
 import Modal from './';
@@ -19,7 +20,8 @@ export interface IImageEditorModalProps {
 }
 
 class ImageEditorModal extends Modal<IImageEditorModalProps, string> {
-    private _cropper: Cropper = null;
+    // react-cropper 2 forwards `ref` to the <img>; the cropperjs instance comes from onInitialized
+    private _cropper: CropperJS = null;
 
     onSuccess() {
         const input = this._cropper.getCroppedCanvas();
@@ -70,7 +72,7 @@ class ImageEditorModal extends Modal<IImageEditorModalProps, string> {
                         <FormattedMessage id="modal.imageeditor.desc" defaultMessage="Prepare your image for uploading by selecting which part of the image you want to use" />
                     </Well>
                     <Cropper
-                        ref={(ref: any) => this._cropper = ref}
+                        onInitialized={(instance: CropperJS) => { this._cropper = instance; }}
                         src={this.props.params.data}
                         style={{ maxHeight: 400, width: '100%' }}
                         aspectRatio={this.props.params.aspectRatio}

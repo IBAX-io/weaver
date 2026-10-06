@@ -472,7 +472,7 @@ describe('moveTagEpic', () => {
 
     dependencies.constructorModule.idGenerator.setCounter(15);
 
-    moveTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
+    moveTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
       .toArray()
       .subscribe(actualOutput => {
         expect(actualOutput).toEqual(expectedOutput);

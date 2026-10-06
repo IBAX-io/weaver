@@ -322,7 +322,7 @@ describe('saveConstructorHistory', () => {
             }
         ];
 
-        saveConstructorHistoryEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
+        saveConstructorHistoryEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
             .toArray()
             .subscribe(actualOutput => {
                 expect(actualOutput).toEqual(expectedOutput);

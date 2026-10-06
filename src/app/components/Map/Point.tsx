@@ -7,12 +7,12 @@ import React from 'react';
 import { loadModules } from 'react-arcgis';
 
 export interface IPointProps {
-    view?: __esri.MapView;
+    view?: any;
     coords: [number, number];
 }
 
 class Point extends React.Component<IPointProps> {
-    private _graphic: __esri.Graphic = null;
+    private _graphic: any = null;
 
     render() {
         return null as JSX.Element;
@@ -31,7 +31,7 @@ class Point extends React.Component<IPointProps> {
     }
 
     redraw(coords: [number, number]) {
-        loadModules(['esri/Graphic']).then((deps: [__esri.GraphicConstructor]) => {
+        loadModules(['esri/Graphic']).then((deps: [any]) => {
             const [Graphic] = deps;
 
             const point = {

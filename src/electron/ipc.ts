@@ -6,7 +6,7 @@
 import { ipcMain, Event } from 'electron';
 import config from './config';
 import args from './args';
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 export let state: any = null;
 let saveState = () => null as any;

@@ -5,7 +5,7 @@
 
 // tslint:disable:no-bitwise
 import jsrsasign from 'jsrsasign';
-import CryptoJS, { SHA256, SHA512, LibWordArray } from 'crypto-js';
+import CryptoJS, { SHA256, SHA512 } from 'crypto-js';
 import crc64 from './crc64';
 import Long from 'long';
 
@@ -66,7 +66,7 @@ export const sign = (data: string, privateKey: string): string => {
 export const publicToID = (publicKey: string) => {
     if (publicKey.startsWith('04')) {
         const keyDigest = SHA256(CryptoJS.enc.Hex.parse(publicKey.slice(2)));
-        const hashDigest = SHA512(keyDigest as any as LibWordArray).toString();
+        const hashDigest = SHA512(keyDigest as any).toString();
         const bytes = [];
         for (let i = 0; i < hashDigest.length; i += 2) {
             bytes.push(parseInt(hashDigest[i] + hashDigest[i + 1], 16));

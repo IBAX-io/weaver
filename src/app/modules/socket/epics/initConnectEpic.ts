@@ -16,7 +16,7 @@ const initConnectEpic: Epic = (action$, store, { api, defaultKey }) => action$.o
         const network = state.storage.networks.find(n => n.uuid === state.engine.guestSession.network.uuid);
 
         if (!network) {
-            return Observable.empty<never>();
+            return Observable.empty();
         }
 
         const publicKey = keyring.generatePublicKey(defaultKey);
@@ -41,7 +41,7 @@ const initConnectEpic: Epic = (action$, store, { api, defaultKey }) => action$.o
                     userID: loginResult.key_id
                 }))
             )
-            .catch((e: any) => Observable.empty<never>());
+            .catch((e: any) => Observable.empty());
     });
 
 export default initConnectEpic;

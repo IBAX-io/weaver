@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IRootState } from 'modules';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { Action } from 'redux';
 import { Observable } from 'rxjs/Observable';
 import { sendAttachment } from '../actions';
 import { sendAttachment as fsSend } from 'lib/fs';
 
-const sendAttachmentEpic: Epic<Action, IRootState> =
+const sendAttachmentEpic: Epic =
     (action$, store) => action$.ofAction(sendAttachment)
         .flatMap(action => {
             fsSend(action.payload.name, action.payload.data);

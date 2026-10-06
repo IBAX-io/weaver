@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { remote } from 'electron';
+import * as remote from '@electron/remote';
 import { FormattedMessage } from 'react-intl';
 
 import themed from 'components/Theme/themed';

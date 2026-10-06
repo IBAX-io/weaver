@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import 'rxjs';
 import 'lib/external/fsa';
-import IbaxAPI, { IRequestTransport, } from 'lib/IbaxAPI';
+import IbaxAPI, { IRequestTransport, } from 'lib/ibaxAPI';
 
 describe('getPageTreeEpic', () => {
   it('gets page tree json', () => {

@@ -26,7 +26,7 @@ const removeWalletEpic: Epic = (action$, store) => action$.ofAction(removeWallet
                         return Observable.of(removeStoredWallet(action.payload));
                     }
                     else {
-                        return Observable.empty<never>();
+                        return Observable.empty();
                     }
                 })
         )

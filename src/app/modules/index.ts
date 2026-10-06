@@ -22,7 +22,7 @@ import * as socket from './socket';
 import * as router from './router';
 import { ActionCreator, Failure, Success } from 'typescript-fsa';
 
-export type Epic = NativeEpic<Action, IRootState, IStoreDependencies>;
+export type Epic = NativeEpic<Action, Action, IRootState, IStoreDependencies>;
 export type Reducer<T, S> =
     T extends ActionCreator<Failure<infer P, infer E>> ? (state: S, payload: Failure<P, E>) => S :
     T extends ActionCreator<Success<infer P, infer R>> ? (state: S, payload: Success<P, R>) => S :
@@ -59,7 +59,7 @@ export const rootEpic = combineEpics(
     router.epic
 );
 
-export default combineReducers<IRootState>({
+const rootReducer = {
     auth: auth.reducer,
     content: content.reducer,
     sections: sections.reducer,
@@ -70,5 +70,6 @@ export default combineReducers<IRootState>({
     notifications: notifications.reducer,
     storage: storage.reducer,
     socket: socket.reducer,
-    router: router.reducer
-});
+};
+
+export default rootReducer;

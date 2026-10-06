@@ -27,7 +27,7 @@ const loadSavedWalletEpic: Epic = (action$, store, { api }) => action$.ofAction(
                 roles: key.roles || []
             }))
 
-        })).catch(e => Observable.empty<never>());
+        })).catch(e => Observable.empty());
     });
 
 export default loadSavedWalletEpic;

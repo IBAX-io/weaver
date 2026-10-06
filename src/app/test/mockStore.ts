@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Dispatch } from 'react-redux';
+import { Dispatch } from 'redux';
 import { IRootState } from 'modules';
 
-const state: IRootState = {
+const state: any = {
   auth: {
     isAuthenticated: true,
     isLoggingIn: false,
@@ -782,4 +782,4 @@ const MockStore = {
   dispatch
 };
 
-export default MockStore;
+export default MockStore as any;

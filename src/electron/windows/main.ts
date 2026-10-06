@@ -5,10 +5,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { BrowserWindow, shell } from 'electron';
+import { enable as remoteEnable } from '@electron/remote/main';
 import config from '../config';
 import calcScreenOffset from '../util/calcScreenOffset';
+import { isAppNavigation, isExternalUrlAllowed } from '../util/navigation';
 
-export default () => {
+export default (appUrl: string) => {
   const options = {
     minWidth: 800,
     minHeight: 600,
@@ -17,10 +19,15 @@ export default () => {
     resizable: true,
     show: false,
     maximized: config.get('maximized') || false,
-    ...calcScreenOffset(config.get('dimensions') || { width: 800, height: 600 })
+    ...calcScreenOffset(config.get('dimensions') || { width: 800, height: 600 }),
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
   };
 
   const window = new BrowserWindow(options);
+  remoteEnable(window.webContents);
 
   window.once('ready-to-show', () => {
     window.show();
@@ -28,12 +35,27 @@ export default () => {
 
   window.on('close', () => {
     config.set('dimensions', window.getBounds());
-    config.set('maximized', window.isMaximized() || window.isMaximized);
+    config.set('maximized', window.isMaximized());
   });
 
-  window.webContents.on('new-window', (event, url) => {
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (isExternalUrlAllowed(url)) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
+  window.webContents.on('will-navigate', (event, url) => {
+    if (!isAppNavigation(url, appUrl)) {
+      event.preventDefault();
+      if (isExternalUrlAllowed(url)) {
+        shell.openExternal(url);
+      }
+    }
+  });
+
+  window.webContents.on('will-attach-webview', event => {
     event.preventDefault();
-    shell.openExternal(url);
   });
 
   return window;

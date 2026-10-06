@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import * as classnames from 'classnames';
+import classnames from 'classnames';
 import ContentEditable from 'react-contenteditable';
 import TagWrapper from '../components/TagWrapper';
 import { OnPasteStripFormatting } from 'lib/constructor/helpers';
@@ -139,7 +139,7 @@ export default class EditableBlock extends React.Component<IEditableBlockProps, 
         );
     }
     renderChildren(classes: string) {
-        const Tag = `${this.renderTag}`;
+        const Tag = `${this.renderTag}` as any;
         return (
             <Tag
                 className={classes}

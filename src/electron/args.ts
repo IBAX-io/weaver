@@ -4,7 +4,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as commander from 'commander';
+import commander from 'commander';
 import { IInferredArguments } from 'ibax/gui';
 
 // Normalize electron launch arguments

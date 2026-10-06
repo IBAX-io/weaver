@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import * as classnames from 'classnames';
+import classnames from 'classnames';
 import DnDComponent from './DnDComponent';
 import EditableBlock from './EditableBlock';
 

@@ -130,7 +130,7 @@ class MapEditorModal extends Modal<IMapEditorModalProps, IMapEditorEvent, IMapEd
     }
 
     calcResult(coords: [number, number][], onResult: (result: string) => void) {
-        loadModules(['esri/tasks/Locator', 'esri/geometry/Polygon']).then((deps: [__esri.LocatorConstructor, __esri.PolygonConstructor]) => {
+        loadModules(['esri/tasks/Locator', 'esri/geometry/Polygon']).then((deps: [any, any]) => {
             const [Locator, Polygon] = deps;
             const locator = new Locator({
                 url: 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer'
@@ -172,7 +172,7 @@ class MapEditorModal extends Modal<IMapEditorModalProps, IMapEditorEvent, IMapEd
         });
     }
 
-    onClick = (e: __esri.MapViewClickEvent) => {
+    onClick = (e: any) => {
         const points = 'point' === this.state.tool ?
             List<[number, number]>([[e.mapPoint.longitude, e.mapPoint.latitude]]) :
             this.state.points.push([e.mapPoint.longitude, e.mapPoint.latitude]);
@@ -220,7 +220,7 @@ class MapEditorModal extends Modal<IMapEditorModalProps, IMapEditorEvent, IMapEd
     }
 
     onSuggestionsFetchRequested: SuggestionsFetchRequested = ({ value }) => {
-        loadModules(['esri/tasks/Locator']).then((deps: [__esri.LocatorConstructor]) => {
+        loadModules(['esri/tasks/Locator']).then((deps: [any]) => {
             const [Locator] = deps;
 
             const locator = new Locator({

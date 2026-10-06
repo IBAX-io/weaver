@@ -87,7 +87,8 @@ const sectionLoadEpic: Epic = (action$, store, { routerService }) => action$
     }).catch(e => {
         // tslint:disable-next-line: no-console
         console.log(e);
-        return Observable.of(e);
+        // Emitting a non-action terminates the whole rootEpic under redux-observable 1.x
+        return Observable.empty();
     });
 
 export default sectionLoadEpic;

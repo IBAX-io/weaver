@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { IRootState } from 'modules';
 import { saveWallet } from '../actions';
 import { createWallet } from 'modules/auth/actions';
 
-const saveWalletOnCreateEpic: Epic<Action, IRootState> =
+const saveWalletOnCreateEpic: Epic =
     (action$, store) => action$.ofAction(createWallet.done)
         .map(action =>
             saveWallet(action.payload.result)

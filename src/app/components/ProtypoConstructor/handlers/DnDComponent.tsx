@@ -196,6 +196,6 @@ type TComponentConstructor<T> = React.ComponentClass<T> | React.SFC<T>;
 
 export default function dndComponent<T>(Component: TComponentConstructor<T>) {
     return DragSource<T>(ItemTypes.SOURCE, Source, collectSource)(
-        DropTarget<T>(ItemTypes.SOURCE, Target, collectTarget)(Component)
+        DropTarget<T>(ItemTypes.SOURCE, Target, collectTarget)(Component as any) as any
     );
 }

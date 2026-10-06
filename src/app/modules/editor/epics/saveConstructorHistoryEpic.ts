@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import * as actions from '../actions';
 import { IRootState } from 'modules';
 
-const saveConstructorHistoryEpic: Epic<Action, IRootState> =
+const saveConstructorHistoryEpic: Epic =
     (action$, store) => action$.ofAction(actions.saveConstructorHistory.started)
         .map(action => {
             const state = store.getState().editor;

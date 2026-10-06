@@ -70,7 +70,7 @@ const initializeEpic: Epic = (action$, store, { defaultPassword }) => action$.of
         Observable.if(
           () => !!preconfiguredKey,
           Observable.of(saveWallet(preconfiguredKey)),
-          Observable.empty<never>()
+          Observable.empty()
         ),
         Observable.of(savePreconfiguredNetworks(preconfiguredNetworks)),
         Observable.of(initialize.done({

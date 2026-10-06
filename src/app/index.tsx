@@ -3,13 +3,14 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import 'react-app-polyfill/ie11';
+import 'babel-polyfill';
+import 'rxjs-compat';
 import React from 'react';
 import { Provider } from 'react-redux';
 import { ConnectedRouter } from 'connected-react-router';
 import { render } from 'react-dom';
 import store, { history } from 'store';
-import 'react-app-polyfill/ie11';
-import 'babel-polyfill';
 import 'jspolyfill-array.prototype.find';
 import 'font-awesome/css/font-awesome.css';
 import 'simple-line-icons/css/simple-line-icons.css';

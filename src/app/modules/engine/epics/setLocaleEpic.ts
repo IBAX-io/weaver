@@ -5,7 +5,7 @@
 
 import { Action } from 'redux';
 import { Observable } from 'rxjs';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { IRootState } from 'modules';
 import { setLocale } from '../actions';
 import { addLocaleData } from 'react-intl';
@@ -15,13 +15,13 @@ import urlJoin from 'url-join';
 
 const defaultLocale = 'en-US';
 
-const setLocaleEpic: Epic<Action, IRootState> =
+const setLocaleEpic: Epic =
     (action$, store) => action$.ofAction(setLocale.started)
         .delay(0)
         .flatMap(action => {
             const loadLocale = action.payload || defaultLocale;
             const requestUrl = platform.select({
-                web: urlJoin(process.env.PUBLIC_URL || location.origin, `locales/${loadLocale}.json`),
+                web: urlJoin(process.env.PUBLIC_URL || window.location.origin, `locales/${loadLocale}.json`),
                 desktop: `./locales/${loadLocale}.json`
             });
 

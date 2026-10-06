@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import * as actions from '../actions';
 import { IRootState } from 'modules';
 
-const moveTreeTagEpic: Epic<Action, IRootState> =
+const moveTreeTagEpic: Epic =
     (action$, store, { constructorModule }) => action$.ofAction(actions.moveTreeTag)
         .map(action => {
             const state = store.getState().editor;

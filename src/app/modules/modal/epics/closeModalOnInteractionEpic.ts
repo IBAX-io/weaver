@@ -20,7 +20,7 @@ const closeModalOnInteractionEpic: Epic = (action$, store) => action$.filter(act
                 reason: 'CANCEL',
                 data: null
             })),
-            Observable.empty<never>()
+            Observable.empty()
         );
     });
 

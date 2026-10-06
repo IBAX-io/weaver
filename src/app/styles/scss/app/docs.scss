@@ -43,7 +43,7 @@ $pre-width:       380px;
         color: $accent;
       }
       &:hover {
-        color: $accent*0.8;
+        color: mix(#000, $accent, 20%); // == libsass `$accent * 0.8`
         background-color: rgba(255,255,255,.75);
         text-decoration: none;
       }

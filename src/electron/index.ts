@@ -6,8 +6,11 @@
 require('module').globalPaths.push(__dirname);
 
 import { app } from 'electron';
+import { initialize as remoteInitialize } from '@electron/remote/main';
 import { spawnWindow, window } from './windows/index';
 import './ipc';
+
+remoteInitialize();
 
 app.on('ready', () => {
   spawnWindow();

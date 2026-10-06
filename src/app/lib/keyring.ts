@@ -153,7 +153,14 @@ const WORD_LIST = ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'ab
     'wolf', 'woman', 'wonder', 'wood', 'wool', 'word', 'work', 'world', 'worry', 'worth', 'wrap', 'wreck', 'wrestle', 'wrist', 'write',
     'wrong', 'yard', 'year', 'yellow', 'you', 'young', 'youth', 'zebra', 'zero', 'zone', 'zoo'];
 
-const randomEngine = Random();
+// Seed words must come from a CSPRNG. random-js falls back to Math.random when no engine is
+// given (and browserCrypto is null without window.crypto), so fail closed instead.
+const cryptoRandom = () => {
+    if (!Random.engines.browserCrypto) {
+        throw new Error('Secure random source (crypto.getRandomValues) is unavailable');
+    }
+    return new Random(Random.engines.browserCrypto);
+};
 const signAlg = 'SHA256withECDSA';
 const curveName = 'secp256r1';
 
@@ -171,6 +178,7 @@ const keyring = {
     },
 
     generateSeed: (count: number = 15) => {
+        const randomEngine = cryptoRandom();
         const result: string[] = [];
         for (let i = 0; i < count; i++) {
             const value = randomEngine.pick(WORD_LIST);

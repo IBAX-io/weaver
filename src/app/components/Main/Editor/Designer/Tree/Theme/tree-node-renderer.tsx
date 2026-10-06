@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { Children, cloneElement } from 'react';
-import * as classnames from 'classnames';
+import classnames from 'classnames';
 
 interface IFileThemeTreeNodeRendererProps {
   children: any;

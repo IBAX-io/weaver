@@ -9,17 +9,8 @@ import MonacoEditor from 'react-monaco-editor';
 import registerProtypo from './protypo';
 import registerSimvolio from './simvolio';
 
+import * as monacoEditor from 'monaco-editor';
 import { editor } from 'monaco-editor';
-import 'monaco-editor/esm/vs/editor/browser/controller/coreCommands.js';
-import 'monaco-editor/esm/vs/editor/contrib/bracketMatching/bracketMatching.js';
-import 'monaco-editor/esm/vs/editor/contrib/caretOperations/caretOperations.js';
-import 'monaco-editor/esm/vs/editor/contrib/caretOperations/transpose.js';
-import 'monaco-editor/esm/vs/editor/contrib/clipboard/clipboard.js';
-import 'monaco-editor/esm/vs/editor/contrib/find/findController.js';
-import 'monaco-editor/esm/vs/editor/contrib/multicursor/multicursor.js';
-import 'monaco-editor/esm/vs/editor/contrib/suggest/suggestController.js';
-import 'monaco-editor/esm/vs/editor/contrib/suggest/suggest.js';
-import * as monacoEditor from 'monaco-editor/esm/vs/editor/editor.api';
 
 registerProtypo(monacoEditor);
 registerSimvolio(monacoEditor);

@@ -28,7 +28,7 @@ const buttonInteractionEpic: Epic = (action$, store, { routerService }) => actio
                 action$.ofAction(modalClose).take(1).flatMap(modalPayload => Observable.if(
                     () => 'RESULT' === modalPayload.payload.reason,
                     Observable.of(rootAction),
-                    Observable.empty<never>()
+                    Observable.empty()
                 ))
             ),
             Observable.of(rootAction)
@@ -70,7 +70,7 @@ const buttonInteractionEpic: Epic = (action$, store, { routerService }) => actio
                             });
                         }
                         else {
-                            return Observable.empty<never>();
+                            return Observable.empty();
                         }
                     })
                 );
@@ -112,7 +112,7 @@ const buttonInteractionEpic: Epic = (action$, store, { routerService }) => actio
                     switch (buttonAction.name) {
                         case 'CREATE': return Observable.of(createEditorTab.started(buttonAction.params.Type));
                         case 'EDIT': return Observable.of(loadEditorTab.started({ type: buttonAction.params.Type, name: buttonAction.params.Name }));
-                        default: return Observable.empty<never>();
+                        default: return Observable.empty();
                     }
                 });
             }

@@ -19,7 +19,7 @@ export interface IMapViewProps {
     coords?: [number, number][];
     center?: [number, number];
     zoom?: number;
-    onClick?: (e: __esri.MapViewClickEvent) => void;
+    onClick?: (e: any) => void;
     onAreaChange?: (area: number) => void;
 }
 
@@ -39,7 +39,7 @@ const comparePoints = (a: [number, number], b: [number, number]) => {
 };
 
 class MapView extends React.Component<IMapViewProps> {
-    private _mapView: __esri.MapView = null;
+    private _mapView: any = null;
     private _defaultCenter = [36.07574221562708, 5.0921630859375];
 
     componentDidMount() {
@@ -61,11 +61,11 @@ class MapView extends React.Component<IMapViewProps> {
         }
     }
 
-    onLoad = (map: __esri.Map, view: __esri.MapView) => {
+    onLoad = (map: any, view: any) => {
         this._mapView = view;
 
         if (this.props.coords && this.props.coords.length) {
-            loadModules(['esri/geometry/Polygon']).then((value: [__esri.PolygonConstructor]) => {
+            loadModules(['esri/geometry/Polygon']).then((value: [any]) => {
                 const [PolygonGeometry] = value;
                 const polygon = new PolygonGeometry({
                     rings: [
@@ -87,7 +87,7 @@ class MapView extends React.Component<IMapViewProps> {
                 props.onAreaChange(0);
             }
             else {
-                loadModules(['esri/geometry/geometryEngine', 'esri/geometry/Polygon']).then((value: [__esri.geometryEngine, __esri.PolygonConstructor]) => {
+                loadModules(['esri/geometry/geometryEngine', 'esri/geometry/Polygon']).then((value: [any, any]) => {
                     const [geometryEngine, PolygonGeometry] = value;
                     const polygon = new PolygonGeometry({
                         rings: [

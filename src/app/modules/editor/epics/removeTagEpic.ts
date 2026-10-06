@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import * as actions from '../actions';
 import { IRootState } from 'modules';
 
-const removeTagEpic: Epic<Action, IRootState> =
+const removeTagEpic: Epic =
     (action$, store, { constructorModule }) => action$.ofAction(actions.removeTag.started)
         .map(action => {
             const state = store.getState().editor;

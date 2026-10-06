@@ -6,6 +6,11 @@
       "enabled": true
     },
     {
+      "key": "zh-CN",
+      "name": "简体中文",
+      "enabled": true
+    },
+    {
       "key": "tr-TR",
       "name": "Türkçe (TR)",
       "enabled": false

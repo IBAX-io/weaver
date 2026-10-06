@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { IRootState } from 'modules';
 import { unsubscribe } from '../actions';
 import { removeWallet } from 'modules/storage/actions';
 
-const unsubscribeRemovedWalletEpic: Epic<Action, IRootState> = (action$, store) => action$.ofAction(removeWallet)
+const unsubscribeRemovedWalletEpic: Epic = (action$, store) => action$.ofAction(removeWallet)
     .map(action =>
         unsubscribe.started(action.payload)
     );

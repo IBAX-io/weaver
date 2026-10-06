@@ -61,7 +61,7 @@ const renderPageEpic: Epic = (action$, store, { api }) => action$.ofAction(rende
 
         }).catch(e => Observable.of(renderPage.failed({
             params: action.payload,
-            error: e.error
+            error: (e && (e.error || e.message)) || 'E_SERVER'
         })));
     });
 

@@ -9,7 +9,14 @@ import { acquireSession } from '../actions';
 import { ISection } from 'ibax/content';
 import { sectionsInit } from 'modules/sections/actions';
 import { fetchNotifications, ecosystemInit } from 'modules/content/actions';
+import { modalShow } from 'modules/modal/actions';
 import { Observable } from 'rxjs';
+
+// Must match the auth.error.* keys in public/locales/*.json
+export const DISPLAYABLE_AUTH_ERRORS = [
+    'E_INVALID_KEY', 'E_INVALID_PASSWORD', 'E_KEYNOTFOUND', 'E_DELETEDKEY',
+    'E_OFFLINE', 'E_SERVER', 'E_UPDATING', 'E_TOKENEXPIRED'
+];
 
 enum RemoteSectionStatus {
     Removed = '0',
@@ -68,10 +75,24 @@ const acquireSessionEpic: Epic = (action$, store, { api }) => action$.ofAction(a
                     result: true
                 })
             );
-        }).catch(e => Observable.of(acquireSession.done({
-            params: action.payload,
-            result: false
-        })));
+        }).catch(e => {
+            const rawError = (e && (e.error || e.message)) || 'E_OFFLINE';
+            const error = typeof rawError === 'string' ? rawError : 'E_SERVER';
+            return Observable.of<Action>(
+                acquireSession.failed({
+                    params: action.payload,
+                    error
+                }),
+                modalShow({
+                    id: 'AUTH_ERROR',
+                    type: 'AUTH_ERROR',
+                    params: {
+                        // Only codes with an auth.error.* translation reach the UI; raw exception text never does
+                        error: DISPLAYABLE_AUTH_ERRORS.indexOf(error) !== -1 ? error : 'E_SERVER'
+                    }
+                })
+            );
+        });
     });
 
 export default acquireSessionEpic;

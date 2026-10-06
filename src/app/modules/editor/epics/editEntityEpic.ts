@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { Observable } from 'rxjs';
 import { IRootState } from 'modules';
 import { txExec } from 'modules/tx/actions';
@@ -17,10 +17,10 @@ const connections = {
     '@1EditMenu': 'menu'
 };
 
-const editEntityEpic: Epic<Action, IRootState> = (action$, store) => action$.ofAction(txExec.done)
-    .flatMap(action => Observable.from(action.payload.params.contracts)
-        .filter(l => connections[l.name])
-        .flatMap(contract => Observable.from(contract.params).map(params =>
+const editEntityEpic: Epic = (action$, store) => action$.ofAction(txExec.done)
+    .flatMap(action => Observable.from(action.payload.params.contracts as any[])
+        .filter((l: any) => connections[l.name])
+        .flatMap((contract: any) => Observable.from(contract.params).map((params: any) =>
             reloadEditorTab({
                 type: connections[contract.name],
                 id: params.Id,

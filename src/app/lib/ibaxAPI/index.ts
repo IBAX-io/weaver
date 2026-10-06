@@ -85,7 +85,8 @@ class IbaxAPI {
         }))
 
       ).catch(e => {
-        throw e && e.response && e.response.data ? e.response.data.error : null;
+        const apiError = e && e.response && e.response.data ? e.response.data.error : null;
+        throw apiError || { error: 'E_OFFLINE' };
       }),
       apiEndpoint: 'api/v2',
       ...options

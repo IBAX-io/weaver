@@ -7,6 +7,8 @@ import React from 'react';
 import { INetworkEndpoint } from 'ibax/auth';
 import { Route } from 'react-router-dom';
 import { FormattedMessage, IntlProvider } from 'react-intl';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { mainRoute } from 'lib/routing';
 import platform from 'lib/platform';
 import classnames from 'classnames';
@@ -57,7 +59,7 @@ class App extends React.Component<AppProps> {
   }
 
   render() {
-    const appTitle = `Ibax ${this.props.network ? '(' + this.props.network.apiHost + ')' : ''
+    const appTitle = `Weaver ${this.props.network ? '(' + this.props.network.apiHost + ')' : ''
       }`;
     // console.log(this.props);
     const classes = classnames({
@@ -69,6 +71,7 @@ class App extends React.Component<AppProps> {
     });
 
     return (
+      <DndProvider backend={HTML5Backend}>
       <IntlProvider
         key={this.props.locale}
         locale={this.props.locale}
@@ -112,6 +115,7 @@ class App extends React.Component<AppProps> {
           </ThemedApp>
         </ThemeProvider>
       </IntlProvider>
+      </DndProvider>
     );
   }
 }

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import * as classnames from 'classnames';
+import classnames from 'classnames';
 import styled from 'styled-components';
 
 const Wrapper = styled.span`

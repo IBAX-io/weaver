@@ -6,7 +6,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import imgControls from './wndControls.svg';
-import { remote } from 'electron';
+import * as remote from '@electron/remote';
 import { ITitlebarProps } from './';
 
 import SystemMenu from 'containers/Titlebar/SystemMenu';

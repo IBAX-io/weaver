@@ -28,7 +28,7 @@ const DocumentTitle: React.SFC<IDocumentTitleProps & InjectedIntlProps> = (
       });
 
   return (
-    <NativeDocumentTitle title={title}>{props.children}</NativeDocumentTitle>
+    <NativeDocumentTitle title={title}>{props.children as any}</NativeDocumentTitle>
   );
 };
 

@@ -6,7 +6,7 @@
 import IbaxAPI, { IRequestTransport, TRequestMethod } from '.';
 import { IContentRequest } from 'ibax/api';
 
-class FormDataMock implements FormData {
+class FormDataMock {
     private _values: { [key: string]: any } = {};
 
     public append(name: string, value: string | Blob, fileName?: string) {

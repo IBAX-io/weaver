@@ -12,7 +12,7 @@ export default class extends React.Component {
       <div className="preloader">
         <div className="content">
           <div className="loader">
-            IBAX
+            Weaver
           </div>
           <div className="version">{process.env.REACT_APP_VERSION}</div>
         </div>

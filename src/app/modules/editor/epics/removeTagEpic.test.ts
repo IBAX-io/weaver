@@ -378,7 +378,7 @@ describe('removeTagEpic', () => {
             }
         ];
 
-        removeTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
+        removeTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
             .toArray()
             .subscribe(actualOutput => {
                 expect(actualOutput).toEqual(expectedOutput);

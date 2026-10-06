@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import Transition from 'react-transition-group/Transition';
+import TransitionAny from './TransitionShim';
 
 const animationDuration = 200;
 const containerAnimationDef = {
@@ -73,7 +73,7 @@ export interface IDropdownProps {
 }
 
 const Dropdown: React.SFC<IDropdownProps> = (props) => (
-  <Transition in={props.visible} timeout={animationDuration}>
+  <TransitionAny in={props.visible} timeout={animationDuration}>
     {(state: string) => (
       <div
         style={{
@@ -95,7 +95,7 @@ const Dropdown: React.SFC<IDropdownProps> = (props) => (
         </div>
       </div>
     )}
-  </Transition>
+  </TransitionAny>
 );
 
 export default Dropdown;

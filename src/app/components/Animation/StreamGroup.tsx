@@ -4,8 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import Transition from 'react-transition-group/Transition';
-import TransitionGroup from 'react-transition-group/TransitionGroup';
+import TransitionAny from './TransitionShim';
+import TransitionGroupOrig from 'react-transition-group/TransitionGroup';
+const TransitionGroup = TransitionGroupOrig as any;
 
 const animationDuration = 300;
 const animationDef = {
@@ -33,13 +34,13 @@ const animationDef = {
 };
 
 const Fade: React.SFC<{ in?: boolean }> = (props) => (
-  <Transition in={props.in} timeout={{ enter: 0, exit: animationDuration }}>
+  <TransitionAny in={props.in} timeout={{ enter: 0, exit: animationDuration }}>
     {(state: string) => (
       <div style={{ ...animationDef.defaultStyle, ...animationDef[state] }}>
         {props.children}
       </div>
     )}
-  </Transition>
+  </TransitionAny>
 );
 
 export interface IStreamGroupProps {

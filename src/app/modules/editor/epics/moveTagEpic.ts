@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import * as actions from '../actions';
 import { IRootState } from 'modules';
 
-const moveTagEpic: Epic<Action, IRootState> =
+const moveTagEpic: Epic =
   (action$, store, { constructorModule }) => action$.ofAction(actions.moveTag.started)
     .map(action => {
       const state = store.getState().editor;
@@ -32,7 +32,7 @@ const moveTagEpic: Epic<Action, IRootState> =
                 const Tag = new Handler();
                 if (Tag.canHaveChildren) {
                   if (!tag.el.children) {
-                    tag.el.children = [];
+                    (tag.el as any).children = [];
                   }
                   tag.el.children.push(tagCopy);
                   moved = true;

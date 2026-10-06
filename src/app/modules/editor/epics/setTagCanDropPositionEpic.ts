@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import * as actions from '../actions';
 import { IRootState } from 'modules';
 
-const setTagCanDropPositionEpic: Epic<Action, IRootState> =
+const setTagCanDropPositionEpic: Epic =
     (action$, store, { constructorModule }) => action$.ofAction(actions.setTagCanDropPosition.started)
         .map(action => {
             const state = store.getState().editor;
@@ -16,7 +16,7 @@ const setTagCanDropPositionEpic: Epic<Action, IRootState> =
             const tabData = tab && tab.data || null;
             let jsonData = tabData.jsonData && constructorModule.copyObject(tabData.jsonData) || null;
 
-            let tag = constructorModule.findTagById(jsonData, action.payload.tagID).el;
+            let tag: any = constructorModule.findTagById(jsonData, action.payload.tagID).el;
             if (tag) {
                 if (!tag.sysAttr) {
                     tag.sysAttr = {};

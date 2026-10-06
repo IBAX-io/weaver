@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IRootState } from 'modules';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { Action } from 'redux';
 import { txExec } from '../actions';
 import { reloadStylesheet } from 'modules/content/actions';
 import { Observable } from 'rxjs';
 
-const reloadStylesheetEpic: Epic<Action, IRootState> =
+const reloadStylesheetEpic: Epic =
     (action$, store) => action$.ofAction(txExec.done)
         .filter(l => !!l.payload.params.contracts.find(c => /^(@1)?EditParameter$/.test(c.name) && !!c.params.find(p => 'stylesheet' === p.name)))
         .flatMap(s => Observable.from(s.payload.params.contracts))

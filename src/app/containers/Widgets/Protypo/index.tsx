@@ -8,6 +8,7 @@ import { IRootState } from 'modules';
 import { displayData } from 'modules/content/actions';
 import { menuPush } from 'modules/sections/actions';
 import { TProtypoElement } from 'ibax/protypo';
+import Protypo from 'components/Protypo';
 
 export interface IProtypoProps {
     wrapper?: JSX.Element;
@@ -17,8 +18,6 @@ export interface IProtypoProps {
     section: string;
     content: TProtypoElement[];
 }
-
-import Protypo from 'components/Protypo';
 
 const mapStateToProps = (state: IRootState, props: IProtypoProps) => ({
     apiHost: state.auth.session && (state.auth.session.network.apiHost + '/api/v2'),

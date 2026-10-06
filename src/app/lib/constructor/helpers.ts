@@ -3,9 +3,9 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-declare const window: Window & { clipboardData: any };
 import { idGenerator } from 'lib/constructor';
 import { TProtypoElement } from 'ibax/protypo';
+declare const window: Window & { clipboardData: any };
 
 export function isSimpleBody(body: string): boolean {
     return typeof body === 'string' && body.indexOf('(') === -1;

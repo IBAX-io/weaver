@@ -62,8 +62,10 @@ const subscribeEpic: Epic = (action$, store) => action$.ofAction(subscribe.start
                     });
 
                     platform.on('desktop', () => {
-                        const Electron = require('electron');
-                        Electron.remote.app.setBadgeCount(count);
+                        // Electron >= 14 removed the built-in `remote`; it lives in @electron/remote now.
+                        // Required lazily so the web build never resolves the commonjs external.
+                        const remote = require('@electron/remote');
+                        remote.app.setBadgeCount(count);
                     });
                 });
 

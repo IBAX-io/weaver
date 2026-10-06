@@ -46,28 +46,20 @@ export const encodeLength = (length: number): Uint8Array => {
 };
 
 export const concatBuffer = (a: Uint8Array | ArrayBuffer, b: Uint8Array | ArrayBuffer): ArrayBuffer => {
-    if (a instanceof ArrayBuffer) {
-        a = new Uint8Array(a);
-    }
+    const ua = a instanceof ArrayBuffer ? new Uint8Array(a) : a;
+    const ub = b instanceof ArrayBuffer ? new Uint8Array(b) : b;
 
-    if (b instanceof ArrayBuffer) {
-        b = new Uint8Array(b);
-    }
+    const uint8 = new Uint8Array(ua.length + ub.length);
 
-    const uint8 = new Uint8Array(a.length + b.length);
-
-    uint8.set(a, 0);
-    uint8.set(b, a.length);
+    uint8.set(ua, 0);
+    uint8.set(ub, ua.length);
 
     return uint8.buffer;
 };
 
 export const encodeLengthPlusData = (buffer: Uint8Array | ArrayBuffer): ArrayBuffer => {
-    if (buffer instanceof ArrayBuffer) {
-        buffer = new Uint8Array(buffer);
-    }
-
-    return concatBuffer(encodeLength(buffer.length), buffer);
+    const buf = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
+    return concatBuffer(encodeLength(buf.length), buf);
 };
 
 export const toMoney = (value: number | string) => {

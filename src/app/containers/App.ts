@@ -5,9 +5,7 @@
 
 import { connect } from 'react-redux';
 import { IRootState } from 'modules';
-import { DragDropContext } from 'react-dnd';
 import { initialize } from 'modules/engine/actions';
-import HTML5Backend from 'react-dnd-html5-backend';
 
 import App from 'components/App';
 
@@ -27,6 +25,4 @@ const mapDispatchToProps = {
   initialize: initialize.started
 };
 
-export default DragDropContext(HTML5Backend)(
-  connect(mapStateToProps, mapDispatchToProps, null, { pure: false })(App)
-);
+export default connect(mapStateToProps, mapDispatchToProps, null, { pure: false })(App as any);

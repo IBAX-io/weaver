@@ -7,12 +7,12 @@ import React from 'react';
 import { loadModules } from 'react-arcgis';
 
 export interface IPolygonProps {
-    view?: __esri.MapView;
+    view?: any;
     rings: [number, number][];
 }
 
 class Polygon extends React.Component<IPolygonProps> {
-    private _graphic: __esri.Graphic = null;
+    private _graphic: any = null;
 
     render() {
         return null as JSX.Element;
@@ -31,7 +31,7 @@ class Polygon extends React.Component<IPolygonProps> {
     }
 
     redraw(rings: [number, number][]) {
-        loadModules(['esri/Graphic']).then((deps: [__esri.GraphicConstructor]) => {
+        loadModules(['esri/Graphic']).then((deps: [any]) => {
             const [Graphic] = deps;
 
             const polygon = {

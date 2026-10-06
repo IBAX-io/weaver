@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { Observable } from 'rxjs';
 import { IRootState } from 'modules';
 import { generatePageTemplate, updateEditorTab, setPageTemplate } from '../actions';
 
-const generatePageTemplateEpic: Epic<Action, IRootState> =
+const generatePageTemplateEpic: Epic =
     (action$, store, { constructorModule }) => action$.ofAction(generatePageTemplate)
         .flatMap(action => {
             const state = store.getState().editor;

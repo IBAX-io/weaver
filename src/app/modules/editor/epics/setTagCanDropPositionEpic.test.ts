@@ -403,7 +403,7 @@ describe('setTagCanDropPositionEpic', () => {
 
         dependencies.constructorModule.idGenerator.setCounter(14);
 
-        setTagCanDropPositionEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
+        setTagCanDropPositionEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
             .toArray()
             .subscribe(actualOutput => {
                 expect(actualOutput).toEqual(expectedOutput);

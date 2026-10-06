@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { IRootState } from 'modules';
 import { unsubscribe } from '../actions';
 
-const unsubscribeEpic: Epic<Action, IRootState> =
+const unsubscribeEpic: Epic =
     (action$, store) => action$.ofAction(unsubscribe.started)
         .map(action => {
             const sub = store.getState().socket.subscriptions.find(l => l.wallet.id === action.payload.id);

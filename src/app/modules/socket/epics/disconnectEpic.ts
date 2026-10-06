@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { IRootState } from 'modules';
 import { disconnect } from '../actions';
 
-const disconnectEpic: Epic<Action, IRootState> = (action$, store) => action$.ofAction(disconnect.started)
+const disconnectEpic: Epic = (action$, store) => action$.ofAction(disconnect.started)
     .map(action => {
         const socket = store.getState().socket.socket;
 

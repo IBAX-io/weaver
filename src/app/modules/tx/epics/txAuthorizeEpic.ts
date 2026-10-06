@@ -5,7 +5,7 @@
 
 import uuid from 'uuid';
 import { IRootState } from 'modules';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { Action } from 'redux';
 import { Observable } from 'rxjs';
 import { modalShow, modalClose } from 'modules/modal/actions';
@@ -14,7 +14,7 @@ import { authorize } from 'modules/auth/actions';
 import keyring from 'lib/keyring';
 import { enqueueNotification } from 'modules/notifications/actions';
 
-const txAuthorizeEpic: Epic<Action, IRootState> =
+const txAuthorizeEpic: Epic =
     (action$, store) => action$.ofAction(txAuthorize.started)
         .switchMap(action => {
             const state = store.getState();

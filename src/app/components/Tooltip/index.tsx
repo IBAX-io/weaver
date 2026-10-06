@@ -95,7 +95,7 @@ class Tooltip extends React.Component<ITooltipProps, ITooltipState> {
                     {this.props.children}
                 </div>
                 <StyledTooltip
-                    innerRef={l => this._tooltip = l}
+                    ref={(l: any) => this._tooltip = l}
                     style={{
                         top: this.state.active ? this.state.position.top : -50000,
                         left: this.state.active ? this.state.position.left : -50000

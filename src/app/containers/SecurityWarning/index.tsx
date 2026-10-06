@@ -32,4 +32,4 @@ const mapDispatchToProps = {
     close: closeSecurityWarning
 };
 
-export default connect<ISecurityWarningContainerState, ISecurityWarningContainerDispatch, ISecurityWarningContainerProps>(mapStateToProps, mapDispatchToProps)(SecurityWarningContainer);
+export default connect(mapStateToProps, mapDispatchToProps)(SecurityWarningContainer as any);

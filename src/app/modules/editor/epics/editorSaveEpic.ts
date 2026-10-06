@@ -6,7 +6,7 @@
 import * as actions from '../actions';
 import uuid from 'uuid';
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { IRootState } from 'modules';
 import { txCall } from 'modules/tx/actions';
 
@@ -17,7 +17,7 @@ const connections = {
     block: '@1EditBlock',
 };
 
-const editorSaveEpic: Epic<Action, IRootState> = (action$, store) => action$.ofAction(actions.editorSave)
+const editorSaveEpic: Epic = (action$, store) => action$.ofAction(actions.editorSave)
     .filter(l => !l.payload.new && connections[l.payload.type])
     .map(action =>
         txCall({

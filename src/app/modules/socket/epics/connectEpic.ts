@@ -5,13 +5,13 @@
 
 import { Action } from 'redux';
 import { Observable } from 'rxjs/Observable';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { IRootState } from 'modules';
 import { connect, disconnect, setConnected } from '../actions';
 import Centrifuge from 'centrifuge';
 import { Observer } from 'rxjs';
 
-const connectEpic: Epic<Action, IRootState> =
+const connectEpic: Epic =
     (action$, store) => action$.ofAction(connect.started)
         .flatMap(action => {
             if (action.payload.wsHost && action.payload.userID && action.payload.timestamp && action.payload.socketToken) {

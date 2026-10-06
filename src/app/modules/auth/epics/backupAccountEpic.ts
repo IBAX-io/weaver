@@ -30,7 +30,7 @@ const backupAccountEpic: Epic = (action$, store) => action$.ofAction(backupAccou
                             type: 'BACKUP',
                             params: {}
                         }))),
-                        Observable.empty<never>()
+                        Observable.empty()
                     ))
             )
         )

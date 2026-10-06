@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import Transition from 'react-transition-group/Transition';
+import TransitionAny from 'components/Animation/TransitionShim';
 import themed from 'components/Theme/themed';
 import platform from 'lib/platform';
 
@@ -189,15 +189,15 @@ class ModalWrapper extends React.Component<IModalWrapperProps, IModalWrapperStat
 
     render() {
         return (
-            <Transition in={this.state.active} timeout={containerAnimationDuration} onEntered={this.onEntered} onExited={this.onExited} unmountOnExit>
+            <TransitionAny in={this.state.active} timeout={containerAnimationDuration} onEntered={this.onEntered} onExited={this.onExited} unmountOnExit>
                 {(state: string) => (
                     <StyledModalWrapper style={{ ...containerAnimationDef.defaultStyle, ...containerAnimationDef[state] }}>
-                        <Transition in={state === 'entered'} timeout={childAnimationDuration}>
+                        <TransitionAny in={state === 'entered'} timeout={childAnimationDuration}>
                             {this.renderChild.bind(this)}
-                        </Transition>
+                        </TransitionAny>
                     </StyledModalWrapper>
                 )}
-            </Transition>
+            </TransitionAny>
 
         );
     }

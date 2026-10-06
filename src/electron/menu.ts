@@ -8,7 +8,7 @@ import { window } from './windows';
 
 const template: MenuItemConstructorOptions[] = [
   {
-    label: 'Ibax',
+    label: 'Weaver',
     submenu: [
       { label: 'Quit', accelerator: 'Command+Q', click: app.quit }
     ]
@@ -22,7 +22,7 @@ const template: MenuItemConstructorOptions[] = [
       { label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut' },
       { label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy' },
       { label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste' },
-      { label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectall' }
+      { label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectAll' }
     ]
   },
   {

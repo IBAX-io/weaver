@@ -278,7 +278,7 @@ class Constructor extends React.Component<
               onMoveNode={(args) => {
                 this.props.moveTreeTag({
                   treeData: this.state.treeData,
-                  tagID: args.node.id
+                  tagID: (args.node as any).id
                 });
               }}
               scaffoldBlockPxWidth={10}
@@ -294,7 +294,7 @@ class Constructor extends React.Component<
                 color: '#FFFFFF'
               }}
               theme={TreeTheme}
-              generateNodeProps={({ node, path }) => ({
+              generateNodeProps={({ node, path }: any) => ({
                 title: (
                   <span
                     onClick={() => {

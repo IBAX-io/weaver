@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { Epic } from 'modules';
 import { IRootState } from 'modules';
 import { resetEditorTab, revertEditorTab } from '../actions';
 import { Observable } from 'rxjs';
 import { modalShow } from 'modules/modal/actions';
 
-const revertEditorTabEpic: Epic<Action, IRootState> = (action$, store) => action$.ofAction(revertEditorTab)
+const revertEditorTabEpic: Epic = (action$, store) => action$.ofAction(revertEditorTab)
     .flatMap(action => {
         const state = store.getState();
         const tab = state.editor.tabs.find(t => t.uuid === action.payload);

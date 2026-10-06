@@ -36,4 +36,4 @@ const mapDispatchToProps = {
     destroyNotification
 };
 
-export default connect<INotificationsProviderContainerState, INotificationsProviderContainerDispatch, INotificationsProviderContainerProps>(mapStateToProps, mapDispatchToProps)(NotificationsProviderContainer);
+export default connect(mapStateToProps, mapDispatchToProps)(NotificationsProviderContainer as any);

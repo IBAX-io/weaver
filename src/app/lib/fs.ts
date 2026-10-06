@@ -5,8 +5,8 @@
 
 export const sendAttachment = (filename: string, data: string, mime = 'text/plain') => {
     const blob = new Blob([data], { type: `${mime};charset=utf-8;` });
-    if (navigator.msSaveBlob) {
-        navigator.msSaveBlob(blob, filename);
+    if ((navigator as any).msSaveBlob) {
+        (navigator as any).msSaveBlob(blob, filename);
     }
     else {
         const link = document.createElement('a');
@@ -34,7 +34,7 @@ export const readBinaryFile = (file: Blob) => {
     return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
-            const loadedFile = reader.result;
+            const loadedFile = reader.result as string;
             loadedFile ? resolve(loadedFile) : reject();
         };
         reader.readAsDataURL(file);

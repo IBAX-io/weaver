@@ -24,7 +24,7 @@ interface IChartContext {
     resolveSource: (name: string) => ISource;
 }
 
-const chartTypes: { [K in TChartType]: new () => ChartComponent<any> } = {
+const chartTypes: { [K in TChartType]: any } = {
     bar: Bar,
     line: Line,
     pie: Pie

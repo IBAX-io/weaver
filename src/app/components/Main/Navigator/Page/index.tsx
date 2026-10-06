@@ -45,8 +45,8 @@ const Page: React.SFC<IPageProps> = (props) => {
     const title =
       props.value.location &&
       props.value.location.state &&
-      props.value.location.state.from &&
-      props.value.location.state.from.title;
+      (props.value.location.state as any).from &&
+      (props.value.location.state as any).from.title;
 
     return (
       <DocumentTitle title={title}>

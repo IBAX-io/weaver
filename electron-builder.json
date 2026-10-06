@@ -1,13 +1,25 @@
 {
-    "productName": "IBAX",
-    "appId": "space.ibax.molis",
+    "productName": "Weaver",
+    "appId": "space.ibax.weaver",
+    "extends": null,
     "files": [
-        "app/",
-        "electron/"
+        "**/*",
+        "!node_modules/.cache",
+        "!**/*.map"
     ],
     "directories": {
         "app": "build",
         "buildResources": "src/resources",
         "output": "releases"
+    },
+    "mac": {
+        "target": "dmg",
+        "category": "public.app-category.developer-tools"
+    },
+    "win": {
+        "target": "nsis"
+    },
+    "linux": {
+        "target": "AppImage"
     }
 }
