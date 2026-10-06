@@ -185,7 +185,7 @@
   "interface.menu": "Menü",
   "interface.page": "Sayfa",
   "legal.about": "Weaver - IBAX tarafından geliştirilen bir yazılım ürünü. IBAX Protokolünü kullanmak için oluşturulmuş blokchain networküyle çalışır",
-  "legal.copy": "IBAX © 2019 - 2022",
+  "legal.copy": "IBAX © 2019 – {year}",
   "legal.homepage": "https://ibax.io",
   "map.area": "Alan: {value}",
   "map.editor": "Harita editor",

@@ -185,7 +185,7 @@
   "interface.menu": "菜单",
   "interface.page": "页面",
   "legal.about": "Weaver - 由 IBAX 开发的软件产品。它与使用 IBAX 协议构建的区块链网络配合使用",
-  "legal.copy": "IBAX © 2019 - 2022",
+  "legal.copy": "IBAX © 2019 – {year}",
   "legal.homepage": "https://ibax.io",
   "map.area": "面积：{value}",
   "map.editor": "地图编辑器",

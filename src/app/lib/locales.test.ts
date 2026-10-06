@@ -69,6 +69,10 @@ describe('locales', () => {
         expect(BUILT_KEYS.filter(key => !(key in messages))).toEqual([]);
     });
 
+    it.each(localeFiles)('%s dates its copyright to the current year, not a fixed one', file => {
+        expect(load(file)['legal.copy']).toContain('{year}');
+    });
+
     it.each(localeFiles)('%s translates every displayable auth error', file => {
         const messages = load(file);
         DISPLAYABLE_AUTH_ERRORS.forEach(code => {

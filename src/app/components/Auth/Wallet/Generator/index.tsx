@@ -65,7 +65,8 @@ const Generator: React.FC<IWalletGeneratorProps> = (props) => (
               }
             />
           </div>
-          <div>
+          {/* The tools side by side, a third each (Bootstrap 5 columns need a row) */}
+          <div className="row g-0">
             {props.onGenerate && (
               <GeneratorTool onClick={props.onGenerate}>
                 <FormattedMessage

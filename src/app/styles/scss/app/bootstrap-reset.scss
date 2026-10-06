@@ -80,6 +80,29 @@ a {
   }
 }
 
+// Form controls take the text color around them, as Bootstrap 3's normalize made them do; Bootstrap
+// 5's reboot does not, so unstyled buttons (the header's icons, dropdown triggers) went back to the
+// browser's black, invisible on the dark chrome. .btn and .form-control still set their own.
+button,
+input,
+optgroup,
+select,
+textarea {
+  color: inherit;
+}
+
+// An icon class on the button itself (templates write Button(Class: btn fa fa-caret-down)): the
+// icon fonts set font-family on the element, and Bootstrap 5's .btn, loaded after them, sets its
+// own (Bootstrap 3's did not), which left such buttons blank
+.btn.fa {
+  font-family: FontAwesome;
+}
+
+.btn[class^="icon-"],
+.btn[class*=" icon-"] {
+  font-family: 'simple-line-icons';
+}
+
 // Buttons
 .btn {
   border-radius: 3px;

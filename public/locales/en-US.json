@@ -185,7 +185,7 @@
   "interface.menu": "Menu",
   "interface.page": "Page",
   "legal.about": "Weaver - a software product developed by IBAX. It works with blockchain networks that are built to use IBAX Protocol",
-  "legal.copy": "IBAX © 2019 - 2022",
+  "legal.copy": "IBAX © 2019 – {year}",
   "legal.homepage": "https://ibax.io",
   "map.area": "Area: {value}",
   "map.editor": "Map editor",

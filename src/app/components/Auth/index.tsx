@@ -36,7 +36,7 @@ const Auth: React.FC<IAuthProps> = (props) => {
           <div className="clearfix p-lg text-center text-white">
             <div className="float-start">
               <div>
-                <FormattedMessage id="legal.copy" defaultMessage="Ibax © 2020" />
+                <FormattedMessage id="legal.copy" defaultMessage="IBAX © 2019 – {year}" values={{ year: new Date().getFullYear() }} />
                 &nbsp;
                 <a
                   className="year-title"
