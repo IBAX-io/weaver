@@ -9,7 +9,7 @@ import urlJoin from 'url-join';
 
 const resolveConfig = (name: string) =>
     platform.select({
-        web: urlJoin(process.env.PUBLIC_URL || window.location.origin, `${name}.json`),
+        web: urlJoin(import.meta.env.BASE_URL, `${name}.json`),
         desktop: `./${name}.json`
     });
 

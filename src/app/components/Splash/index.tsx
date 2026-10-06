@@ -14,7 +14,7 @@ export default class extends React.Component {
           <div className="loader">
             Weaver
           </div>
-          <div className="version">{process.env.REACT_APP_VERSION}</div>
+          <div className="version">{__APP_VERSION__}</div>
         </div>
       </div>
     );

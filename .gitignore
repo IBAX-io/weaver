@@ -10,14 +10,12 @@
 /coverage
 
 # production
-# build
+/build
 /releases
 /public/settings.json
 config.json
 package-lock.json
 
-# build artifacts
-# /src/app/styles/built
 
 # misc
 .DS_Store

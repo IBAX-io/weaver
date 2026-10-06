@@ -3,13 +3,6 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { State, initialState } from '../reducer';
-import { Reducer } from 'modules';
-import { localstorageInit } from '../actions';
+/// <reference types="vite/client" />
 
-const rehydrateHandler: Reducer<typeof localstorageInit, State> = state => ({
-    ...initialState,
-    ...state
-});
-
-export default rehydrateHandler;
+declare const __APP_VERSION__: string;

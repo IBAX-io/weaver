@@ -3,13 +3,11 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import actionCreatorFactory from 'typescript-fsa';
+import { actionCreatorFactory } from 'typescript-fsa';
 import { IWallet, ISaveEncKeyCall, INetwork } from 'ibax/auth';
 
 const actionCreator = actionCreatorFactory('storage');
-const actionCreatorPlugin = actionCreatorFactory('redux-localstorage');
 
-export const localstorageInit = actionCreatorPlugin('INIT');
 export const saveLocale = actionCreator<string>('SAVE_LOCALE');
 export const saveNetwork = actionCreator<INetwork>('SAVE_NETWORK');
 export const savePreconfiguredNetworks = actionCreator<INetwork[]>('SAVE_PRECONFIGURED_NETWORKS');

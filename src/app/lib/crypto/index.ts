@@ -9,8 +9,7 @@ import CryptoJS, { SHA256, SHA512 } from 'crypto-js';
 import crc64 from './crc64';
 import Long from 'long';
 
-export type THashInput =
-    Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Uint8ClampedArray | Float32Array | Float64Array | DataView | ArrayBuffer;
+export type THashInput = BufferSource;
 
 const curveName = 'secp256r1';
 const signAlg = 'SHA256withECDSA';

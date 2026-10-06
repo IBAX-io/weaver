@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import actionCreatorFactory from 'typescript-fsa';
+import { actionCreatorFactory } from 'typescript-fsa';
 import { IWallet } from 'ibax/auth';
 import { INotificationsMessage, IConnectCall } from 'ibax/socket';
 import { IAccount } from 'ibax/api';

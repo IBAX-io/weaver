@@ -21,7 +21,7 @@ const setLocaleEpic: Epic =
         .flatMap(action => {
             const loadLocale = action.payload || defaultLocale;
             const requestUrl = platform.select({
-                web: urlJoin(process.env.PUBLIC_URL || window.location.origin, `locales/${loadLocale}.json`),
+                web: urlJoin(import.meta.env.BASE_URL, `locales/${loadLocale}.json`),
                 desktop: `./locales/${loadLocale}.json`
             });
 

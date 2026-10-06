@@ -6,10 +6,9 @@
 import { TProtypoElement } from 'ibax/protypo';
 import { IFindTagResult, TConstructorTreeElement } from 'ibax/editor';
 import * as _ from 'lodash';
-import { html2json } from 'html2json';
 import resolveTagHandler from './tags';
 import IdGenerator from './idGenerator';
-import { htmlJsonChild2childrenTags, stripNewlineTags } from './helpers';
+import { htmlJsonChild2childrenTags, parseHtmlNodes, stripNewlineTags } from './helpers';
 import TreeSearch from './treeSearch';
 import Tag from './tags/Tag';
 
@@ -200,6 +199,5 @@ export function updateChildrenText(tree: TProtypoElement[]): TProtypoElement[] {
 }
 
 export function html2childrenTags(html: string): TProtypoElement[] {
-    const htmlJson = html2json(stripNewlineTags(html));
-    return htmlJsonChild2childrenTags(htmlJson.child);
+    return htmlJsonChild2childrenTags(parseHtmlNodes(stripNewlineTags(html)));
 }

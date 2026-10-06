@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { INotification } from 'ibax/notifications';
-import actionCreatorFactory from 'typescript-fsa';
+import { actionCreatorFactory } from 'typescript-fsa';
 
 const actionCreator = actionCreatorFactory('notifications');
 export const enqueueNotification = actionCreator<INotification>('ENQUEUE_NOTIFICATION');

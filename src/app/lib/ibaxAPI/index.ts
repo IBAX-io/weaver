@@ -110,7 +110,10 @@ class IbaxAPI {
   protected request = async <P, R>(method: TRequestMethod, endpoint: string, requestParams: P, options: IRequestOptions<P, R> = {}) => {
     const requestEndpoint = urlTemplate.parse(endpoint).expand(requestParams);
     const requestUrl = urlJoin(this._options.apiHost, this._options.apiEndpoint, requestEndpoint);
-    const params = requestParams && options.requestTransformer ? options.requestTransformer(requestParams) : requestParams;
+    // Endpoint params are plain objects (or absent); the transformer may reshape them
+    const params: Record<string, unknown> = requestParams && options.requestTransformer
+      ? options.requestTransformer(requestParams)
+      : requestParams as unknown as Record<string, unknown>;
 
     // TODO: Set request timeout
     const requestOptions: IRequestOptions<P, R> = {

@@ -3,6 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { describe, it, expect } from 'vitest';
 import { isAppNavigation, isExternalUrlAllowed } from './navigation';
 
 describe('electron navigation guards', () => {

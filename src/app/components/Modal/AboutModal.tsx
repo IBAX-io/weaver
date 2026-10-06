@@ -34,8 +34,8 @@ class AboutModal extends Modal<void, void> {
           >
             <img src={imgLogo} style={{ height: 50 }} />
             <div className="text-muted">
-              {process.env.REACT_APP_VERSION
-                ? `v${process.env.REACT_APP_VERSION}`
+              {__APP_VERSION__
+                ? `v${__APP_VERSION__}`
                 : 'DEVELOPER BUILD'}
             </div>
             <div>

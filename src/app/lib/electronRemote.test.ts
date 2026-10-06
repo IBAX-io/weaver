@@ -3,10 +3,14 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { describe, it, expect } from 'vitest';
 // Electron >= 14 removed the built-in `remote` module. `require('electron')` is untyped (any),
 // so tsc cannot catch `.remote` access; this test does. Use `@electron/remote` instead.
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SRC_ROOT = path.resolve(__dirname, '..');
 const LEGACY_REMOTE = /require\(\s*['"]electron['"]\s*\)\s*\.remote\b|\b[Ee]lectron\.remote\b/;

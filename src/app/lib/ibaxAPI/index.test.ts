@@ -3,6 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { test, expect } from 'vitest';
 import IbaxAPI, { IRequestTransport, TRequestMethod } from '.';
 import { IContentRequest } from 'ibax/api';
 

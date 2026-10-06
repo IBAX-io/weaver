@@ -27,7 +27,6 @@ declare module 'electron' {
 declare module 'react-dom';
 declare module 'jsrsasign';
 declare module 'react-router-transition';
-declare module 'html2json';
 declare module 'react-contenteditable';
 declare module 'classnames' {
     const classNames: (...args: any[]) => string;

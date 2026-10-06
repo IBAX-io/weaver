@@ -3,12 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { describe, it, expect } from 'vitest';
 import { DISPLAYABLE_AUTH_ERRORS } from 'modules/auth/epics/acquireSessionEpic';
 
 // Locale files are fetched at runtime by setLocaleEpic; an invalid file silently falls back to
 // no messages, so validate them here.
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const LOCALES_DIR = path.resolve(__dirname, '../../../public/locales');
 const localeFiles: string[] = fs.readdirSync(LOCALES_DIR).filter((f: string) => f.endsWith('.json') && f !== 'index.json');

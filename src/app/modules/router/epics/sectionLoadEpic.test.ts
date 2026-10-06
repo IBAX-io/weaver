@@ -3,19 +3,20 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { describe, it, expect, vi } from 'vitest';
 import 'lib/external/fsa';
 import { Observable } from 'rxjs';
 import { ActionsObservable } from 'redux-observable';
 import { locationChange } from '../actions';
 import sectionLoadEpic from './sectionLoadEpic';
 
-jest.mock('store', () => {
-    const { Observable: Obs } = require('rxjs');
+vi.mock('store', async () => {
+    const { Observable: Obs } = await import('rxjs');
     return { state$: Obs.of({ auth: { isAcquired: true } }) };
 });
 
 describe('sectionLoadEpic', () => {
-    it('emits no non-action value when routing throws', done => {
+    it('emits no non-action value when routing throws', () => new Promise<void>(done => {
         const action$ = ActionsObservable.of(locationChange({
             location: { pathname: '/browse/home', search: '', hash: '', state: {} },
             action: 'PUSH'
@@ -24,7 +25,7 @@ describe('sectionLoadEpic', () => {
         const routerService: any = {
             matchRoute: () => { throw new Error('boom'); }
         };
-        jest.spyOn(console, 'log').mockImplementation(() => null);
+        vi.spyOn(console, 'log').mockImplementation(() => null);
 
         const emitted: any[] = [];
         (sectionLoadEpic(action$ as any, store, { routerService } as any) as Observable<any>).subscribe({
@@ -35,5 +36,5 @@ describe('sectionLoadEpic', () => {
                 done();
             }
         });
-    });
+    }));
 });

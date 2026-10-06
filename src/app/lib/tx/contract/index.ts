@@ -53,7 +53,7 @@ export default class Contract {
         this._keyID = new Int64BE(publicToID(publicKey));
 
         const data = this.serialize();
-        const txHash = await Sha256(data.buffer);
+        const txHash = await Sha256(new Uint8Array(data.buffer));
         const resultHash = await Sha256(txHash);
         const hexHash = await convert.toHex(resultHash);
         const signature = convert.toArrayBuffer(sign(hexHash, privateKey));

@@ -5,7 +5,6 @@
 
 import CryptoJS from 'crypto-js';
 import KJUR from 'jsrsasign';
-import Random from 'random-js';
 
 // https://github.com/bitcoin/bips/blob/master/bip-0039/bip-0039-wordlists.md
 const WORD_LIST = ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident',
@@ -153,14 +152,23 @@ const WORD_LIST = ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'ab
     'wolf', 'woman', 'wonder', 'wood', 'wool', 'word', 'work', 'world', 'worry', 'worth', 'wrap', 'wreck', 'wrestle', 'wrist', 'write',
     'wrong', 'yard', 'year', 'yellow', 'you', 'young', 'youth', 'zebra', 'zero', 'zone', 'zoo'];
 
-// Seed words must come from a CSPRNG. random-js falls back to Math.random when no engine is
-// given (and browserCrypto is null without window.crypto), so fail closed instead.
-const cryptoRandom = () => {
-    if (!Random.engines.browserCrypto) {
+// Seed words must come from a CSPRNG; there is deliberately no Math.random fallback.
+const secureRandomIndex = (size: number) => {
+    const source = globalThis.crypto;
+    if (!source || typeof source.getRandomValues !== 'function') {
         throw new Error('Secure random source (crypto.getRandomValues) is unavailable');
     }
-    return new Random(Random.engines.browserCrypto);
+
+    // Rejection sampling keeps the distribution uniform when 2^32 is not a multiple of size
+    const limit = Math.floor(0x100000000 / size) * size;
+    const sample = new Uint32Array(1);
+    do {
+        source.getRandomValues(sample);
+    } while (sample[0] >= limit);
+
+    return sample[0] % size;
 };
+
 const signAlg = 'SHA256withECDSA';
 const curveName = 'secp256r1';
 
@@ -178,10 +186,9 @@ const keyring = {
     },
 
     generateSeed: (count: number = 15) => {
-        const randomEngine = cryptoRandom();
         const result: string[] = [];
         for (let i = 0; i < count; i++) {
-            const value = randomEngine.pick(WORD_LIST);
+            const value = WORD_LIST[secureRandomIndex(WORD_LIST.length)];
             result.push(value);
         }
         return result.join(' ');

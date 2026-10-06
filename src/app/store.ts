@@ -9,16 +9,13 @@ import 'lib/external/fsa';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { connectRouter, routerMiddleware } from 'connected-react-router';
 import { createEpicMiddleware } from 'redux-observable';
-import persistState, { mergePersistedState } from 'redux-localstorage';
-import adapter from 'redux-localstorage/lib/adapters/localStorage';
-import filter from 'redux-localstorage-filter';
-import debounce from 'redux-localstorage-debounce';
+import { IPersistenceBackend, mergePersistedState, persistedStateChanged, selectPersistedState } from 'lib/persistence';
+import createLocalStorageBackend from 'lib/persistence/localStorageBackend';
 
 import { History, createBrowserHistory, createMemoryHistory } from 'history';
 import rootReducer, { rootEpic, IRootState } from './modules';
 import platform from 'lib/platform';
 import dependencies from 'modules/dependencies';
-import rehydrateHandler from 'modules/storage/reducers/rehydrateHandler';
 import { Observable } from 'rxjs';
 
 export const history = platform.select<() => History>({
@@ -34,34 +31,22 @@ const createRootReducer = (hist: History) => {
   return combined;
 };
 
-const createPersistedReducer = (hist: History) => {
-  return platform.select({
-    web: compose(
-      mergePersistedState()
-    )(createRootReducer(hist)),
-    desktop: createRootReducer(hist)
-  });
+const createElectronBackend = (): IPersistenceBackend => {
+  const Electron = require('electron');
+  return {
+    load: () => Electron.ipcRenderer.sendSync('getState') || null,
+    save: state => Electron.ipcRenderer.send('setState', state)
+  };
 };
 
-const storageAdapters: any[] = [
-  filter([
-    'storage',
-    'auth.isAuthenticated',
-    'auth.isDefaultWallet',
-    'auth.session',
-    'auth.id',
-    'auth.wallet',
-    'engine.guestSession'
-  ])
-];
+const persistence = platform.select<() => IPersistenceBackend>({
+  web: createLocalStorageBackend,
+  desktop: createElectronBackend
+})();
 
-platform.on('web', () => {
-  storageAdapters.unshift(debounce(1000, 5000));
-});
-
-const storage = compose.apply(null, storageAdapters)(adapter(window.localStorage));
-
-const configureStore = (initialState?: IRootState) => {
+const configureStore = () => {
+  const reducer = createRootReducer(history);
+  const initialState = reducer(undefined, { type: '@@weaver/INIT' });
   const enhancers: any[] = [];
 
   const epicMiddleware = createEpicMiddleware({
@@ -73,7 +58,7 @@ const configureStore = (initialState?: IRootState) => {
     epicMiddleware
   ];
 
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     const devToolsExtension = (window as { devToolsExtension?: Function }).devToolsExtension;
 
     if (typeof devToolsExtension === 'function') {
@@ -81,48 +66,32 @@ const configureStore = (initialState?: IRootState) => {
     }
   }
 
-  platform.on('web', () => {
-    enhancers.unshift(persistState(storage, 'persistentData'));
-  });
-
   const composedEnhancers: any = compose(
     applyMiddleware(...middleware),
     ...enhancers
   );
 
   const store = createStore(
-    createPersistedReducer(history) as any,
-    initialState as any,
+    reducer,
+    mergePersistedState(initialState, persistence.load()),
     composedEnhancers
   );
+
+  let persisted = selectPersistedState(store.getState());
+  store.subscribe(() => {
+    const next = selectPersistedState(store.getState());
+    if (persistedStateChanged(persisted, next)) {
+      persisted = next;
+      persistence.save(next);
+    }
+  });
 
   epicMiddleware.run(rootEpic as any);
 
   return store;
 };
 
-const store = platform.select({
-  web: () => configureStore(),
-  desktop: () => {
-    const Electron = require('electron');
-    const storedState = Electron.ipcRenderer.sendSync('getState');
-    const storeInstance = (storedState && Object.keys(storedState).length) ? configureStore({
-      ...storedState,
-      storage: rehydrateHandler(storedState.storage, undefined)
-    }) : configureStore();
-
-    storeInstance.subscribe(() => {
-      const state: any = storeInstance.getState();
-      Electron.ipcRenderer.send('setState', {
-        auth: state.auth,
-        engine: state.engine,
-        storage: state.storage
-      });
-    });
-
-    return storeInstance;
-  }
-})();
+const store = configureStore();
 
 // This is a stub value for observable store. It will be removed in the near future
 const getState$ = (stateStore: typeof store) =>

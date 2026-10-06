@@ -39,7 +39,7 @@ const TxInfo: React.SFC<ITxInfoProps> = props => (
                             <FormattedMessage id="tx.report" defaultMessage="Transaction report" />
                         </div>
                         <div>{(new Date()).toISOString()}</div>
-                        <div>{process.env.REACT_APP_VERSION}</div>
+                        <div>{__APP_VERSION__}</div>
                     </div>
                 </div>
                 <hr />

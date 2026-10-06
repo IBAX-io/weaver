@@ -3,6 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { describe, it, expect } from 'vitest';
 import 'rxjs';
 import 'lib/external/fsa';
 import { Action } from 'redux';
