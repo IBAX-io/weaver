@@ -9,19 +9,7 @@ import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { importWallet } from '../actions';
 import { navigate } from 'modules/router/actions';
-import { createWallet, isValidMnemonic, isValidPrivateKey, privateKeyFromMnemonic } from 'lib/keyring';
-
-// The backup is either a raw private key (hex) or a BIP39 mnemonic from an IBAX wallet
-export const privateKeyFromBackup = (backup: string): string | null => {
-    const value = (backup || '').trim();
-    if (isValidPrivateKey(value)) {
-        return value.toLowerCase();
-    }
-    if (isValidMnemonic(value)) {
-        return privateKeyFromMnemonic(value);
-    }
-    return null;
-};
+import { createWallet, privateKeyFromBackup } from 'lib/keyring';
 
 const importWalletEpic: Epic = action$ => action$.pipe(
     ofAction(importWallet.started),

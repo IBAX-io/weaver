@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { isValidMnemonic } from 'lib/keyring';
+import { isValidMnemonic, privateKeyFromBackup } from 'lib/keyring';
 
 export class Validator {
     public name: string;
@@ -155,6 +155,12 @@ export const password = new Validator({
 export const mnemonic = new Validator({
     name: 'mnemonic',
     validate: (value) => 'string' === typeof value && isValidMnemonic(value)
+});
+
+// What the import accepts: a private key or a recovery phrase (lib/keyring privateKeyFromBackup)
+export const backup = new Validator({
+    name: 'backup',
+    validate: (value) => 'string' === typeof value && null !== privateKeyFromBackup(value)
 });
 
 export const compare: IValidatorGenerator = (compareValue: any) => {

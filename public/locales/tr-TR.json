@@ -327,5 +327,6 @@
   "window.close": "Kapat",
   "window.fullscreen": "Tam ekran",
   "tx.info.baseUnits": "{value} temel birim",
-  "tx.interrupted": "İşlem imzalanmadı: parola istemi başka bir pencereyle değiştirildi. Lütfen tekrar deneyin."
+  "tx.interrupted": "İşlem imzalanmadı: parola istemi başka bir pencereyle değiştirildi. Lütfen tekrar deneyin.",
+  "validation.backup": "Özel anahtar veya kurtarma ifadesi olmalıdır"
 }

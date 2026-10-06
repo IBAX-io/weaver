@@ -327,5 +327,6 @@
   "window.close": "Close",
   "window.fullscreen": "Full screen",
   "tx.info.baseUnits": "{value} base units",
-  "tx.interrupted": "The transaction was not signed: another window replaced the password prompt. Please try again."
+  "tx.interrupted": "The transaction was not signed: another window replaced the password prompt. Please try again.",
+  "validation.backup": "Must be a private key or a recovery phrase"
 }

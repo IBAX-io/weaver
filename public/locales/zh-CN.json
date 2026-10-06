@@ -327,5 +327,6 @@
   "window.close": "关闭",
   "window.fullscreen": "全屏",
   "tx.info.baseUnits": "{value} 最小单位",
-  "tx.interrupted": "交易未签名：密码输入框被另一个窗口替换了。请重试。"
+  "tx.interrupted": "交易未签名：密码输入框被另一个窗口替换了。请重试。",
+  "validation.backup": "必须是私钥或助记词"
 }

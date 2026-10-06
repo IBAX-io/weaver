@@ -152,3 +152,16 @@ export const createWallet = async (privateKey: string, password: string): Promis
         identities
     };
 };
+
+// A backup the user pastes to import a wallet: a raw private key (hex) or a BIP39 mnemonic from an
+// IBAX wallet. Null for anything else.
+export const privateKeyFromBackup = (backup: string): string | null => {
+    const value = (backup || '').trim();
+    if (isValidPrivateKey(value)) {
+        return value.toLowerCase();
+    }
+    if (isValidMnemonic(value)) {
+        return privateKeyFromMnemonic(value);
+    }
+    return null;
+};
