@@ -6,7 +6,7 @@
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import { readTextFile } from 'lib/fs';
-import keyring from 'lib/keyring';
+import { generateMnemonic } from 'lib/keyring';
 
 import LocalizedDocumentTitle from 'components/DocumentTitle/LocalizedDocumentTitle';
 import Generator from './Generator';
@@ -65,7 +65,7 @@ class Create extends React.Component<
 
   onGenerate = () => {
     this.setState({
-      seed: keyring.generateSeed()
+      seed: generateMnemonic()
     });
   };
 

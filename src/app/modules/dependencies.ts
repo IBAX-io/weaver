@@ -44,7 +44,8 @@ const storeDependencies: IStoreDependencies = {
         apiHost: params.apiHost,
         session: params.sessionToken
     }),
-    defaultKey: 'e5a87a96a445cb55a214edaad3661018061ef2936e63a0a93bdb76eb28251c1f',
+    // Public guest (Demo mode) key, the same one the official IBAX Weaver ships
+    defaultKey: 'fa2692876f3efb8b5abeda1b69423cfcd38de897506a2778e5eb0803a6e4a2de',
     defaultPassword: 'default',
     constructorModule: {
         setIds,

@@ -8,7 +8,7 @@ import { Button } from 'react-bootstrap';
 import Modal from '../';
 import { FormattedMessage } from 'react-intl';
 import Validation from 'components/Validation';
-import keyring from 'lib/keyring';
+import { decryptPrivateKey } from 'lib/keyring';
 
 export interface IAuthChangePasswordModalProps {
     encKey: string;
@@ -31,10 +31,10 @@ class AuthChangePasswordModal extends Modal<IAuthChangePasswordModalProps, {}, I
         };
     }
 
-    onSubmit = (values: { [key: string]: any }) => {
-        const privateKey = keyring.decryptAES(this.props.params.encKey, values.password_old);
+    onSubmit = async (values: { [key: string]: any }) => {
+        const privateKey = await decryptPrivateKey(this.props.params.encKey, values.password_old).catch(() => null);
 
-        if (!keyring.validatePrivateKey(privateKey)) {
+        if (!privateKey) {
             this.props.notify('INVALID_PASSWORD', {});
         }
         else {

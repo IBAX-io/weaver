@@ -7,6 +7,7 @@ import { Action, createStore, applyMiddleware, compose, combineReducers } from '
 import { createEpicMiddleware } from 'redux-observable';
 import { IPersistenceBackend, mergePersistedState, persistedStateChanged, selectPersistedState } from 'lib/persistence';
 import createLocalStorageBackend from 'lib/persistence/localStorageBackend';
+import { dropUnusableWallets } from 'modules/storage/util/storedWallets';
 
 import rootReducer, { rootEpic, IRootState, IStoreDependencies } from './modules';
 import platform from 'lib/platform';
@@ -41,7 +42,7 @@ const configureStore = () => {
 
   const store = createStore(
     reducer,
-    mergePersistedState(initialState, persistence.load()),
+    mergePersistedState(initialState, dropUnusableWallets(persistence.load())),
     composeEnhancers(applyMiddleware(...middleware))
   );
 

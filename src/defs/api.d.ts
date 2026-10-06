@@ -10,6 +10,7 @@ declare module 'ibax/api' {
     uid: string;
     token: string;
     networkID: number;
+    cryptoSuite: import('ibax/crypto').ICryptoSuiteId;
   }
 
   interface ILoginRequest {
@@ -37,8 +38,11 @@ declare module 'ibax/api' {
     }[];
   }
 
+  // A stored wallet as seen on the current network: id/publicKey are the identity under the
+  // network's crypto suite; walletID links back to the stored wallet
   interface IAccount {
     id: string;
+    walletID: string;
     address: string;
     encKey: string;
     publicKey: string;

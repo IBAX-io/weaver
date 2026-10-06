@@ -84,7 +84,7 @@ const toHtmlJsonNode = (node: Node): IHtmlJsonNode | null => {
 };
 
 const parseChildNodes = (nodes: NodeListOf<ChildNode>) =>
-    Array.from(nodes).map(toHtmlJsonNode).filter(Boolean);
+    Array.from(nodes).map(toHtmlJsonNode).filter((node): node is IHtmlJsonNode => node !== null);
 
 export function parseHtmlNodes(html: string): IHtmlJsonNode[] {
     const document = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');

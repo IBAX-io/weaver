@@ -10,6 +10,7 @@ import { ofAction } from 'lib/rx/ofAction';
 import { removeWallet } from '../actions';
 import { removeWallet as removeStoredWallet } from 'modules/storage/actions';
 import { modalClose, modalShow } from 'modules/modal/actions';
+import { unsubscribe } from 'modules/socket/actions';
 
 const removeWalletEpic: Epic = action$ => action$.pipe(
     ofAction(removeWallet),
@@ -27,7 +28,10 @@ const removeWalletEpic: Epic = action$ => action$.pipe(
                 take(1),
                 mergeMap(result => {
                     if ('RESULT' === result.payload.reason) {
-                        return of(removeStoredWallet(action.payload));
+                        return of(
+                            removeStoredWallet(action.payload.walletID),
+                            unsubscribe.started(action.payload)
+                        );
                     }
                     else {
                         return EMPTY;

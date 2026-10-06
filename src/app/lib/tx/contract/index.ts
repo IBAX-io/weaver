@@ -3,19 +3,24 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import msgpack from 'msgpack-lite';
-import * as convert from 'lib/tx/convert';
-import { Int64BE } from 'int64-buffer';
-import { privateToPublic, publicToID, sign, Sha256 } from 'lib/crypto';
-import { encodeLengthPlusData, concatBuffer } from '../convert';
+// Client transaction format accepted by the node (go-ibax packages/transaction/raw.go, type 0x80):
+//   0x80 | EncodeLengthPlusData(payload) | EncodeLengthPlusData(signature)
+// payload = msgpack({Header, Params, Lang}); hash = DoubleHash(payload); signature = Sign(hash),
+// all with the network's crypto suite.
+import { encode } from '@msgpack/msgpack';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
+import { encodeLengthPlusData, concatBytes } from '../convert';
 import { ISchema } from 'lib/tx/schema';
 import IField from 'lib/tx/contract/field';
 import { ITransactionBody } from 'ibax/tx';
+import { ICryptoSuiteId, resolveCryptoSuite } from 'lib/crypto/suites';
+
 export interface IContractContext {
     id: number;
     schema: ISchema;
     ecosystemID: number;
     networkID: number;
+    cryptoSuite: ICryptoSuiteId;
     fields: {
         [name: string]: IContractParam;
     };
@@ -23,21 +28,26 @@ export interface IContractContext {
 
 export interface IContractParam {
     type: string;
-    value: object;
+    value: unknown;
+}
+
+export interface ISignedContract {
+    hash: string;
+    header: Uint8Array;
+    body: ITransactionBody;
+    data: Uint8Array;
 }
 
 export default class Contract {
     private _context: IContractContext;
-    private _keyID: Int64BE;
     private _time: number;
-    private _publicKey: ArrayBuffer;
     private _fields: {
-        [name: string]: IField;
+        [name: string]: IField<unknown, unknown>;
     } = {};
 
     constructor(context: IContractContext) {
         this._context = context;
-        this._time = Math.floor((new Date()).getTime() / 1000);
+        this._time = Math.floor(Date.now() / 1000);
         Object.keys(context.fields).forEach(name => {
             const param = context.fields[name];
             const Field = this._context.schema.fields[param.type];
@@ -47,40 +57,27 @@ export default class Contract {
         });
     }
 
-    async sign(privateKey: string) {
-        const publicKey = privateToPublic(privateKey);
-        this._publicKey = convert.toArrayBuffer(publicKey);
-        this._keyID = new Int64BE(publicToID(publicKey));
-
-        const data = this.serialize();
-        const txHash = await Sha256(new Uint8Array(data.buffer));
-        const resultHash = await Sha256(txHash);
-        const hexHash = await convert.toHex(resultHash);
-        const signature = convert.toArrayBuffer(sign(hexHash, privateKey));
+    sign(privateKey: string): ISignedContract {
+        const suite = resolveCryptoSuite(this._context.cryptoSuite);
+        const publicKey = suite.publicKey(privateKey);
+        const { buffer, body } = this.serialize(publicKey, BigInt(suite.keyID(publicKey)));
+        const hash = suite.doubleHash(buffer);
+        const signature = hexToBytes(suite.sign(hash, privateKey));
 
         return {
-            hash: hexHash,
+            hash: bytesToHex(hash),
             header: this._context.schema.header,
-            body: data.body,
-            data: concatBuffer(
+            body,
+            data: concatBytes(
                 this._context.schema.header,
-                concatBuffer(
-                    encodeLengthPlusData(data.buffer),
-                    encodeLengthPlusData(signature)
-                )
+                encodeLengthPlusData(buffer),
+                encodeLengthPlusData(signature)
             )
         };
     }
 
-    serialize() {
-      const params: { [name: string]: object } = {};
-      /* const lang:string = JSON.parse(localStorage.getItem('persistentData')).storage.locale.substring(0, 2);
-      console.log(lang); */
-        const codec = msgpack.createCodec({
-            binarraybuffer: true,
-            preset: true
-        });
-
+    serialize(publicKey: string, keyID: bigint) {
+        const params: { [name: string]: unknown } = {};
         Object.keys(this._fields).forEach(name => {
             params[name] = this._fields[name].get();
         });
@@ -90,18 +87,17 @@ export default class Contract {
                 ID: this._context.id,
                 Time: this._time,
                 EcosystemID: this._context.ecosystemID,
-                KeyID: this._keyID,
+                KeyID: keyID,
                 NetworkID: this._context.networkID,
-                PublicKey: this._publicKey
+                PublicKey: hexToBytes(publicKey)
             },
-          Params: params,
-          Lang: 'en'
+            Params: params,
+            Lang: 'en'
         };
 
-        const txBuffer = msgpack.encode(body, { codec });
-
+        // KeyID is an int64 on the node: encode bigints as msgpack int64
         return {
-            buffer: txBuffer,
+            buffer: encode(body, { useBigInt64: true }),
             body
         };
     }

@@ -206,7 +206,7 @@ class Protypo extends React.Component<IProtypoProps> {
 
     renderElements = (elements: TProtypoElement[], keyPrefix?: string): React.ReactNode[] => {
         if (!elements) {
-            return null;
+            return [];
         }
 
         return elements.map((element, index) => (

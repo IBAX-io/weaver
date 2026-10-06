@@ -3,6 +3,8 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { isValidMnemonic } from 'lib/keyring';
+
 export class Validator {
     public name: string;
     public params?: any;
@@ -147,6 +149,12 @@ export const password = new Validator({
             default: throw new Error(`Unrecognized value type "${typeof value}"`);
         }
     }
+});
+
+// A BIP39 recovery phrase (the IDE creates 12-word phrases; any valid length is accepted)
+export const mnemonic = new Validator({
+    name: 'mnemonic',
+    validate: (value) => 'string' === typeof value && isValidMnemonic(value)
 });
 
 export const compare: IValidatorGenerator = (compareValue: any) => {

@@ -9,6 +9,7 @@ import { map } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { login, importWallet, createWallet } from '../actions';
 import { modalShow } from 'modules/modal/actions';
+import { displayableAuthError } from '../util/authErrors';
 
 const authErrorEpic: Epic = action$ => action$.pipe(
     ofType<Action, string, Action>(login.failed.type, importWallet.failed.type, createWallet.failed.type),
@@ -17,7 +18,7 @@ const authErrorEpic: Epic = action$ => action$.pipe(
             id: 'AUTH_ERROR',
             type: 'AUTH_ERROR',
             params: {
-                error: (action as any).payload.error
+                error: displayableAuthError((action as ReturnType<typeof login.failed>).payload.error)
             }
         })
     )

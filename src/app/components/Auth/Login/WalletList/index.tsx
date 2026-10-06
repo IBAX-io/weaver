@@ -6,7 +6,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import { FormattedMessage } from 'react-intl';
-import { IWallet, IAccountContext } from 'ibax/auth';
+import { IAccountContext } from 'ibax/auth';
 import { IAccount } from 'ibax/api';
 import { INotificationsMessage } from 'ibax/socket';
 
@@ -26,10 +26,10 @@ export interface IWalletListProps {
   activationEnabled: boolean;
   demoModeEnabled?: boolean;
   onCreate: () => any;
-  onRemove: (wallet: IWallet) => any;
-  onLogin: (params: { wallet: IWallet; password: string }) => any;
-  onCopy: (wallet: IWallet) => any;
-  onRegister: (wallet: IWallet) => any;
+  onRemove: (wallet: IAccount) => any;
+  onLogin: (params: { wallet: IAccount; password: string }) => any;
+  onCopy: (wallet: IAccount) => any;
+  onRegister: (wallet: IAccount) => any;
   onSelect: (params: IAccountContext) => any;
   onGuestLogin: () => any;
 }

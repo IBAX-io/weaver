@@ -46,7 +46,8 @@ const setNetworkEpic: Epic = (action$, state$, { api, defaultKey }) => action$.p
                       uuid: network.uuid,
                       apiHost: node
                     },
-                    sessionToken: result.loginResult.token
+                    sessionToken: result.loginResult.token,
+                    cryptoSuite: result.cryptoSuite
                   }
                 }
               })),

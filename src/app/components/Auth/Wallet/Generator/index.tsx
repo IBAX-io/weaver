@@ -61,7 +61,7 @@ const Generator: React.FC<IWalletGeneratorProps> = (props) => (
                     Validation.validators.required,
                     Validation.validators.compare(props.compareSeed)
                   ]
-                  : [Validation.validators.required]
+                  : [Validation.validators.required, Validation.validators.mnemonic]
               }
             />
           </div>

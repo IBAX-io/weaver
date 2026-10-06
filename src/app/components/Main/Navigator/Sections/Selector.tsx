@@ -30,7 +30,7 @@ const StyledSelector = themed.ul`
         list-style-type: none;
         height: 100%;
         display: inline-flex;
-        padding 0 10px;
+        padding: 0 10px;
         align-items: center;
         &:first-child {
             padding-left: 0;

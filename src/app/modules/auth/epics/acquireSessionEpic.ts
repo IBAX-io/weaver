@@ -9,15 +9,10 @@ import { ISection } from 'ibax/content';
 import { sectionsInit } from 'modules/sections/actions';
 import { fetchNotifications, ecosystemInit } from 'modules/content/actions';
 import { modalShow } from 'modules/modal/actions';
+import { displayableAuthError } from '../util/authErrors';
 import { forkJoin, from, of } from 'rxjs';
 import { catchError, map, mergeMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
-
-// Must match the auth.error.* keys in public/locales/*.json
-export const DISPLAYABLE_AUTH_ERRORS = [
-    'E_INVALID_KEY', 'E_INVALID_PASSWORD', 'E_KEYNOTFOUND', 'E_DELETEDKEY',
-    'E_OFFLINE', 'E_SERVER', 'E_UPDATING', 'E_TOKENEXPIRED'
-];
 
 enum RemoteSectionStatus {
     Removed = '0',
@@ -92,7 +87,7 @@ const acquireSessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
                         type: 'AUTH_ERROR',
                         params: {
                             // Only codes with an auth.error.* translation reach the UI; raw exception text never does
-                            error: DISPLAYABLE_AUTH_ERRORS.indexOf(error) !== -1 ? error : 'E_SERVER'
+                            error: displayableAuthError(error)
                         }
                     })
                 );

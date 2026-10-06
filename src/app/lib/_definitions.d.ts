@@ -25,7 +25,6 @@ declare module 'electron' {
     export type MenuItemConstructorOptions = any;
 }
 declare module 'react-dom';
-declare module 'jsrsasign';
 declare module 'react-router-transition';
 declare module 'classnames' {
     const classNames: (...args: any[]) => string;

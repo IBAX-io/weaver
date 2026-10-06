@@ -4,27 +4,27 @@
  *--------------------------------------------------------------------------------------------*/
 
 import IField from './';
-import { Int64BE } from 'int64-buffer';
 
-class Integer implements IField<Int64BE | string | number, Int64BE> {
-    private _value: Int64BE = new Int64BE();
+// Contract integers are int64 on the node; bigint keeps the full range and encodes as int64
+class Integer implements IField<bigint | string | number, bigint> {
+    private _value = 0n;
 
-    set(value: Int64BE | string | number) {
-        if (!value) {
-            this._value = new Int64BE();
-        }
-        else if ('string' === typeof value) {
-            this._value = new Int64BE(value);
+    set(value: bigint | string | number) {
+        if ('bigint' === typeof value) {
+            this._value = BigInt.asIntN(64, value);
         }
         else if ('number' === typeof value) {
-            this._value = new Int64BE(value);
+            this._value = Number.isFinite(value) ? BigInt.asIntN(64, BigInt(Math.trunc(value))) : 0n;
+        }
+        else if ('string' === typeof value && /^\s*-?\d+\s*$/.test(value)) {
+            this._value = BigInt.asIntN(64, BigInt(value.trim()));
         }
         else {
-            this._value = value;
+            this._value = 0n;
         }
     }
 
-    get(): Int64BE {
+    get(): bigint {
         return this._value;
     }
 

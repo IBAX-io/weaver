@@ -7,77 +7,67 @@ import { from, of } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
-import { loginGuest } from '../actions';
+import { acquireSession, loginGuest } from '../actions';
 import { navigate } from 'modules/router/actions';
-import keyring from 'lib/keyring';
-import { publicToID } from 'lib/crypto';
+import { encryptPrivateKey } from 'lib/keyring';
+import { authenticate } from 'services/auth';
+import { UnsupportedCryptoSuiteError } from 'lib/crypto/suites';
+
+const GUEST_ECOSYSTEM = {
+    ecosystem: '1',
+    name: '',
+    roles: [] as never[],
+    notifications: [] as never[]
+};
 
 const loginGuestEpic: Epic = (action$, state$, { api, defaultKey, defaultPassword }) => action$.pipe(
     ofAction(loginGuest.started),
     mergeMap(action => {
-        const publicKey = keyring.generatePublicKey(defaultKey);
         const network = state$.value.engine.guestSession.network;
         const client = api({ apiHost: network.apiHost });
-        const id = publicToID(publicKey);
 
-        return from(client.getUid()).pipe(
-            mergeMap(uid =>
-                client.authorize(uid.token).login({
-                    publicKey,
-                    signature: keyring.sign(uid.uid, defaultKey),
-                    ecosystem: '1',
-                    expire: 60 * 60 * 24 * 90,
-                    role: null
-                })
-            ),
+        return from(Promise.all([
+            authenticate(client, defaultKey, { ecosystem: '1', expire: 60 * 60 * 24 * 90 }),
+            encryptPrivateKey(defaultKey, defaultPassword)
+        ])).pipe(
+            mergeMap(([{ result, cryptoSuite, publicKey, keyID }, encKey]) => {
+                const session = {
+                    sessionToken: result.token,
+                    network,
+                    cryptoSuite
+                };
 
-            // Successful authentication. Yield the result
-            mergeMap(session => {
                 return of(
                     navigate({ to: '/' }),
                     loginGuest.done({
                         params: action.payload,
                         result: {
-                            session: {
-                                sessionToken: session.token,
-                                network
-                            },
+                            session,
                             wallet: {
                                 wallet: {
-                                    id,
-                                    address: session.account,
-                                    encKey: keyring.encryptAES(defaultKey, defaultPassword),
+                                    id: keyID,
+                                    walletID: keyID,
+                                    address: result.account,
+                                    encKey,
                                     publicKey,
-                                    access: [{
-                                        ecosystem: '1',
-                                        name: '',
-                                        roles: [],
-                                        notifications: []
-                                    }]
+                                    access: [GUEST_ECOSYSTEM]
                                 },
-                                access: {
-                                    ecosystem: '1',
-                                    name: '',
-                                    roles: [],
-                                    notifications: []
-                                }
+                                access: GUEST_ECOSYSTEM
                             },
                             privateKey: defaultKey,
                             publicKey
                         }
-                    })
+                    }),
+                    // Like a regular login: load the ecosystem's sections, otherwise the app stays
+                    // on the splash screen until a reload acquires the session
+                    acquireSession.started(session)
                 );
             }),
-
-            // Catch actual login error, yield result
-            catchError(e => of(
-                loginGuest.failed({
-                    params: action.payload,
-                    error: e.error
-                })
-            ))
+            catchError(e => of(loginGuest.failed({
+                params: action.payload,
+                error: e instanceof UnsupportedCryptoSuiteError ? 'E_UNSUPPORTED_CRYPTO' : (e && e.error) || 'E_SERVER'
+            })))
         );
-
     })
 );
 

@@ -6,12 +6,12 @@
 import React from 'react';
 import { Button } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
-import { IWallet } from 'ibax/auth';
+import { IAccount } from 'ibax/api';
 
 import Modal from '../';
 
 export interface IAuthRemoveWalletModalProps {
-    wallet: IWallet;
+    wallet: IAccount;
 }
 
 class AuthRemoveWalletModal extends Modal<IAuthRemoveWalletModalProps, void> {

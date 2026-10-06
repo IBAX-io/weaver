@@ -6,14 +6,14 @@
 import React from 'react';
 import { Button } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
-import { IWallet } from 'ibax/auth';
+import { IAccount } from 'ibax/api';
 import { QRCodeCanvas } from 'qrcode.react';
 import CopyToClipboard from 'react-copy-to-clipboard';
 
 import Modal from '../';
 
 export interface ICopyWalletModalParams {
-    wallet: IWallet;
+    wallet: IAccount;
 }
 
 class CopyWalletModal extends Modal<ICopyWalletModalParams, void> {

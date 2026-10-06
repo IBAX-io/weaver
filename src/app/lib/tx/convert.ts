@@ -3,64 +3,42 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// tslint:disable:no-bitwise
-import { Uint64BE } from 'int64-buffer';
-
 export const MONEY_POWER = 12;
 
-export const toHex = (buffer: ArrayBuffer): string => {
-    return Array.prototype.map.call(new Uint8Array(buffer), (x: number) =>
-        ('00' + x.toString(16)).slice(-2)
-    ).join('');
-};
+export const toHex = (bytes: Uint8Array | ArrayBuffer): string =>
+    Array.from(bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes, x => x.toString(16).padStart(2, '0')).join('');
 
 export const toArrayBuffer = (hex: string): ArrayBuffer => {
-    const uint8 = new Uint8Array(hex.match(/[\da-f]{2}/gi).map(h =>
-        parseInt(h, 16)
-    ));
-
+    const uint8 = new Uint8Array((hex.match(/[\da-f]{2}/gi) || []).map(h => parseInt(h, 16)));
     return uint8.buffer;
 };
 
+// go-ibax converter.EncodeLength: one byte below 128, otherwise 0x80|n followed by n big-endian bytes
 export const encodeLength = (length: number): Uint8Array => {
     if (length >= 0 && length < 128) {
-        const value = new Uint8Array(1);
-        value[0] = length;
-        return value;
+        return Uint8Array.of(length);
     }
 
-    const buffer = ((new Uint64BE(length)) as any).buffer;
-    let i = 1;
-    while (buffer[i] === 0 && i < buffer.length) {
-        i++;
+    const bytes: number[] = [];
+    let rest = BigInt(length);
+    while (rest > 0n) {
+        bytes.unshift(Number(rest & 0xFFn));
+        rest >>= 8n;
     }
-    let offset = buffer.length - i;
+    return Uint8Array.of(0x80 | bytes.length, ...bytes);
+};
 
-    const uint8 = new Uint8Array(1 + offset);
-    uint8[0] = 128 | offset;
-    for (let n = 1; i <= buffer.length; n++ , i++) {
-        uint8[n] = buffer[i];
+export const concatBytes = (...parts: Uint8Array[]): Uint8Array => {
+    const result = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+    let offset = 0;
+    for (const part of parts) {
+        result.set(part, offset);
+        offset += part.length;
     }
-
-    return uint8;
+    return result;
 };
 
-export const concatBuffer = (a: Uint8Array | ArrayBuffer, b: Uint8Array | ArrayBuffer): ArrayBuffer => {
-    const ua = a instanceof ArrayBuffer ? new Uint8Array(a) : a;
-    const ub = b instanceof ArrayBuffer ? new Uint8Array(b) : b;
-
-    const uint8 = new Uint8Array(ua.length + ub.length);
-
-    uint8.set(ua, 0);
-    uint8.set(ub, ua.length);
-
-    return uint8.buffer;
-};
-
-export const encodeLengthPlusData = (buffer: Uint8Array | ArrayBuffer): ArrayBuffer => {
-    const buf = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
-    return concatBuffer(encodeLength(buf.length), buf);
-};
+export const encodeLengthPlusData = (data: Uint8Array): Uint8Array => concatBytes(encodeLength(data.length), data);
 
 export const toMoney = (value: number | string) => {
     const match = /([\d]+)((\.|,)([\d]+))?/.exec(String(value));

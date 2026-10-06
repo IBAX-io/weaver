@@ -5,6 +5,7 @@
 
 import queryString from 'query-string';
 import urlJoin from 'url-join';
+import { cryptoSuiteFromNode } from 'lib/crypto/suites';
 import urlTemplate from 'url-template';
 import { IUIDResponse, ILoginRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo } from 'ibax/api';
 
@@ -197,7 +198,8 @@ class IbaxAPI {
     responseTransformer: response => ({
       token: response.token,
       networkID: parseInt(response.network_id, 10),
-      uid: 'LOGIN' + response.network_id + response.uid
+      uid: 'LOGIN' + response.network_id + response.uid,
+      cryptoSuite: cryptoSuiteFromNode(response.cryptoer, response.hasher)
     })
   });
   public login = this.setSecuredEndpoint<ILoginRequest, ILoginResponse>('post', 'login', {

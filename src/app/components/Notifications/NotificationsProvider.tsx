@@ -29,15 +29,15 @@ class NotificationsProvider extends React.Component<INotificationsProviderProps>
         return (
             <div style={{ position: 'fixed', top: '12%', left: '50%', marginLeft: '-175px', zIndex: 10000 }}>
                 <StreamGroup
-                    items={this.props.notifications.map(n => {
-                        const proto = definitions[n.type];
-                        return proto ? {
+                    // Notifications of a type the client does not know are not shown
+                    items={this.props.notifications
+                        .filter(n => !!definitions[n.type])
+                        .map(n => ({
                             key: n.id,
                             content: (
-                                <Notification proto={proto} params={n.params} />
+                                <Notification proto={definitions[n.type]} params={n.params} />
                             )
-                        } : null;
-                    })}
+                        }))}
                 />
             </div>
         );

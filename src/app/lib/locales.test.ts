@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import { DISPLAYABLE_AUTH_ERRORS } from 'modules/auth/epics/acquireSessionEpic';
+import { DISPLAYABLE_AUTH_ERRORS } from 'modules/auth/util/authErrors';
 
 // Locale files are fetched at runtime by setLocaleEpic; an invalid file silently falls back to
 // no messages, so validate them here.

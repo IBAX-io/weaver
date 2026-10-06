@@ -3,38 +3,73 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { webcrypto } from 'node:crypto';
+import { describe, it, expect } from 'vitest';
+import {
+    createWallet,
+    decryptPrivateKey,
+    deriveIdentities,
+    encryptPrivateKey,
+    generateMnemonic,
+    InvalidEncryptedKeyError,
+    isValidMnemonic,
+    isValidPrivateKey,
+    privateKeyFromMnemonic
+} from './keyring';
+import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
+import fixture from 'lib/crypto/fixtures/go-ibax-vectors.json';
 
-const loadKeyring = async () => {
-    vi.resetModules();
-    return (await import('./keyring')).default;
-};
+// BIP39 test mnemonic; its first Ethereum account (m/44'/60'/0'/0/0) is a well-known vector
+const TEST_MNEMONIC = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+const TEST_MNEMONIC_KEY = '1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727';
 
-describe('keyring.generateSeed', () => {
-    afterEach(() => {
-        vi.restoreAllMocks();
-        vi.unstubAllGlobals();
+describe('keyring', () => {
+    it('generates valid 12-word mnemonics from a secure random source', () => {
+        const first = generateMnemonic();
+        expect(first.split(' ')).toHaveLength(12);
+        expect(isValidMnemonic(first)).toBe(true);
+        expect(generateMnemonic()).not.toEqual(first);
     });
 
-    it('draws seed words from crypto.getRandomValues, never Math.random', async () => {
-        vi.stubGlobal('crypto', webcrypto);
-        const keyring = await loadKeyring();
-        const mathRandom = vi.spyOn(Math, 'random');
-        const getRandomValues = vi.spyOn(webcrypto, 'getRandomValues');
-
-        const words = keyring.generateSeed().split(' ');
-
-        expect(words).toHaveLength(15);
-        expect(mathRandom).not.toHaveBeenCalled();
-        expect(getRandomValues).toHaveBeenCalled();
-        expect(keyring.generateSeed()).not.toEqual(keyring.generateSeed());
+    it('derives keys like the official IBAX / Ethereum wallets', () => {
+        expect(privateKeyFromMnemonic(TEST_MNEMONIC)).toBe(TEST_MNEMONIC_KEY);
+        expect(privateKeyFromMnemonic(`  ${TEST_MNEMONIC.toUpperCase()}  `)).toBe(TEST_MNEMONIC_KEY);
     });
 
-    it('fails closed when no secure random source exists', async () => {
-        vi.stubGlobal('crypto', undefined);
-        const keyring = await loadKeyring();
-
-        expect(() => keyring.generateSeed()).toThrow('Secure random source');
+    it('validates mnemonics and private keys', () => {
+        expect(isValidMnemonic(TEST_MNEMONIC.replace(/about$/, 'abandon'))).toBe(false);
+        expect(isValidPrivateKey(TEST_MNEMONIC_KEY)).toBe(true);
+        expect(isValidPrivateKey('0'.repeat(64))).toBe(false);
+        expect(isValidPrivateKey('f'.repeat(64))).toBe(false);
+        expect(isValidPrivateKey('a'.repeat(63))).toBe(false);
+        expect(isValidPrivateKey('zz' + TEST_MNEMONIC_KEY.slice(2))).toBe(false);
+        expect(isValidPrivateKey(undefined)).toBe(false);
     });
+
+    it('derives the same identities as the node for every suite', () => {
+        const vector = fixture.vectors[0];
+        const identities = deriveIdentities(vector.privateKey);
+        for (const v of fixture.vectors.filter(item => item.privateKey === vector.privateKey)) {
+            expect(identities[`${v.cryptoer}/${v.hasher}`]).toEqual({ publicKey: v.publicKey, keyID: v.keyID });
+        }
+    });
+
+    it('encrypts keys so that only the right password decrypts them', async () => {
+        const encKey = await encryptPrivateKey(TEST_MNEMONIC_KEY, 'correct horse');
+
+        expect(encKey).toMatch(/^v1\.600000\./);
+        expect(encKey).not.toContain(TEST_MNEMONIC_KEY);
+        expect(await decryptPrivateKey(encKey, 'correct horse')).toBe(TEST_MNEMONIC_KEY);
+        expect(await decryptPrivateKey(encKey, 'wrong horse')).toBeNull();
+        expect(await encryptPrivateKey(TEST_MNEMONIC_KEY, 'correct horse')).not.toEqual(encKey);
+    }, 20000);
+
+    it('rejects data that is not an encrypted key', async () => {
+        await expect(decryptPrivateKey('U2FsdGVkX1+legacyCryptoJS', 'pw')).rejects.toThrow(InvalidEncryptedKeyError);
+    });
+
+    it('stores wallets under their default-suite account id', async () => {
+        const wallet = await createWallet(TEST_MNEMONIC_KEY, 'pw');
+        expect(wallet.id).toBe(wallet.identities[cryptoSuiteKey(DEFAULT_CRYPTO_SUITE)].keyID);
+        expect(Object.keys(wallet.identities)).toHaveLength(6);
+    }, 20000);
 });

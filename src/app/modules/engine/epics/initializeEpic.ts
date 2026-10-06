@@ -4,14 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Epic } from 'modules';
-import { EMPTY, concat, iif, of, zip } from 'rxjs';
-import { catchError, mergeMap } from 'rxjs/operators';
+import { EMPTY, concat, defer, iif, of, zip } from 'rxjs';
+import { catchError, map, mergeMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
 import { initialize, setLocale } from '../actions';
 import platform from 'lib/platform';
 import { saveWallet, savePreconfiguredNetworks } from 'modules/storage/actions';
-import { publicToID } from 'lib/crypto';
-import keyring from 'lib/keyring';
+import { createWallet, isValidPrivateKey } from 'lib/keyring';
 import { INetwork } from 'ibax/auth';
 import webConfig from 'lib/settings/webConfig';
 import localeConfig from 'lib/settings/localeConfig';
@@ -46,16 +45,10 @@ const initializeEpic: Epic = (action$, state$, { defaultPassword }) => action$.p
         });
       }
 
-      if (platform.args.privateKey) {
-        const publicKey = keyring.generatePublicKey(platform.args.privateKey);
-        const keyID = publicToID(publicKey);
-
-        var preconfiguredKey = {
-          id: keyID,
-          encKey: keyring.encryptAES(platform.args.privateKey, defaultPassword),
-          publicKey
-        };
-      }
+      // A key passed on the command line is stored as a wallet protected by the default password
+      const preconfiguredWallet = isValidPrivateKey(platform.args.privateKey)
+        ? defer(() => createWallet(platform.args.privateKey, defaultPassword)).pipe(map(wallet => saveWallet(wallet)))
+        : EMPTY;
 
       config.networks.forEach(network => preconfiguredNetworks.push({
         uuid: network.key,
@@ -69,11 +62,7 @@ const initializeEpic: Epic = (action$, state$, { defaultPassword }) => action$.p
       }));
 
       return concat(
-        iif(
-          () => !!preconfiguredKey,
-          of(saveWallet(preconfiguredKey)),
-          EMPTY
-        ),
+        preconfiguredWallet,
         of(savePreconfiguredNetworks(preconfiguredNetworks)),
         of(initialize.done({
           params: action.payload,

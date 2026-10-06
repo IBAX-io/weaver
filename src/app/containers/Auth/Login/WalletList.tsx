@@ -7,7 +7,9 @@ import { connect, ResolveThunks } from 'react-redux';
 import { IRootState } from 'modules';
 import { login, selectWallet, removeWallet, loginGuest } from 'modules/auth/actions';
 import { navigate } from 'modules/router/actions';
-import { IWallet } from 'ibax/auth';
+import { IAccount } from 'ibax/api';
+import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
+import { walletAccount } from 'modules/auth/util/walletAccount';
 import { modalShow } from 'modules/modal/actions';
 
 import WalletList from 'components/Auth/Login/WalletList';
@@ -31,16 +33,21 @@ const selectDemoEnabled = (state: IRootState) => {
     return network ? network.demoEnabled : false;
 };
 
+// Stored wallets as accounts of the current network (its crypto suite decides the identity);
+// details loaded from the node replace the placeholders once available
+const selectWalletAccounts = (state: IRootState): IAccount[] => {
+    const suite = state.engine.guestSession ? state.engine.guestSession.cryptoSuite : DEFAULT_CRYPTO_SUITE;
+    return [...state.storage.wallets]
+        .sort((a, b) => a.id > b.id ? 1 : -1)
+        .filter(wallet => !!wallet.identities[cryptoSuiteKey(suite)])
+        .map(wallet => (state.auth.wallets || []).find(l => l.walletID === wallet.id)
+            || walletAccount(wallet, suite, { account: '', ecosystems: [] }));
+};
+
 const mapStateToProps = (state: IRootState) => ({
     isOffline: !state.engine.guestSession,
     pending: state.auth.isLoggingIn,
-    wallets: state.storage.wallets.sort((a, b) => a.id > b.id ? 1 : -1).map(wallet => ({
-        access: [],
-        encKey: wallet.encKey,
-        publicKey: wallet.publicKey,
-        id: wallet.id,
-        ...(state.auth.wallets || []).find(l => l.id === wallet.id)
-    })),
+    wallets: selectWalletAccounts(state),
     notifications: state.socket.notifications,
     activationEmail: selectActivationMail(state),
     demoModeEnabled: selectDemoEnabled(state)
@@ -50,14 +57,14 @@ const mapDispatchToProps = {
     onRemove: removeWallet,
     onLogin: login.started,
     onSelect: selectWallet,
-    onCopy: (wallet: IWallet) => modalShow({
+    onCopy: (wallet: IAccount) => modalShow({
         id: 'COPY_WALLET',
         type: 'COPY_WALLET',
         params: {
             wallet
         }
     }),
-    onRegister: (wallet: IWallet, activationEmail: string) => modalShow({
+    onRegister: (wallet: IAccount, activationEmail: string) => modalShow({
         id: 'REGISTER_WALLET',
         type: 'REGISTER_WALLET',
         params: {
@@ -81,7 +88,7 @@ export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: Re
     onLogin: dispatch.onLogin,
     onSelect: dispatch.onSelect,
     onCopy: dispatch.onCopy,
-    onRegister: (wallet: IWallet) => dispatch.onRegister(wallet, state.activationEmail),
+    onRegister: (wallet: IAccount) => dispatch.onRegister(wallet, state.activationEmail),
     onCreate: dispatch.onCreate,
     onGuestLogin: dispatch.onGuestLogin
 

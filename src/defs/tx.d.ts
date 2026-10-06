@@ -11,7 +11,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 declare module 'ibax/tx' {
-    import { Int64BE } from 'int64-buffer';
 
     type TTxError =
         'error' |
@@ -85,13 +84,13 @@ declare module 'ibax/tx' {
             ID: number;
             Time: number;
             EcosystemID: number;
-            KeyID: Int64BE;
+            KeyID: bigint;
             NetworkID: number;
-            PublicKey: ArrayBuffer;
+            PublicKey: Uint8Array;
         };
         Params: {
-            [key: string]: object;
-      };
+            [key: string]: unknown;
+        };
       Lang: string;
       
     }

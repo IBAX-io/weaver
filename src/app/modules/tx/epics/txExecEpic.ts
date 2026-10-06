@@ -72,13 +72,14 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
                 };
               });
 
-              return from(new Contract({
+              return defer(() => of(new Contract({
                 id: proto.id,
                 schema: defaultSchema,
                 networkID: network.id,
                 ecosystemID: parseInt(state.auth.wallet && state.auth.wallet.access.ecosystem || '1', 10),
+                cryptoSuite: state.auth.session.cryptoSuite,
                 fields: txParams
-              }).sign(privateKey)).pipe(
+              }).sign(privateKey))).pipe(
                 map(signature => ({
                   ...signature,
                   name: proto.name,
@@ -101,7 +102,7 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
           }[] = [];
 
           contracts.forEach(signed => {
-            request[signed.hash] = new Blob([signed.data]);
+            request[signed.hash] = new Blob([signed.data.slice()]);
             jobs.push({
               name: signed.name,
               hash: signed.hash,

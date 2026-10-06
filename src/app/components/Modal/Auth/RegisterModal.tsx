@@ -6,7 +6,7 @@
 import React from 'react';
 import { Button } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
-import { IWallet } from 'ibax/auth';
+import { IAccount } from 'ibax/api';
 
 import Modal from '../';
 import Action from 'components/Auth/Wallet/Action';
@@ -14,7 +14,7 @@ import CopyToClipboard from 'react-copy-to-clipboard';
 
 export interface IRegisterModalParams {
     activationEmail: string;
-    wallet: IWallet;
+    wallet: IAccount;
 }
 
 class RegisterModal extends Modal<IRegisterModalParams, void> {

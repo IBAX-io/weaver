@@ -22,20 +22,26 @@ declare module 'ibax/auth' {
     demoEnabled?: boolean;
   }
 
+  interface IWalletIdentity {
+    publicKey: string;
+    keyID: string;
+  }
+
+  // Keyed by crypto suite ("ECC_Secp256k1/KECCAK256", ...)
+  interface IWalletIdentities {
+    [suite: string]: IWalletIdentity;
+  }
+
   interface IWallet {
     id: string;
     encKey: string;
-    publicKey: string;
-  }
-
-  interface ISaveEncKeyCall {
-    id: string;
-    encKey: string;
+    identities: IWalletIdentities;
   }
 
   interface ISession {
     network: INetworkEndpoint;
     sessionToken: string;
+    cryptoSuite: import('ibax/crypto').ICryptoSuiteId;
   }
 
   interface IAccountContext {

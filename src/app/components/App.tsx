@@ -43,7 +43,12 @@ const ThemedApp = themed.div`
     }
 `;
 
+// Sits between the flex .wrapper and the screen, so it must pass the flex layout through
 const FadeIn = themed.div`
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     animation: app-fade-in .3s ease-out;
     @keyframes app-fade-in {
         from { opacity: 0; }

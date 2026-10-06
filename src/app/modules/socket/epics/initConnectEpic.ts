@@ -9,7 +9,7 @@ import { catchError, filter, map, mergeMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
 import { discoverNetwork, initialize } from 'modules/engine/actions';
 import { connect } from '../actions';
-import keyring from 'lib/keyring';
+import { authenticate } from 'services/auth';
 
 const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.pipe(
     ofAction(discoverNetwork.done, initialize.done),
@@ -22,16 +22,12 @@ const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.
             return EMPTY;
         }
 
-        const publicKey = keyring.generatePublicKey(defaultKey);
         const client = api({
             apiHost: state.engine.guestSession.network.apiHost
         });
 
-        return from(client.getUid()).pipe(
-            mergeMap(uid => client.authorize(uid.token).login({
-                publicKey,
-                signature: keyring.sign(uid.uid, defaultKey)
-            })),
+        return from(authenticate(client, defaultKey)).pipe(
+            map(({ result }) => result),
             mergeMap(loginResult =>
                 from(client.authorize(loginResult.token).getConfig({
                     name: 'centrifugo'

@@ -62,7 +62,7 @@ const StyledResizeHandle = themed.button`
      @keyframes myright
      {
       from {left:2px;opacity:0;}
-      to {-10px;opacity:1;}
+      to {left:-10px;opacity:1;}
     }
     &:hover > div {
         background: ${(props) => props.theme.menuBorder};

@@ -8,36 +8,25 @@ import { catchError, map, mergeMap, toArray } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { loadWallets } from '../actions';
+import { walletAccount, walletIdentity } from '../util/walletAccount';
 
 const loadWalletsEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(loadWallets.started),
     mergeMap(action => {
         const state = state$.value;
-        const network = state$.value.engine.guestSession.network;
+        const { network, cryptoSuite } = state.engine.guestSession;
         const client = api({ apiHost: network.apiHost });
 
         return from(state.storage.wallets).pipe(
             mergeMap(wallet =>
-                from(client.keyinfo({
-                    id: wallet.id
-                })).pipe(
-                    map(keyInfo => ({
-                        id: wallet.id,
-                        address: keyInfo.account,
-                        encKey: wallet.encKey,
-                        publicKey: wallet.publicKey,
-                        access: keyInfo.ecosystems.map(key => ({
-                            ...key,
-                            roles: key.roles || []
-                        }))
-                    }))
+                from(client.keyinfo({ id: walletIdentity(wallet, cryptoSuite).keyID })).pipe(
+                    map(keyInfo => walletAccount(wallet, cryptoSuite, keyInfo))
                 )
             ),
             toArray(),
             map(wallets => loadWallets.done({
                 params: action.payload,
                 result: wallets
-
             })),
             catchError(e => of(loadWallets.failed({
                 params: action.payload,
