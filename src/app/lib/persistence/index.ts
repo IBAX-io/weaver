@@ -68,13 +68,16 @@ export const mergePersistedState = <S extends { [slice: string]: any }>(initial:
     return merged as S;
 };
 
+// Whatever a backend read from storage, or null when it cannot be persisted state
+export const toPersistedState = (value: unknown): TPersistedState | null =>
+    value && typeof value === 'object' && !Array.isArray(value) ? value as TPersistedState : null;
+
 export const parsePersistedState = (raw: string | null): TPersistedState | null => {
     if (!raw) {
         return null;
     }
     try {
-        const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === 'object' ? parsed : null;
+        return toPersistedState(JSON.parse(raw));
     }
     catch (e) {
         console.error('Discarding unreadable persisted state', e);

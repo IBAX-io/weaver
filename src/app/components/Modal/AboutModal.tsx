@@ -9,16 +9,20 @@ import imgLogo from 'images/logo.png';
 import { FormattedMessage } from 'react-intl';
 
 import Modal from './';
+import desktop from 'lib/desktop';
 
 class AboutModal extends Modal<void, void> {
   openWebsite = () => {
-    const electron = require('electron');
-    electron.shell.openExternal(
-      this.props.intl.formatMessage({
-        id: 'legal.homepage',
-        defaultMessage: 'https://ibax.io'
-      })
-    );
+    const url = this.props.intl.formatMessage({
+      id: 'legal.homepage',
+      defaultMessage: 'https://ibax.io'
+    });
+    if (desktop) {
+      desktop.openExternal(url);
+    }
+    else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   render() {

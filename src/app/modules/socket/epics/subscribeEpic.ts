@@ -11,7 +11,7 @@ import { ofAction } from 'lib/rx/ofAction';
 import { subscribe, setNotificationsCount } from '../actions';
 import { fetchNotifications } from 'modules/content/actions';
 import findNotificationsCount from '../util/findNotificationsCount';
-import platform from 'lib/platform';
+import desktop from 'lib/desktop';
 
 const subscribeEpic: Epic = (action$, state$) => action$.pipe(
     ofAction(subscribe.started),
@@ -63,12 +63,9 @@ const subscribeEpic: Epic = (action$, state$) => action$.pipe(
                         }
                     });
 
-                    platform.on('desktop', () => {
-                        // Electron >= 14 removed the built-in `remote`; it lives in @electron/remote now.
-                        // Required lazily so the web build never resolves the commonjs external.
-                        const remote = require('@electron/remote');
-                        remote.app.setBadgeCount(count);
-                    });
+                    if (desktop) {
+                        desktop.setBadgeCount(count);
+                    }
                 });
 
                 observer.next(subscribe.done({

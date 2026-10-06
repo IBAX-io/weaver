@@ -6,9 +6,8 @@
 import React from 'react';
 import classNames from 'classnames';
 import styled from 'styled-components';
-import * as remote from '@electron/remote';
 import imgControls from './wndControls.svg';
-import { ITitlebarProps } from './';
+import { IDesktopTitlebarProps } from './';
 
 import SystemMenu from 'containers/Titlebar/SystemMenu';
 
@@ -82,28 +81,28 @@ interface ITitlebarState {
     isFocused: boolean;
 }
 
-class DarwinTitlebar extends React.Component<ITitlebarProps, ITitlebarState> {
+class DarwinTitlebar extends React.Component<IDesktopTitlebarProps, ITitlebarState> {
     private _keyListener = this.onKeyEvent.bind(this);
-    private _focusListener = this.onFocusEvent.bind(this);
+    private _unsubscribe: () => void = null;
 
-    constructor(props: {}) {
+    constructor(props: IDesktopTitlebarProps) {
         super(props);
         this.state = {
             isAltDown: false,
-            isFocused: remote.getCurrentWindow().isFocused()
+            isFocused: props.bridge.getWindowState().focused
         };
     }
 
     componentDidMount() {
         window.addEventListener('keydown', this._keyListener);
         window.addEventListener('keyup', this._keyListener);
-        remote.getCurrentWindow().on('blur', this._focusListener);
-        remote.getCurrentWindow().on('focus', this._focusListener);
+        this._unsubscribe = this.props.bridge.onWindowState(state => this.setState({ isFocused: state.focused }));
     }
 
     componentWillUnmount() {
         window.removeEventListener('keydown', this._keyListener);
         window.removeEventListener('keyup', this._keyListener);
+        this._unsubscribe();
     }
 
     onKeyEvent(e: KeyboardEvent) {
@@ -112,34 +111,13 @@ class DarwinTitlebar extends React.Component<ITitlebarProps, ITitlebarState> {
         });
     }
 
-    onFocusEvent(e: { sender: Electron.BrowserWindow }) {
-        this.setState({
-            isFocused: e.sender.isFocused()
-        });
-    }
+    onClose = () => this.props.bridge.closeWindow();
 
-    onClose() {
-        remote.getCurrentWindow().close();
-    }
+    onMinimize = () => this.props.bridge.minimizeWindow();
 
-    onMinimize() {
-        remote.getCurrentWindow().minimize();
-    }
+    onFullscreen = () => this.props.bridge.toggleFullScreen();
 
-    onFullscreen() {
-        remote.getCurrentWindow().setFullScreen(
-            !remote.getCurrentWindow().isFullScreen()
-        );
-    }
-
-    onZoom() {
-        if (remote.getCurrentWindow().isMaximized()) {
-            remote.getCurrentWindow().unmaximize();
-        }
-        else {
-            remote.getCurrentWindow().maximize();
-        }
-    }
+    onZoom = () => this.props.bridge.toggleMaximizeWindow();
 
     render() {
         const controlClasses = classNames('drag', {

@@ -5,26 +5,22 @@
 
 import { Action, createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
-import { IPersistenceBackend, mergePersistedState, persistedStateChanged, selectPersistedState } from 'lib/persistence';
+import { IPersistenceBackend, mergePersistedState, persistedStateChanged, selectPersistedState, toPersistedState } from 'lib/persistence';
 import createLocalStorageBackend from 'lib/persistence/localStorageBackend';
 import { dropUnusableWallets } from 'modules/storage/util/storedWallets';
 
 import rootReducer, { rootEpic, IRootState, IStoreDependencies } from './modules';
-import platform from 'lib/platform';
+import desktop from 'lib/desktop';
+import { IDesktopBridge } from 'ibax/gui';
 import dependencies from 'modules/dependencies';
 
-const createElectronBackend = (): IPersistenceBackend => {
-  const Electron = require('electron');
-  return {
-    load: () => Electron.ipcRenderer.sendSync('getState') || null,
-    save: state => Electron.ipcRenderer.send('setState', state)
-  };
-};
+// The desktop app keeps the state in its config file (src/electron/ipc.ts)
+const createDesktopBackend = (bridge: IDesktopBridge): IPersistenceBackend => ({
+  load: () => toPersistedState(bridge.loadState()),
+  save: state => bridge.saveState(state)
+});
 
-const persistence = platform.select<() => IPersistenceBackend>({
-  web: createLocalStorageBackend,
-  desktop: createElectronBackend
-})();
+const persistence = desktop ? createDesktopBackend(desktop) : createLocalStorageBackend();
 
 const configureStore = () => {
   const reducer = combineReducers(rootReducer);

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { mergePersistedState, parsePersistedState, persistedStateChanged, PERSISTENCE_KEY, selectPersistedState } from '.';
+import { mergePersistedState, parsePersistedState, persistedStateChanged, PERSISTENCE_KEY, selectPersistedState, toPersistedState } from '.';
 import createLocalStorageBackend from './localStorageBackend';
 
 const initial = {
@@ -46,6 +46,15 @@ describe('persistence', () => {
         vi.spyOn(console, 'error').mockImplementation(() => undefined);
         expect(parsePersistedState('{not json')).toBeNull();
         expect(parsePersistedState(null)).toBeNull();
+        expect(parsePersistedState('[1,2]')).toBeNull();
+        expect(parsePersistedState('"text"')).toBeNull();
+    });
+
+    it('accepts only state objects from any backend', () => {
+        expect(toPersistedState({ auth: { id: '1' } })).toEqual({ auth: { id: '1' } });
+        for (const value of [null, undefined, 'x', 42, [], [{ auth: {} }]]) {
+            expect(toPersistedState(value)).toBeNull();
+        }
     });
 
     it('debounces writes with a maximum wait', () => {

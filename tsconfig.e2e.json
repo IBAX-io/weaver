@@ -1,16 +1,13 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "lib": ["ES2024"],
         "types": ["node"],
         "noEmit": true
     },
     "include": [
-        "src/electron/**/*",
+        "e2e/**/*",
         "src/defs/**/*",
-        "vite.electron.config.ts"
+        "vitest.desktop.config.ts"
     ],
-    "exclude": [
-        "src/app"
-    ]
+    "exclude": []
 }

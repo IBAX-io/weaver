@@ -6,8 +6,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import imgControls from './wndControls.svg';
-import * as remote from '@electron/remote';
-import { ITitlebarProps } from './';
+import { IDesktopTitlebarProps } from './';
 
 import SystemMenu from 'containers/Titlebar/SystemMenu';
 
@@ -63,47 +62,29 @@ interface ILinuxTitlebarState {
     maximized: boolean;
 }
 
-class LinuxTitlebar extends React.Component<ITitlebarProps, ILinuxTitlebarState> {
-    _stateListener = this.onStateChange.bind(this);
+class LinuxTitlebar extends React.Component<IDesktopTitlebarProps, ILinuxTitlebarState> {
+    private _unsubscribe: () => void = null;
 
-    constructor(props: {}) {
+    constructor(props: IDesktopTitlebarProps) {
         super(props);
-
-        remote.getCurrentWindow().on('maximize', this._stateListener);
-        remote.getCurrentWindow().on('unmaximize', this._stateListener);
-
         this.state = {
-            maximized: remote.getCurrentWindow().isMaximized()
+            maximized: props.bridge.getWindowState().maximized
         };
     }
 
+    componentDidMount() {
+        this._unsubscribe = this.props.bridge.onWindowState(state => this.setState({ maximized: state.maximized }));
+    }
+
     componentWillUnmount() {
-        remote.getCurrentWindow().removeListener('maximize', this._stateListener);
-        remote.getCurrentWindow().removeListener('unmaximize', this._stateListener);
+        this._unsubscribe();
     }
 
-    onStateChange(e: { sender: { isMaximized: () => boolean } }) {
-        this.setState({
-            maximized: e.sender.isMaximized()
-        });
-    }
+    onClose = () => this.props.bridge.closeWindow();
 
-    onClose() {
-        remote.getCurrentWindow().close();
-    }
+    onMinimize = () => this.props.bridge.minimizeWindow();
 
-    onMinimize() {
-        remote.getCurrentWindow().minimize();
-    }
-
-    onMaximize() {
-        if (remote.getCurrentWindow().isMaximized()) {
-            remote.getCurrentWindow().unmaximize();
-        }
-        else {
-            remote.getCurrentWindow().maximize();
-        }
-    }
+    onMaximize = () => this.props.bridge.toggleMaximizeWindow();
 
     render() {
         return (

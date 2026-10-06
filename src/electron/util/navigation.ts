@@ -3,8 +3,8 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// The renderer runs with nodeIntegration, so whatever page it ends up on gets Node access.
-// Keep it on the app page, and only hand web links to the OS browser.
+// Keep the window on the app page (the bridge in preload.ts answers only that page), and only
+// hand web links to the OS browser.
 
 const EXTERNAL_PROTOCOLS = ['http:', 'https:'];
 

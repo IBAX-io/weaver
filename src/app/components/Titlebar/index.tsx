@@ -6,9 +6,18 @@
 import React from 'react';
 import styled from 'styled-components';
 import platform from 'lib/platform';
+import desktop from 'lib/desktop';
+import { IDesktopBridge } from 'ibax/gui';
+import DarwinTitlebar from './DarwinTitlebar';
+import LinuxTitlebar from './LinuxTitlebar';
+import WinTitlebar from './WinTitlebar';
 
 export interface ITitlebarProps {
     maximizable?: boolean;
+}
+
+export interface IDesktopTitlebarProps extends ITitlebarProps {
+    bridge: IDesktopBridge;
 }
 
 const StyledControls = styled.div`
@@ -25,27 +34,19 @@ const StyledControls = styled.div`
     }
 `;
 
-const Titlebar = platform.select<React.FC<React.PropsWithChildren<ITitlebarProps>>>({
-    web: () => null,
-    desktop: props => {
-        const DarwinTitlebar = require('./DarwinTitlebar').default;
-        const LinuxTitlebar = require('./LinuxTitlebar').default;
-        const WinTitlebar = require('./WinTitlebar').default;
+// Frameless desktop window: draw the platform's window controls. Nothing in the browser.
+const Titlebar: React.FC<React.PropsWithChildren<ITitlebarProps>> = props => desktop && (
+    <StyledControls>
+        {platform.select({
+            darwin: (<DarwinTitlebar {...props} bridge={desktop} />),
+            linux: (<LinuxTitlebar {...props} bridge={desktop} />),
+            win32: (<WinTitlebar {...props} bridge={desktop} />),
 
-        return (
-            <StyledControls>
-                {platform.select({
-                    darwin: (<DarwinTitlebar {...props} />),
-                    linux: (<LinuxTitlebar {...props} />),
-                    win32: (<WinTitlebar {...props} />),
-
-                    // Fallback for unsupported platforms
-                    desktop: (<LinuxTitlebar {...props} />)
-                })}
-                <div className="window-title">{props.children}</div>
-            </StyledControls>
-        );
-    }
-});
+            // Fallback for unsupported platforms
+            desktop: (<LinuxTitlebar {...props} bridge={desktop} />)
+        })}
+        <div className="window-title">{props.children}</div>
+    </StyledControls>
+);
 
 export default Titlebar;

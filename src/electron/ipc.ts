@@ -3,60 +3,100 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ipcMain, Event } from 'electron';
+// The main-process side of the preload bridge (preload.ts). Every message is accepted only from
+// the app page itself, and every argument is checked here, not trusted from the page.
+import { app, BrowserWindow, ipcMain, IpcMainEvent, shell } from 'electron';
+import { CHANNELS } from './channels';
 import config from './config';
 import args from './args';
-import _ from 'lodash';
+import { appUrl } from './appUrl';
+import { isAppNavigation, isExternalUrlAllowed } from './util/navigation';
+import { windowState } from './util/windowState';
 
-export let state: any = null;
-let saveState = () => null as any;
+const SAVE_INTERVAL = 1000;
 
-const truncateState = (value: any) => {
-  if (!value) {
-    return value;
-  }
+const fromApp = (event: IpcMainEvent) => !!event.senderFrame && isAppNavigation(event.senderFrame.url, appUrl);
 
-  const storage = value.storage || {};
-  const engine = value.engine || {};
-  const auth = value.auth || {};
-
-  return {
-    storage,
-    engine: {
-      guestSession: engine.guestSession,
-    },
-    auth: {
-      isAuthenticated: auth.isAuthenticated,
-      isDefaultWallet: auth.isDefaultWallet,
-      session: auth.session,
-      id: auth.id,
-      wallet: auth.wallet
-    }
-  };
+const handle = (channel: string, handler: (event: IpcMainEvent, ...values: unknown[]) => void) => {
+    ipcMain.on(channel, (event, ...values) => {
+        if (!fromApp(event)) {
+            event.returnValue = null;
+            return;
+        }
+        handler(event, ...values);
+    });
 };
 
-if (!args.dry) {
-  try {
-    state = JSON.parse(config.get('persistentData'));
-  }
-  catch {
-    // Suppress errors
-  }
+const senderWindow = (event: IpcMainEvent) => BrowserWindow.fromWebContents(event.sender);
 
-  saveState = _.throttle(() => {
-    config.set('persistentData', JSON.stringify(truncateState(state)));
-  }, 1000, { leading: true });
-}
+// The page decides what is persisted (lib/persistence); here it is only stored, at most once
+// per SAVE_INTERVAL (--dry stores it in a throwaway profile, see profile.ts)
+let pendingState: string | null = null;
+let saveTimer: NodeJS.Timeout | null = null;
+const flushState = () => {
+    saveTimer = null;
+    if (null !== pendingState) {
+        config.set('persistentData', pendingState);
+        pendingState = null;
+    }
+};
+app.on('before-quit', flushState);
 
-ipcMain.on('setState', (e: Event, updatedState: any) => {
-  state = updatedState;
-  saveState();
+handle(CHANNELS.getArgs, event => {
+    event.returnValue = args;
 });
 
-ipcMain.on('getState', (e: Event) => {
-  e.returnValue = truncateState(state);
+handle(CHANNELS.getState, event => {
+    const stored = pendingState ?? config.get('persistentData');
+    try {
+        event.returnValue = stored ? JSON.parse(stored) : null;
+    }
+    catch {
+        event.returnValue = null;
+    }
 });
 
-ipcMain.on('getArgs', (e: Event) => {
-  e.returnValue = args;
+handle(CHANNELS.setState, (_event, state) => {
+    pendingState = JSON.stringify(state ?? null);
+    saveTimer = saveTimer || setTimeout(flushState, SAVE_INTERVAL);
+});
+
+handle(CHANNELS.getWindowState, event => {
+    const window = senderWindow(event);
+    event.returnValue = window ? windowState(window) : null;
+});
+
+handle(CHANNELS.minimizeWindow, event => senderWindow(event)?.minimize());
+
+handle(CHANNELS.toggleMaximizeWindow, event => {
+    const window = senderWindow(event);
+    if (window) {
+        if (window.isMaximized()) {
+            window.unmaximize();
+        }
+        else {
+            window.maximize();
+        }
+    }
+});
+
+handle(CHANNELS.toggleFullScreen, event => {
+    const window = senderWindow(event);
+    window?.setFullScreen(!window.isFullScreen());
+});
+
+handle(CHANNELS.closeWindow, event => senderWindow(event)?.close());
+
+handle(CHANNELS.openDevTools, event => event.sender.openDevTools({ mode: 'detach' }));
+
+handle(CHANNELS.setBadgeCount, (_event, count) => {
+    if (Number.isSafeInteger(count) && (count as number) >= 0) {
+        app.setBadgeCount(count as number);
+    }
+});
+
+handle(CHANNELS.openExternal, (_event, url) => {
+    if (typeof url === 'string' && isExternalUrlAllowed(url)) {
+        shell.openExternal(url);
+    }
 });

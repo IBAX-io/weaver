@@ -1,48 +1,60 @@
-
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) IBAX All rights reserved.
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import commander from 'commander';
+import { parseArgs } from 'node:util';
 import { IInferredArguments } from 'ibax/gui';
 
-// Normalize electron launch arguments
-const argv = process.argv.slice();
-const executable = argv.shift();
-if (!argv[0] || argv[0] && argv[0] !== '.') {
-  argv.unshift('');
-}
-argv.unshift(executable);
-
-const command = commander
-  .option('-n, --full-node <url>', null, (value, stack) => {
-    stack.push(value);
-    return stack;
-  }, [])
-  .option('-k, --private-key <key>')
-  .option('-d, --dry')
-  .option('-x, --offset-x <value>', null, parseInt)
-  .option('-y, --offset-y <value>', null, parseInt)
-  .option('-i, --network-id <value>', null, parseInt)
-  .option('-m, --network-name <value>', 'Default network')
-  .option('-s, --socket-url <url>', null)
-  .option('-u, --disable-full-nodes-sync', null)
-  .option('-g, --guest-mode')
-  .option('-e, --activation-email', null)
-  .parse(argv);
-
-const args: IInferredArguments = {
-  privateKey: command.privateKey,
-  fullNode: command.fullNode,
-  dry: command.dry,
-  offsetX: command.offsetX,
-  offsetY: command.offsetY,
-  networkID: command.networkId,
-  networkName: command.networkName,
-  socketUrl: command.socketUrl,
-  disableHonorNodesSync: command.disableHonorNodesSync,
-  guestMode: command.guestMode
+const toInteger = (value: string | undefined) => {
+    if (undefined === value || !/^-?\d+$/.test(value.trim())) {
+        return undefined;
+    }
+    return parseInt(value, 10);
 };
+
+// Launch arguments after the executable. Positionals (the app path when started through the
+// electron CLI) and unknown switches (Chromium/Electron, debugger) are ignored.
+export const parseLaunchArgs = (argv: string[]): IInferredArguments => {
+    const { values } = parseArgs({
+        args: argv,
+        strict: false,
+        allowPositionals: true,
+        options: {
+            'full-node': { type: 'string', short: 'n', multiple: true },
+            'private-key': { type: 'string', short: 'k' },
+            'dry': { type: 'boolean', short: 'd' },
+            'offset-x': { type: 'string', short: 'x' },
+            'offset-y': { type: 'string', short: 'y' },
+            'network-id': { type: 'string', short: 'i' },
+            'network-name': { type: 'string', short: 'm' },
+            'socket-url': { type: 'string', short: 's' },
+            'disable-full-nodes-sync': { type: 'boolean', short: 'u' },
+            'guest-mode': { type: 'boolean', short: 'g' },
+            'activation-email': { type: 'string', short: 'e' },
+            'dev-server': { type: 'string' }
+        }
+    });
+    const text = (name: string) => typeof values[name] === 'string' ? values[name] as string : undefined;
+    const flag = (name: string) => values[name] === true ? true : undefined;
+    const fullNodes = values['full-node'];
+
+    return {
+        privateKey: text('private-key'),
+        fullNode: Array.isArray(fullNodes) ? fullNodes.filter((node): node is string => typeof node === 'string') : undefined,
+        dry: flag('dry'),
+        offsetX: toInteger(text('offset-x')),
+        offsetY: toInteger(text('offset-y')),
+        networkID: toInteger(text('network-id')),
+        networkName: text('network-name'),
+        socketUrl: text('socket-url'),
+        disableHonorNodesSync: flag('disable-full-nodes-sync'),
+        activationEmail: text('activation-email'),
+        guestMode: flag('guest-mode'),
+        devServer: text('dev-server')
+    };
+};
+
+const args = parseLaunchArgs(process.argv.slice(1));
 
 export default args;

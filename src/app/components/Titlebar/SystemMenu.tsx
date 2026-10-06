@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import * as remote from '@electron/remote';
+import desktop from 'lib/desktop';
 import { FormattedMessage } from 'react-intl';
 
 import themed from 'components/Theme/themed';
@@ -51,7 +51,7 @@ const SystemMenu: React.FC<ISystemMenuProps> = props => {
                         <Item onClick={props.onAbout} icon="icon-question text-primary">
                             <FormattedMessage id="general.about" defaultMessage="About" />
                         </Item>
-                        <Item onClick={() => remote.getCurrentWindow().webContents.openDevTools({ mode: 'detach' })} icon="icon-calculator text-danger">
+                        <Item onClick={() => desktop?.openDevTools()} icon="icon-calculator text-danger">
                             <FormattedMessage id="general.developer.tools" defaultMessage="Developer tools" />
                         </Item>
                     </div>
