@@ -31,6 +31,9 @@ const REFUSED = [
     '@font-face { font-family: x; src: url(https://evil.example/f) }',
     'background: u\\72l(https://evil.example/a);',
     'back/**/ground: url(x);',
+    'background: u/**/rl(https://evil.example/a);',
+    'z-index: 1/**/0000;',
+    '/* } */ *:not(&) { display: none; }',
     // a fake confirmation laid over the real one
     'position: fixed; inset: 0; z-index: 2147483647;',
     'position: fixed; inset: 0; z-index: 999; background: #fff;',
@@ -59,7 +62,8 @@ describe('chain CSS', () => {
                 'position: sticky; top: 0;',
                 '@media (max-width: 600px) { display: none; }',
                 '@keyframes pulse { from { opacity: 1; } to { opacity: .5; } } animation: pulse 1s;',
-                'content: "x";'
+                'content: "x";',
+                'color: red; /* a note */ & span { /* } */ margin: 0; }'
             ]) {
                 expect([css, sanitizeTemplateStyle(css)]).toEqual([css, css]);
             }
@@ -107,6 +111,8 @@ describe('chain CSS', () => {
             );
             // A print stylesheet in the printed copy
             expect(scopeChainStylesheet('@page { margin: 1cm; } table { width: 100%; }', 'body')).toBe('@page{margin:1cm;}body table{width:100%;}');
+            // Every ecosystem's default print stylesheet on the IBAX testnet (ecosystemparam print_stylesheet)
+            expect(scopeChainStylesheet('body {\n\t\t  /* You can define your custom styles here or create custom CSS rules */\n\t}', 'body')).toBe('');
             expect(warn).not.toHaveBeenCalled();
         });
 

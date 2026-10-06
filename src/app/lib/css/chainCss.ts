@@ -15,7 +15,8 @@ import { compile, Element, serialize, stringify } from 'stylis';
 //    @scope and @layer change what selectors reach);
 //  - anything makes the browser load a resource: with attribute selectors that leaks what is
 //    typed into inputs (input[value^="a"] { background: url(…) });
-//  - escapes or comments could hide any of this from the checks;
+//  - escapes could hide any of this from the checks (comments cannot: stylis drops them and
+//    joins what they split, "u/**/rl(" becomes "url(", and the checks read its output);
 //  - the result could lie over the app's chrome (header 8000, modals 9000) and fake a
 //    confirmation: z-index above 999, or position: fixed, which escapes the page's scrolling area.
 
@@ -24,7 +25,7 @@ const MAX_Z_INDEX = 999;
 // @page holds only declarations (print margins and size)
 const AT_RULES = ['@media', '@supports', '@container', '@page'];
 
-const FORBIDDEN_SOURCE = [/\\/, /\/\*/, /</];
+const FORBIDDEN_SOURCE = [/\\/, /</];
 
 const FORBIDDEN_VALUE = [
     /\burl\s*\(/i,
