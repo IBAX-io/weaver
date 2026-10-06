@@ -4,26 +4,24 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import 'rxjs';
-import 'lib/external/fsa';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { getPageTree } from '../actions';
 import getPageTreeDoneEpic from './getPageTreeDoneEpic';
 import dependencies from 'modules/dependencies';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('generatePageTemplateEpic', () => {
-  it('generate PageTemplate', () => {
+  it('generate PageTemplate', async () => {
 
-    const action$ = ActionsObservable.of<Action>(getPageTree.done({
+    const actions: Action[] = [getPageTree.done({
       params: null,
       result: {
         jsonData: [],
         treeData: []
       }
     }
-    ));
+    )];
     const expectedOutput: any = [
       {
         payload: null,
@@ -31,10 +29,7 @@ describe('generatePageTemplateEpic', () => {
       }
     ];
 
-    getPageTreeDoneEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
-      .toArray()
-      .subscribe(actualOutput => {
-        expect(actualOutput).toEqual(expectedOutput);
-      });
+    const actualOutput = await runEpic(getPageTreeDoneEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+      expect(actualOutput).toEqual(expectedOutput);
   });
 });

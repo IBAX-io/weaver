@@ -146,6 +146,7 @@
   "general.network.offline": "Offline",
   "general.network.url": "Node URL",
   "general.network.error.E_OFFLINE": "Networke erişilemiyor",
+  "general.network.error.E_NETWORK_NOT_FOUND": "Ağ yapılandırılmamış",
   "general.network.error.E_IDMISMATCH": "Network ID uyuşmazlığı",
   "general.network.error.E_SERVER_MISCONFIGURATION": "Sunucu yapılandırma hatası",
   "general.networks": "Networkler",

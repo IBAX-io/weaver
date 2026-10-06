@@ -4,35 +4,34 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action as ReduxAction } from 'redux';
-import { Observable } from 'rxjs';
-import { ActionsObservable } from 'redux-observable';
+import { EMPTY, merge, Observable, of } from 'rxjs';
+import { filter, mergeMap, take } from 'rxjs/operators';
+import { ofAction } from 'lib/rx/ofAction';
 import { txCall, txExec } from '../actions';
 import { ITransactionCall, ITxError, ITransaction } from 'ibax/tx';
 import { isType } from 'typescript-fsa';
 
-type TTxDoneAction =
-    ReturnType<typeof txExec.done> |
-    ReturnType<typeof txExec.failed>;
-
-const TxObservable = (action$: ActionsObservable<ReduxAction>, params: { tx: ITransactionCall, success?: (tx: ITransaction[]) => Observable<ReduxAction>, failure?: (error: ITxError) => Observable<ReduxAction> }): Observable<ReduxAction> =>
-    Observable.merge(
-        action$.filter(l => isType(l, txExec.done) || isType(l, txExec.failed))
-            .filter((l: TTxDoneAction) => {
+const TxObservable = (action$: Observable<ReduxAction>, params: { tx: ITransactionCall, success?: (tx: ITransaction[]) => Observable<ReduxAction>, failure?: (error: ITxError) => Observable<ReduxAction> }): Observable<ReduxAction> =>
+    merge(
+        action$.pipe(
+            ofAction(txExec.done, txExec.failed),
+            filter(l => {
                 return params.tx.uuid === l.payload.params.uuid;
-            })
-            .take(1)
-            .flatMap(result => {
+            }),
+            take(1),
+            mergeMap((result): Observable<ReduxAction> => {
                 if (isType(result, txExec.done)) {
-                    return params.success ? params.success(result.payload.result) : Observable.empty();
+                    return params.success ? params.success(result.payload.result) : EMPTY;
                 }
                 else if (isType(result, txExec.failed)) {
-                    return params.failure ? params.failure(result.payload.error) : Observable.empty();
+                    return params.failure ? params.failure(result.payload.error) : EMPTY;
                 }
                 else {
-                    return Observable.empty();
+                    return EMPTY;
                 }
-            }),
-        Observable.of(txCall(params.tx))
+            })
+        ),
+        of(txCall(params.tx))
     );
 
 export default TxObservable;

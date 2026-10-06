@@ -4,37 +4,36 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect, vi } from 'vitest';
-import 'lib/external/fsa';
-import { Observable } from 'rxjs';
-import { ActionsObservable } from 'redux-observable';
+import * as routerService from 'services/router';
 import { locationChange } from '../actions';
 import sectionLoadEpic from './sectionLoadEpic';
-
-vi.mock('store', async () => {
-    const { Observable: Obs } = await import('rxjs');
-    return { state$: Obs.of({ auth: { isAcquired: true } }) };
-});
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('sectionLoadEpic', () => {
-    it('emits no non-action value when routing throws', () => new Promise<void>(done => {
-        const action$ = ActionsObservable.of(locationChange({
-            location: { pathname: '/browse/home', search: '', hash: '', state: {} },
-            action: 'PUSH'
-        } as any));
-        const store: any = { getState: () => ({ auth: { isAuthenticated: true } }) };
-        const routerService: any = {
+    it('emits no non-action value when routing throws', async () => {
+        const state = {
+            ...mockState,
+            auth: {
+                ...mockState.auth,
+                isAcquired: true,
+                isAuthenticated: true
+            }
+        };
+        const throwingRouterService: typeof routerService = {
+            ...routerService,
             matchRoute: () => { throw new Error('boom'); }
         };
         vi.spyOn(console, 'log').mockImplementation(() => null);
 
-        const emitted: any[] = [];
-        (sectionLoadEpic(action$ as any, store, { routerService } as any) as Observable<any>).subscribe({
-            next: value => emitted.push(value),
-            complete: () => {
-                // redux-observable 1.x stops every epic when a non-action (e.g. an Error) is emitted
-                expect(emitted.filter(value => !value || typeof value.type !== 'string')).toEqual([]);
-                done();
-            }
-        });
-    }));
+        const emitted = await runEpic(sectionLoadEpic, [
+            locationChange({
+                ...mockState.router,
+                location: { ...mockState.router.location, pathname: '/browse/home' }
+            })
+        ], state, { routerService: throwingRouterService });
+
+        // An epic must never emit a non-action (e.g. the thrown Error)
+        expect(emitted.filter(value => !value || typeof value.type !== 'string')).toEqual([]);
+    });
 });

@@ -3,25 +3,28 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { EMPTY, iif, of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { isType } from 'typescript-fsa';
-import { Observable } from 'rxjs/Observable';
+import { ofAction } from 'lib/rx/ofAction';
 import { modalClose } from '../actions';
 import { logout } from 'modules/auth/actions';
 import { locationChange } from 'modules/router/actions';
 
-const closeModalOnInteractionEpic: Epic = (action$, store) => action$.filter(action => isType(action, locationChange) || isType(action, logout.started))
-    .flatMap(() => {
-        const state = store.getState();
+const closeModalOnInteractionEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(locationChange, logout.started),
+    mergeMap(() => {
+        const state = state$.value;
 
-        return Observable.if(
-            () => state.modal.type && !state.modal.result,
-            Observable.of(modalClose({
+        return iif(
+            () => !!(state.modal.type && !state.modal.result),
+            of(modalClose({
                 reason: 'CANCEL',
                 data: null
             })),
-            Observable.empty()
+            EMPTY
         );
-    });
+    })
+);
 
 export default closeModalOnInteractionEpic;

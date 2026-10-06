@@ -4,21 +4,19 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import 'rxjs';
-import 'lib/external/fsa';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { moveTag } from '../actions';
 import moveTagEpic from './moveTagEpic';
 import dependencies from 'modules/dependencies';
 import { TProtypoElement } from 'ibax/protypo';
 import { TConstructorTreeElement } from 'ibax/editor';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('moveTagEpic', () => {
-  it('move tag', () => {
+  it('move tag', async () => {
 
-    const action$ = ActionsObservable.of<Action>(moveTag.started({
+    const actions: Action[] = [moveTag.started({
       tag: {
         tag: 'form',
         children: [
@@ -60,7 +58,7 @@ describe('moveTagEpic', () => {
       },
       destinationTagID: 'tag_0',
       position: 'before'
-    }));
+    })];
 
     const jsonData: TProtypoElement[] = [
       {
@@ -473,10 +471,7 @@ describe('moveTagEpic', () => {
 
     dependencies.constructorModule.idGenerator.setCounter(15);
 
-    moveTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
-      .toArray()
-      .subscribe(actualOutput => {
-        expect(actualOutput).toEqual(expectedOutput);
-      });
+    const actualOutput = await runEpic(moveTagEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+      expect(actualOutput).toEqual(expectedOutput);
   });
 });

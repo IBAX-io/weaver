@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { combineEpics } from 'redux-observable';
+import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
 import loginEpic from './epics/loginEpic';
 import logoutEpic from './epics/logoutEpic';
 import authorizeEpic from './epics/authorizeEpic';
@@ -22,7 +22,7 @@ import loginGuestEpic from './epics/loginGuestEpic';
 import acquireSessionEpic from './epics/acquireSessionEpic';
 import backupAccountEpic from './epics/backupAccountEpic';
 
-export default combineEpics(
+export default combineIsolatedEpics({
     acquireSessionEpic,
     authorizeEpic,
     createWalletEpic,
@@ -40,4 +40,4 @@ export default combineEpics(
     switchWalletEpic,
     loginGuestEpic,
     backupAccountEpic
-);
+});

@@ -3,15 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { map } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import * as actions from '../actions';
-import { IRootState } from 'modules';
 
 const saveConstructorHistoryEpic: Epic =
-    (action$, store) => action$.ofAction(actions.saveConstructorHistory.started)
-        .map(action => {
-            const state = store.getState().editor;
+    (action$, state$) => action$.pipe(
+        ofAction(actions.saveConstructorHistory.started),
+        map(action => {
+            const state = state$.value.editor;
             const tab = state.tabs[state.tabIndex].designer;
             const tabData = tab && tab.data || null;
             const tabHistory = tab && tab.history || null;
@@ -37,6 +38,7 @@ const saveConstructorHistoryEpic: Epic =
                     canRedo
                 }
             });
-        });
+        })
+    );
 
 export default saveConstructorHistoryEpic;

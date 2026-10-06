@@ -3,13 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { from, of } from 'rxjs';
+import { catchError, map, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { getPageTree } from '../actions';
-import { Observable } from 'rxjs/Observable';
 
-const getPageTreeEpic: Epic = (action$, store, { constructorModule, api }) => action$.ofAction(getPageTree.started)
-  .flatMap(action => {
-    const state = store.getState();
+const getPageTreeEpic: Epic = (action$, state$, { constructorModule, api }) => action$.pipe(
+  ofAction(getPageTree.started),
+  mergeMap(action => {
+    const state = state$.value;
     const client = api({
       apiHost: state.auth.session.network.apiHost,
       sessionToken: state.auth.session.sessionToken
@@ -17,29 +20,33 @@ const getPageTreeEpic: Epic = (action$, store, { constructorModule, api }) => ac
 
     const template = state.editor.tabs[state.editor.tabIndex].value;
 
-    return Observable.fromPromise(client.contentJson({
+    return from(client.contentJson({
       template,
       locale: state.storage.locale,
       source: true
 
-    })).map(payload => {
-      let jsonData = payload.tree;
-      constructorModule.setIds(jsonData);
+    })).pipe(
+      map(payload => {
+        let jsonData = payload.tree;
+        constructorModule.setIds(jsonData);
 
-      jsonData = constructorModule.updateChildrenText(jsonData);
+        jsonData = constructorModule.updateChildrenText(jsonData);
 
-      return getPageTree.done({
+        return getPageTree.done({
+          params: action.payload,
+          result: {
+            jsonData,
+            treeData: constructorModule.convertToTreeData(jsonData)
+          }
+        });
+
+      }),
+      catchError(e => of(getPageTree.failed({
         params: action.payload,
-        result: {
-          jsonData,
-          treeData: constructorModule.convertToTreeData(jsonData)
-        }
-      });
-
-    }).catch(e => Observable.of(getPageTree.failed({
-      params: action.payload,
-      error: e.error
-    })));
-  });
+        error: e.error
+      })))
+    );
+  })
+);
 
 export default getPageTreeEpic;

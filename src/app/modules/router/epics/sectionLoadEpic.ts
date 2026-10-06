@@ -3,35 +3,38 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { Action as ReduxAction } from 'redux';
+import { defer, EMPTY, Observable, of } from 'rxjs';
+import { catchError, delayWhen, filter, map, mergeMap, take } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { locationChange } from '../actions';
 import { renderPage } from 'modules/sections/actions';
-import { Observable } from 'rxjs';
-import { state$ } from 'store';
 import { initialize } from 'modules/engine/actions';
-import { isType, Action } from 'typescript-fsa';
+import { isType } from 'typescript-fsa';
 import { RouterState, replace } from 'connected-react-router';
 import { createEditorTab, loadEditorTab } from 'modules/editor/actions';
 
-const sectionLoadEpic: Epic = (action$, store, { routerService }) => action$
-    .filter(action => isType(action, initialize.started) || isType(action, locationChange))
-    .map((action: Action<any>) => {
-        if (isType(action, initialize.started)) {
-            return store.getState().router;
+const sectionLoadEpic: Epic = (action$, state$, { routerService }) => action$.pipe(
+    ofAction(initialize.started, locationChange),
+    map((action): RouterState => {
+        // Only initialize.started and locationChange reach here (see ofAction above)
+        if (isType(action, locationChange)) {
+            return action.payload;
         }
 
-        return action.payload;
-    })
-    .delayWhen(() => state$.filter(l => l.auth.isAcquired).take(1))
-    .flatMap((routerState: RouterState) => {
+        return state$.value.router;
+    }),
+    delayWhen(() => state$.pipe(filter(l => l.auth.isAcquired), take(1))),
+    mergeMap((routerState: RouterState): Observable<ReduxAction> => defer((): Observable<ReduxAction> => {
         const match = routerService.matchRoute('/browse(/:section)(/:page)', routerState.location.pathname + routerState.location.search);
-        const state = store.getState();
+        const state = state$.value;
 
         if (state.auth.isAuthenticated && match) {
             const section = state.sections.sections[match.parts.section || state.sections.mainSection];
 
             if (!section) {
-                return Observable.of(replace(
+                return of(replace(
                     routerService.routeToBrowser(state.sections.mainSection, state.sections.sections[state.sections.mainSection].defaultPage)
                 ));
             }
@@ -41,13 +44,13 @@ const sectionLoadEpic: Epic = (action$, store, { routerService }) => action$
             // TODO: OLD EDITOR API COMPAT
             if ('editor' === pageName) {
                 if (match.query.create) {
-                    return Observable.of(
+                    return of(
                         createEditorTab.started(match.query.create),
                         replace('/editor')
                     );
                 }
                 else if (match.query.open) {
-                    return Observable.of(
+                    return of(
                         loadEditorTab.started({ type: match.query.open, name: match.query.name }),
                         replace('/editor')
                     );
@@ -70,7 +73,7 @@ const sectionLoadEpic: Epic = (action$, store, { routerService }) => action$
             //     }
             // }
 
-            return Observable.of(renderPage.started({
+            return of(renderPage.started({
                 location: {
                     state: {},
                     ...routerState.location
@@ -81,14 +84,16 @@ const sectionLoadEpic: Epic = (action$, store, { routerService }) => action$
             }));
         }
         else {
-            return Observable.empty();
+            return EMPTY;
         }
 
-    }).catch(e => {
-        // tslint:disable-next-line: no-console
-        console.log(e);
-        // Emitting a non-action terminates the whole rootEpic under redux-observable 1.x
-        return Observable.empty();
-    });
+    }).pipe(
+        // Handled per navigation: a failure must neither emit a non-action nor end the epic
+        catchError(e => {
+            console.error('Section load failed', e);
+            return EMPTY;
+        })
+    ))
+);
 
 export default sectionLoadEpic;

@@ -4,8 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
+import { defer, from, of, throwError, timer } from 'rxjs';
+import { catchError, concatMap, delay, filter, map, mergeMap, retry, toArray } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { Observable, throwError } from 'rxjs';
+import { ofAction } from 'lib/rx/ofAction';
 import { txExec } from '../actions';
 import uuid from 'uuid';
 import Contract, { IContractParam } from 'lib/tx/contract';
@@ -16,149 +18,154 @@ import { ITransactionBody } from 'ibax/tx';
 
 const TX_STATUS_INTERVAL = 2000;
 
-export const txExecEpic: Epic = (action$, store, { api }) => action$.ofAction(txExec.started)
-  .flatMap(action => {
-    const state = store.getState();
+export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
+  ofAction(txExec.started),
+  mergeMap(action => {
+    const state = state$.value;
     const client = api({
       apiHost: state.auth.session.network.apiHost,
       sessionToken: state.auth.session.sessionToken
     });
     const privateKey = state.auth.privateKey;
-    const network = store.getState().storage.networks.find(l => l.uuid === state.auth.session.network.uuid);
+    const network = state.storage.networks.find(l => l.uuid === state.auth.session.network.uuid);
 
-    return Observable.from(action.payload.contracts).flatMap((contract: any) =>
-      Observable.from(client.getContract({
-        name: contract.name
+    return from(action.payload.contracts).pipe(
+      // Contracts are serialized one at a time
+      concatMap((contract: any) => from(client.getContract({ name: contract.name })).pipe(
+        // ...and so are the parameter sets of each contract
+        concatMap((proto: any) => from(contract.params).pipe(
+          concatMap((params: any) => from(proto.fields).pipe(
+            filter((l: any) => l.type === 'file' && params[l.name]),
+            mergeMap((field: any) => fileObservable(params[field.name]).pipe(
+              map(buffer => {
+                const blob = params[field.name] as File;
+                return {
+                  field: field.name,
+                  name: blob.name,
+                  type: blob.type,
+                  value: buffer,
+                };
+              })
+            )),
+            toArray(),
+            mergeMap(files => {
+              const txParams: { [name: string]: IContractParam } = {};
+              const logParams: { [name: string]: IContractParam } = {};
 
-      })).flatMap((proto: any) => Observable.from(contract.params).flatMap((params: any) =>
-        Observable.from(proto.fields)
-          .filter((l: any) => l.type === 'file' && params[l.name])
-          .flatMap((field: any) => fileObservable(params[field.name])
-            .map(buffer => {
-              const blob = params[field.name] as File;
-              return {
-                field: field.name,
-                name: blob.name,
-                type: blob.type,
-                value: buffer,
-              };
-            })
-          ).toArray()
-          .flatMap(files => {
-            const txParams: { [name: string]: IContractParam } = {};
-            const logParams: { [name: string]: IContractParam } = {};
+              proto.fields.forEach(field => {
+                if (!params[field.name]) {
+                  return;
+                }
 
-            proto.fields.forEach(field => {
-              if (!params[field.name]) {
-                return;
-              }
-
-              const file = files.find(f => f.field === field.name);
-              txParams[field.name] = {
-                type: field.type,
-                value: file ? {
-                  name: file.name,
-                  type: file.type,
-                  value: file.value
-                } : params[field.name]
-              };
-              logParams[field.name] = {
-                type: field.type,
-                value: params[field.name].toString()
-              };
-            });
-
-            return Observable.from(new Contract({
-              id: proto.id,
-              schema: defaultSchema,
-              networkID: network.id,
-              ecosystemID: parseInt(state.auth.wallet && state.auth.wallet.access.ecosystem || '1', 10),
-              fields: txParams
-
-            }).sign(privateKey)).map(signature => ({
-              ...signature,
-              name: proto.name,
-              body: {
-                ...signature.body,
-                Params: logParams
-              }
-            }));
-          })
-
-        // Contract params serialization concurrency
-      ), 1).toArray()
-
-      // Contracts serialization concurrency
-      , 1).flatMap(contracts => {
-        const request = {};
-        const jobs: {
-          name: string;
-          hash: string;
-          body: ITransactionBody;
-        }[] = [];
-
-        contracts.forEach(contract => {
-          request[contract.hash] = new Blob([contract.data]);
-          jobs.push({
-            name: contract.name,
-            hash: contract.hash,
-            body: contract.body
-          });
-        });
-
-        return Observable.from(client.txSend(request)).delay(TX_STATUS_INTERVAL).flatMap(sendResponse => Observable.defer(() =>
-          client.txStatus(contracts.map(l => l.hash))
-
-        ).map(status => {
-          let pending = contracts.length;
-          contracts.forEach(contract => {
-            const tx = status[contract.hash];
-            console.log(JSON.stringify(tx));
-            if (tx.errmsg) {
-              throw {
-                type: 'E_ERROR',
-                data: tx.errmsg
-              };
-            }
-            else if (tx.blockid && tx.penalty === 0) {
-              console.log(pending);
-              pending--;
-            }
-          });
-
-          if (0 === pending) {
-            return jobs.map(job => ({
-              ...job,
-              status: status[job.hash]
-            }));
-          }
-          else {
-            throw {
-              type: 'E_PENDING',
-              count: pending
-            };
-          }
-
-        }).retryWhen(errors => errors.flatMap(error => {
-          switch (error.type) {
-            case 'E_PENDING':
-              return Observable.of(error).delay(TX_STATUS_INTERVAL);
-
-            case 'E_ERROR':
-              return throwError({
-                id: error.data.id,
-                type: error.data.type,
-                error: error.data.error,
-                params: error.data.params
+                const file = files.find(f => f.field === field.name);
+                txParams[field.name] = {
+                  type: field.type,
+                  value: file ? {
+                    name: file.name,
+                    type: file.type,
+                    value: file.value
+                  } : params[field.name]
+                };
+                logParams[field.name] = {
+                  type: field.type,
+                  value: params[field.name].toString()
+                };
               });
 
-            default:
-              return throwError(error);
-          }
+              return from(new Contract({
+                id: proto.id,
+                schema: defaultSchema,
+                networkID: network.id,
+                ecosystemID: parseInt(state.auth.wallet && state.auth.wallet.access.ecosystem || '1', 10),
+                fields: txParams
+              }).sign(privateKey)).pipe(
+                map(signature => ({
+                  ...signature,
+                  name: proto.name,
+                  body: {
+                    ...signature.body,
+                    Params: logParams
+                  }
+                }))
+              );
+            })
+          ))
+        )),
+        toArray(),
+        concatMap(contracts => {
+          const request = {};
+          const jobs: {
+            name: string;
+            hash: string;
+            body: ITransactionBody;
+          }[] = [];
 
-        })));
+          contracts.forEach(signed => {
+            request[signed.hash] = new Blob([signed.data]);
+            jobs.push({
+              name: signed.name,
+              hash: signed.hash,
+              body: signed.body
+            });
+          });
 
-      }, 1).toArray().flatMap(results => Observable.of<Action>(
+          return from(client.txSend(request)).pipe(
+            delay(TX_STATUS_INTERVAL),
+            mergeMap(() => defer(() => client.txStatus(contracts.map(l => l.hash))).pipe(
+              map(status => {
+                let pending = contracts.length;
+                contracts.forEach(signed => {
+                  const tx = status[signed.hash];
+                  if (tx.errmsg) {
+                    throw {
+                      type: 'E_ERROR',
+                      data: tx.errmsg
+                    };
+                  }
+                  else if (tx.blockid && tx.penalty === 0) {
+                    pending--;
+                  }
+                });
+
+                if (0 === pending) {
+                  return jobs.map(job => ({
+                    ...job,
+                    status: status[job.hash]
+                  }));
+                }
+                else {
+                  throw {
+                    type: 'E_PENDING',
+                    count: pending
+                  };
+                }
+              }),
+              // Poll until every transaction is in a block; a contract error stops polling
+              retry({
+                delay: error => {
+                  switch (error.type) {
+                    case 'E_PENDING':
+                      return timer(TX_STATUS_INTERVAL);
+
+                    case 'E_ERROR':
+                      return throwError(() => ({
+                        id: error.data.id,
+                        type: error.data.type,
+                        error: error.data.error,
+                        params: error.data.params
+                      }));
+
+                    default:
+                      return throwError(() => error);
+                  }
+                }
+              })
+            ))
+          );
+        })
+      )),
+      toArray(),
+      mergeMap(results => of(
         txExec.done({
           params: action.payload,
           result: Array.prototype.concat.apply([], results)
@@ -168,15 +175,17 @@ export const txExecEpic: Epic = (action$, store, { api }) => action$.ofAction(tx
           type: 'TX_BATCH',
           params: {}
         })
-
-      )).catch(error => Observable.of(txExec.failed({
+      )),
+      catchError(error => of(txExec.failed({
         params: action.payload,
-        error: 'id' in error ? error : {
+        error: error && 'id' in error ? error : {
           type: (error.errmsg ? error.errmsg.type : error.error),
           error: error.errmsg ? error.errmsg.error : error.msg,
           params: error.params || []
         }
-      })));
-  });
+      })))
+    );
+  })
+);
 
 export default txExecEpic;

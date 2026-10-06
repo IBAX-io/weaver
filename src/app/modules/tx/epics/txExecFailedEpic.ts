@@ -3,14 +3,17 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { filter, map } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { txExec } from '../actions';
 import { modalShow } from '../../modal/actions';
 import { push } from 'connected-react-router';
 
-export const txExecFailedEpic: Epic = (action$, store, { routerService }) => action$.ofAction(txExec.failed)
-    .filter(l => !l.payload.params.silent)
-    .map(action => {
+export const txExecFailedEpic: Epic = (action$, state$, { routerService }) => action$.pipe(
+    ofAction(txExec.failed),
+    filter(l => !l.payload.params.silent),
+    map(action => {
         if (action.payload.params.section && action.payload.error.id && action.payload.params.errorRedirects) {
             const errorRedirect = action.payload.params.errorRedirects[action.payload.error.id];
             if (errorRedirect) {
@@ -24,6 +27,7 @@ export const txExecFailedEpic: Epic = (action$, store, { routerService }) => act
             type: 'TX_ERROR',
             params: action.payload.error
         });
-    });
+    })
+);
 
 export default txExecFailedEpic;

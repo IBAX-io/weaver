@@ -4,12 +4,15 @@
  *--------------------------------------------------------------------------------------------*/
 
 import uuid from 'uuid';
+import { map } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { createEditorTab } from '../actions';
 
-const createEditorTabEpic: Epic = (action$, store) => action$.ofAction(createEditorTab.started)
-    .map(action => {
-        const state = store.getState();
+const createEditorTabEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(createEditorTab.started),
+    map(action => {
+        const state = state$.value;
 
         const ids = state.editor.tabs
             .filter(l => l.new)
@@ -48,6 +51,7 @@ const createEditorTabEpic: Epic = (action$, store) => action$.ofAction(createEdi
                 error: null
             });
         }
-    });
+    })
+);
 
 export default createEditorTabEpic;

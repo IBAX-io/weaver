@@ -23,6 +23,7 @@ import * as router from './router';
 import { ActionCreator, Failure, Success } from 'typescript-fsa';
 
 export type Epic = NativeEpic<Action, Action, IRootState, IStoreDependencies>;
+export type { IStoreDependencies };
 export type Reducer<T, S> =
     T extends ActionCreator<Failure<infer P, infer E>> ? (state: S, payload: Failure<P, E>) => S :
     T extends ActionCreator<Success<infer P, infer R>> ? (state: S, payload: Success<P, R>) => S :
@@ -37,7 +38,6 @@ export interface IRootState {
     engine: engine.State;
     editor: editor.State;
     tx: tx.State;
-    io: io.State;
     notifications: notifications.State;
     storage: storage.State;
     socket: socket.State;

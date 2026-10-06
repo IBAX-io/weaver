@@ -3,15 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { map } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import * as actions from '../actions';
-import { IRootState } from 'modules';
 
 const changePageEpic: Epic =
-    (action$, store, { constructorModule }) => action$.ofAction(actions.changePage.started)
-        .map(action => {
-            const state = store.getState().editor;
+    (action$, state$, { constructorModule }) => action$.pipe(
+        ofAction(actions.changePage.started),
+        map(action => {
+            const state = state$.value.editor;
             const tabData = state.tabs[state.tabIndex].designer.data;
             let jsonData = tabData && constructorModule.copyObject(tabData.jsonData) || null;
             let selectedTag = tabData && tabData.selectedTag || null;
@@ -67,6 +68,7 @@ const changePageEpic: Epic =
                 }
             });
 
-        });
+        })
+    );
 
 export default changePageEpic;

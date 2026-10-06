@@ -3,23 +3,25 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { from, of } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { loginGuest } from '../actions';
-import { Observable } from 'rxjs/Observable';
 import { push } from 'connected-react-router';
 import keyring from 'lib/keyring';
 import { publicToID } from 'lib/crypto';
 
-const loginGuestEpic: Epic = (action$, store, { api, defaultKey, defaultPassword }) => action$.ofAction(loginGuest.started)
-    .flatMap(action => {
+const loginGuestEpic: Epic = (action$, state$, { api, defaultKey, defaultPassword }) => action$.pipe(
+    ofAction(loginGuest.started),
+    mergeMap(action => {
         const publicKey = keyring.generatePublicKey(defaultKey);
-        const network = store.getState().engine.guestSession.network;
+        const network = state$.value.engine.guestSession.network;
         const client = api({ apiHost: network.apiHost });
         const id = publicToID(publicKey);
 
-        return Observable.from(client.getUid())
-            .flatMap(uid =>
+        return from(client.getUid()).pipe(
+            mergeMap(uid =>
                 client.authorize(uid.token).login({
                     publicKey,
                     signature: keyring.sign(uid.uid, defaultKey),
@@ -27,11 +29,11 @@ const loginGuestEpic: Epic = (action$, store, { api, defaultKey, defaultPassword
                     expire: 60 * 60 * 24 * 90,
                     role: null
                 })
-            )
+            ),
 
             // Successful authentication. Yield the result
-            .flatMap(session => {
-                return Observable.of<Action>(
+            mergeMap(session => {
+                return of(
                     push('/'),
                     loginGuest.done({
                         params: action.payload,
@@ -65,16 +67,18 @@ const loginGuestEpic: Epic = (action$, store, { api, defaultKey, defaultPassword
                         }
                     })
                 );
-            })
+            }),
 
             // Catch actual login error, yield result
-            .catch(e => Observable.of(
+            catchError(e => of(
                 loginGuest.failed({
                     params: action.payload,
                     error: e.error
                 })
-            ));
+            ))
+        );
 
-    });
+    })
+);
 
 export default loginGuestEpic;

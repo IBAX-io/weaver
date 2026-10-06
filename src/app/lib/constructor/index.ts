@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { TProtypoElement } from 'ibax/protypo';
-import { IFindTagResult, TConstructorTreeElement } from 'ibax/editor';
+import { IFindTagResult, ITreeNode, TConstructorTreeElement } from 'ibax/editor';
 import * as _ from 'lodash';
 import resolveTagHandler from './tags';
 import IdGenerator from './idGenerator';
@@ -12,7 +12,7 @@ import { htmlJsonChild2childrenTags, parseHtmlNodes, stripNewlineTags } from './
 import TreeSearch from './treeSearch';
 import Tag from './tags/Tag';
 
-export const findTagById = (el: TProtypoElement[], id: string): IFindTagResult => {
+export const findTagById = <T extends ITreeNode<T> = TProtypoElement>(el: T[], id: string): IFindTagResult<T> => {
     const treeSearch = new TreeSearch();
     return treeSearch.findTagById(el, id);
 };

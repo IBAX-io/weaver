@@ -3,15 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { map } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { IRootState } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { unsubscribe } from '../actions';
 
 const unsubscribeEpic: Epic =
-    (action$, store) => action$.ofAction(unsubscribe.started)
-        .map(action => {
-            const sub = store.getState().socket.subscriptions.find(l => l.wallet.id === action.payload.id);
+    (action$, state$) => action$.pipe(
+        ofAction(unsubscribe.started),
+        map(action => {
+            const sub = state$.value.socket.subscriptions.find(l => l.wallet.id === action.payload.id);
             if (sub) {
                 sub.instance.unsubscribe();
                 return unsubscribe.done({
@@ -25,6 +26,7 @@ const unsubscribeEpic: Epic =
                     error: null
                 });
             }
-        });
+        })
+    );
 
 export default unsubscribeEpic;

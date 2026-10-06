@@ -3,22 +3,24 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { from, of } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { login, acquireSession } from '../actions';
-import { Observable } from 'rxjs/Observable';
 import keyring from 'lib/keyring';
 import { push } from 'connected-react-router';
 
-const loginEpic: Epic = (action$, store, { api }) => action$.ofAction(login.started)
-    .flatMap(action => {
-        const wallet = store.getState().auth.wallet;
+const loginEpic: Epic = (action$, state$, { api }) => action$.pipe(
+    ofAction(login.started),
+    mergeMap(action => {
+        const wallet = state$.value.auth.wallet;
         const privateKey = keyring.decryptAES(wallet.wallet.encKey, action.payload.password);
-        const state = store.getState();
+        const state = state$.value;
         const networkEndpoint = state.engine.guestSession.network;
 
         if (!keyring.validatePrivateKey(privateKey)) {
-            return Observable.of(login.failed({
+            return of(login.failed({
                 params: action.payload,
                 error: 'E_INVALID_PASSWORD'
             }));
@@ -27,8 +29,8 @@ const loginEpic: Epic = (action$, store, { api }) => action$.ofAction(login.star
         const publicKey = keyring.generatePublicKey(privateKey);
         const client = api({ apiHost: networkEndpoint.apiHost });
 
-        return Observable.from(client.getUid())
-            .flatMap(uid => {
+        return from(client.getUid()).pipe(
+            mergeMap(uid => {
                 return client.authorize(uid.token).login({
                     publicKey,
                     signature: keyring.sign(uid.uid, privateKey),
@@ -36,16 +38,16 @@ const loginEpic: Epic = (action$, store, { api }) => action$.ofAction(login.star
                     expire: 60 * 60 * 24 * 90,
                     role: wallet.role ? Number(wallet.role.id) : null
                 });
-            })
+            }),
 
             // Successful authentication. Yield the result
-            .flatMap(response => {
+            mergeMap(response => {
                 const sessionResult = {
                     sessionToken: response.token,
                     network: networkEndpoint
                 };
 
-                return Observable.of<Action>(
+                return of(
                     push('/'),
                     login.done({
                         params: action.payload,
@@ -57,16 +59,18 @@ const loginEpic: Epic = (action$, store, { api }) => action$.ofAction(login.star
                     }),
                     acquireSession.started(sessionResult)
                 );
-            })
+            }),
 
             // Catch actual login error, yield result
-            .catch(e => Observable.of(
+            catchError(e => of(
                 login.failed({
                     params: action.payload,
                     error: e.error
                 })
-            ));
+            ))
+        );
 
-    });
+    })
+);
 
 export default loginEpic;

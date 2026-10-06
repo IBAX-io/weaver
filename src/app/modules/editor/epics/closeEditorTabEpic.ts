@@ -3,24 +3,25 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { EMPTY, of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { IRootState } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { closeEditorTab, destroyEditorTab } from '../actions';
-import { Observable } from 'rxjs';
 import { modalShow } from 'modules/modal/actions';
 
-const closeEditorTabEpic: Epic = (action$, store) => action$.ofAction(closeEditorTab)
-    .flatMap(action => {
-        const state = store.getState();
+const closeEditorTabEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(closeEditorTab),
+    mergeMap(action => {
+        const state = state$.value;
         const tab = state.editor.tabs.find(t => t.uuid === action.payload);
 
         if (!tab) {
-            return Observable.empty();
+            return EMPTY;
         }
 
         if (tab.dirty) {
-            return Observable.of(modalShow({
+            return of(modalShow({
                 id: 'EDITOR_CLOSE',
                 type: 'EDITOR_CLOSE_UNSAVED',
                 params: {
@@ -29,7 +30,8 @@ const closeEditorTabEpic: Epic = (action$, store) => action$.ofAction(closeEdito
             }));
         }
 
-        return Observable.of(destroyEditorTab(tab.uuid));
-    });
+        return of(destroyEditorTab(tab.uuid));
+    })
+);
 
 export default closeEditorTabEpic;

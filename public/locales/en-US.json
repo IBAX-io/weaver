@@ -146,6 +146,7 @@
   "general.network.offline": "Offline",
   "general.network.url": "Node URL",
   "general.network.error.E_OFFLINE": "Network is unreachable",
+  "general.network.error.E_NETWORK_NOT_FOUND": "Network is not configured",
   "general.network.error.E_IDMISMATCH": "Network ID mismatch",
   "general.network.error.E_SERVER_MISCONFIGURATION": "Server configuration error",
   "general.networks": "Networks",

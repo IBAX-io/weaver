@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { combineEpics } from 'redux-observable';
+import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
 import newContractEpic from './epics/newContractEpic';
 import editorSaveEpic from './epics/editorSaveEpic';
 import newPageEpic from './epics/newPageEpic';
@@ -32,7 +32,7 @@ import debugContractEpic from './epics/debugContractEpic';
 import revertEditorTabEpic from './epics/revertEditorTabEpic';
 import openEditorEpic from './epics/openEditorEpic';
 
-export default combineEpics(
+export default combineIsolatedEpics({
     changeEditorToolEpic,
     closeEditorTabEpic,
     createEditorTabEpic,
@@ -60,4 +60,4 @@ export default combineEpics(
     debugContractEpic,
     revertEditorTabEpic,
     openEditorEpic
-);
+});

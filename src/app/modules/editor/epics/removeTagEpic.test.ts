@@ -4,21 +4,19 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import 'rxjs';
-import 'lib/external/fsa';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { removeTag } from '../actions';
 import removeTagEpic from './removeTagEpic';
 import dependencies from 'modules/dependencies';
 import { TProtypoElement } from 'ibax/protypo';
 import { TConstructorTreeElement } from 'ibax/editor';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('removeTagEpic', () => {
-    it('remove tag', () => {
+    it('remove tag', async () => {
 
-        const action$ = ActionsObservable.of<Action>(removeTag.started({
+        const actions: Action[] = [removeTag.started({
             tag: {
                 tag: 'p',
                 attr: {
@@ -34,7 +32,7 @@ describe('removeTagEpic', () => {
                 id: 'tag_1',
                 childrenText: 'Paragraph text here'
             }
-        }));
+        })];
 
         const jsonData: TProtypoElement[] = [
             {
@@ -379,10 +377,7 @@ describe('removeTagEpic', () => {
             }
         ];
 
-        removeTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
-            .toArray()
-            .subscribe(actualOutput => {
-                expect(actualOutput).toEqual(expectedOutput);
-            });
+        const actualOutput = await runEpic(removeTagEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+            expect(actualOutput).toEqual(expectedOutput);
     });
 });

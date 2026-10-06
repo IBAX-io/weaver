@@ -5,20 +5,22 @@
 
 import uuid from 'uuid';
 import { Epic } from 'modules';
-import { Observable } from 'rxjs';
+import { from, of } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
+import { ofAction } from 'lib/rx/ofAction';
 import { addNetwork, navigate } from '../actions';
 import { discover } from 'services/network';
 import NetworkError from 'services/network/errors';
 import { saveNetwork } from 'modules/storage/actions';
 import { modalShow } from 'modules/modal/actions';
-import { Action } from 'redux';
 
-const addNetworkEpic: Epic = (action$, _store, { defaultKey }) => action$.ofAction(addNetwork.started)
-  .flatMap(action => {
+const addNetworkEpic: Epic = (action$, _state$, { defaultKey }) => action$.pipe(
+  ofAction(addNetwork.started),
+  mergeMap(action => {
     const uniqueID = uuid.v4();
 
-    return Observable.from(discover({ uuid: uniqueID, apiHost: action.payload.apiHost }, defaultKey, action.payload.networkID))
-      .flatMap(result => Observable.of(
+    return from(discover({ uuid: uniqueID, apiHost: action.payload.apiHost }, defaultKey, action.payload.networkID)).pipe(
+      mergeMap(result => of(
         navigate('/networks'),
         saveNetwork({
           uuid: uniqueID,
@@ -27,8 +29,8 @@ const addNetworkEpic: Epic = (action$, _store, { defaultKey }) => action$.ofActi
           name: action.payload.name
         }),
         addNetwork.done(null)
-      ))
-      .catch((e: NetworkError) => Observable.of<Action>(
+      )),
+      catchError((e: NetworkError) => of(
         modalShow({
           id: 'NETWORK_ERROR',
           params: {
@@ -40,7 +42,9 @@ const addNetworkEpic: Epic = (action$, _store, { defaultKey }) => action$.ofActi
           params: action.payload,
           error: e
         })
-      ));
-  });
+      ))
+    );
+  })
+);
 
 export default addNetworkEpic;

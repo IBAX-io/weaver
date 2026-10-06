@@ -146,6 +146,7 @@
   "general.network.offline": "离线",
   "general.network.url": "节点 URL",
   "general.network.error.E_OFFLINE": "网络不可达",
+  "general.network.error.E_NETWORK_NOT_FOUND": "该网络尚未配置",
   "general.network.error.E_IDMISMATCH": "网络 ID 不匹配",
   "general.network.error.E_SERVER_MISCONFIGURATION": "服务器配置错误",
   "general.networks": "网络",

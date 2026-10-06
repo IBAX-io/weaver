@@ -4,19 +4,17 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import 'rxjs';
-import 'lib/external/fsa';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { generatePageTemplate } from '../actions';
 import generatePageTemplateEpic from './generatePageTemplateEpic';
 import dependencies from 'modules/dependencies';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('generatePageTemplateEpic', () => {
-    it('generate PageTemplate', () => {
+    it('generate PageTemplate', async () => {
 
-        const action$ = ActionsObservable.of<Action>(generatePageTemplate);
+        const actions: Action[] = [generatePageTemplate];
         const expectedOutput: any = [
             {
                 type: 'editor/UPDATE_EDITOR_TAB',
@@ -28,10 +26,7 @@ describe('generatePageTemplateEpic', () => {
             }
         ];
 
-        generatePageTemplateEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
-            .toArray()
-            .subscribe(actualOutput => {
-                expect(actualOutput).toEqual(expectedOutput);
-            });
+        const actualOutput = await runEpic(generatePageTemplateEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+            expect(actualOutput).toEqual(expectedOutput);
     });
 });

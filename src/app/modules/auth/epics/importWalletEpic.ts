@@ -3,18 +3,21 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { defer, of } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { importWallet } from '../actions';
-import { Observable } from 'rxjs/Observable';
 import { navigate } from 'modules/engine/actions';
 import { publicToID } from 'lib/crypto';
 import keyring from 'lib/keyring';
 
-const importWalletEpic: Epic = (action$, store, { api }) => action$.ofAction(importWallet.started)
-    .flatMap(action => {
+const importWalletEpic: Epic = action$ => action$.pipe(
+    ofAction(importWallet.started),
+    // Errors are handled per action, so one failed attempt does not end the epic
+    mergeMap(action => defer(() => {
         if (!action.payload.backup || action.payload.backup.length !== keyring.KEY_LENGTH) {
-            return Observable.of(importWallet.failed({
+            return of(importWallet.failed({
                 params: action.payload,
                 error: 'E_INVALID_KEY'
             }));
@@ -25,7 +28,7 @@ const importWalletEpic: Epic = (action$, store, { api }) => action$.ofAction(imp
         const encKey = keyring.encryptAES(privateKey, action.payload.password);
         const keyID = publicToID(publicKey);
 
-        return Observable.of<Action>(
+        return of(
             importWallet.done({
                 params: action.payload,
                 result: {
@@ -37,9 +40,12 @@ const importWalletEpic: Epic = (action$, store, { api }) => action$.ofAction(imp
             navigate('/')
         );
 
-    }).catch(e => Observable.of(importWallet.failed({
-        params: null,
-        error: 'E_IMPORT_FAILED'
-    })));
+    }).pipe(
+        catchError(() => of(importWallet.failed({
+            params: action.payload,
+            error: 'E_IMPORT_FAILED'
+        })))
+    ))
+);
 
 export default importWalletEpic;

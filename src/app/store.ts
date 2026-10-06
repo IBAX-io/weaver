@@ -3,20 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import 'rxjs-compat';
-import 'rxjs';
-import 'lib/external/fsa';
-import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
+import { Action, createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { connectRouter, routerMiddleware } from 'connected-react-router';
 import { createEpicMiddleware } from 'redux-observable';
 import { IPersistenceBackend, mergePersistedState, persistedStateChanged, selectPersistedState } from 'lib/persistence';
 import createLocalStorageBackend from 'lib/persistence/localStorageBackend';
 
 import { History, createBrowserHistory, createMemoryHistory } from 'history';
-import rootReducer, { rootEpic, IRootState } from './modules';
+import rootReducer, { rootEpic, IRootState, IStoreDependencies } from './modules';
 import platform from 'lib/platform';
 import dependencies from 'modules/dependencies';
-import { Observable } from 'rxjs';
 
 export const history = platform.select<() => History>({
   desktop: createMemoryHistory,
@@ -49,7 +45,7 @@ const configureStore = () => {
   const initialState = reducer(undefined, { type: '@@weaver/INIT' });
   const enhancers: any[] = [];
 
-  const epicMiddleware = createEpicMiddleware({
+  const epicMiddleware = createEpicMiddleware<Action, Action, IRootState, IStoreDependencies>({
     dependencies
   });
 
@@ -86,25 +82,11 @@ const configureStore = () => {
     }
   });
 
-  epicMiddleware.run(rootEpic as any);
+  epicMiddleware.run(rootEpic);
 
   return store;
 };
 
 const store = configureStore();
-
-// This is a stub value for observable store. It will be removed in the near future
-const getState$ = (stateStore: typeof store) =>
-  new Observable<IRootState>(observer => {
-    observer.next(stateStore.getState() as any);
-
-    const unsubscribe = store.subscribe(() => {
-      observer.next(stateStore.getState() as any);
-    });
-
-    return unsubscribe;
-  });
-
-export const state$ = getState$(store);
 
 export default store;

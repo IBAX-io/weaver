@@ -4,21 +4,19 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import 'rxjs';
-import 'lib/external/fsa';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { copyTag } from '../actions';
 import copyTagEpic from './copyTagEpic';
 import dependencies from 'modules/dependencies';
 import { TProtypoElement } from 'ibax/protypo';
 import { TConstructorTreeElement } from 'ibax/editor';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('copyTagEpic', () => {
-    it('copy tag', () => {
+    it('copy tag', async () => {
 
-        const action$ = ActionsObservable.of<Action>(copyTag.started({
+        const actions: Action[] = [copyTag.started({
             tag: {
                 tag: 'form',
                 children: [
@@ -48,7 +46,7 @@ describe('copyTagEpic', () => {
             },
             destinationTagID: 'tag_13',
             position: 'before'
-        }));
+        })];
 
         const jsonData: TProtypoElement[] = [
             {
@@ -554,10 +552,7 @@ describe('copyTagEpic', () => {
 
         dependencies.constructorModule.idGenerator.setCounter(15);
 
-        copyTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
-            .toArray()
-            .subscribe(actualOutput => {
-                expect(actualOutput).toEqual(expectedOutput);
-            });
+        const actualOutput = await runEpic(copyTagEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+            expect(actualOutput).toEqual(expectedOutput);
     });
 });

@@ -4,19 +4,17 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import 'rxjs';
-import 'lib/external/fsa';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { saveConstructorHistory } from '../actions';
 import saveConstructorHistoryEpic from './saveConstructorHistoryEpic';
 import dependencies from 'modules/dependencies';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('saveConstructorHistory', () => {
-    it('save constructor history', () => {
+    it('save constructor history', async () => {
 
-        const action$ = ActionsObservable.of<Action>(saveConstructorHistory.started(null));
+        const actions: Action[] = [saveConstructorHistory.started(null)];
 
         const expectedOutput: any = [
             {
@@ -323,10 +321,7 @@ describe('saveConstructorHistory', () => {
             }
         ];
 
-        saveConstructorHistoryEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
-            .toArray()
-            .subscribe(actualOutput => {
-                expect(actualOutput).toEqual(expectedOutput);
-            });
+        const actualOutput = await runEpic(saveConstructorHistoryEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+            expect(actualOutput).toEqual(expectedOutput);
     });
 });

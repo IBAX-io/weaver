@@ -3,16 +3,17 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { EMPTY, of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import * as actions from '../actions';
-import { IRootState } from 'modules';
-import { Observable } from 'rxjs';
 
 const constructorUndoEpic: Epic =
-    (action$, store, { constructorModule }) => action$.ofAction(actions.constructorUndo.started)
-        .flatMap(action => {
-            const state = store.getState().editor;
+    (action$, state$, { constructorModule }) => action$.pipe(
+        ofAction(actions.constructorUndo.started),
+        mergeMap(action => {
+            const state = state$.value.editor;
 
             const tab = state.tabs[state.tabIndex].designer;
             const tabHistory = tab && tab.history || null;
@@ -29,7 +30,7 @@ const constructorUndoEpic: Epic =
                 let jsonData = historyData[position - 1];
                 jsonData = constructorModule.updateChildrenText(jsonData);
 
-                return Observable.of(actions.constructorUndo.done({
+                return of(actions.constructorUndo.done({
                     params: action.payload,
                     result: {
                         jsonData,
@@ -41,8 +42,9 @@ const constructorUndoEpic: Epic =
                 }));
             }
             else {
-                return Observable.empty();
+                return EMPTY;
             }
-        });
+        })
+    );
 
 export default constructorUndoEpic;

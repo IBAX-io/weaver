@@ -4,18 +4,19 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Observable } from 'rxjs/Observable';
+import { Observable, Observer, of } from 'rxjs';
+import { mergeMap, takeUntil } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { IRootState } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { connect, disconnect, setConnected } from '../actions';
 import Centrifuge from 'centrifuge';
-import { Observer } from 'rxjs';
 
 const connectEpic: Epic =
-    (action$, store) => action$.ofAction(connect.started)
-        .flatMap(action => {
+    action$ => action$.pipe(
+        ofAction(connect.started),
+        mergeMap(action => {
             if (action.payload.wsHost && action.payload.userID && action.payload.timestamp && action.payload.socketToken) {
-                return Observable.create((observer: Observer<Action>) => {
+                return new Observable((observer: Observer<Action>) => {
                     observer.next(disconnect.started(null));
 
                     const centrifuge = new Centrifuge(action.payload.wsHost + '/connection/websocket');
@@ -44,15 +45,22 @@ const connectEpic: Epic =
 
                     centrifuge.connect();
 
-                }).takeUntil(action$.ofAction(connect.started));
+                    // Superseded by a newer connect: drop this client so its late events
+                    // (e.g. disconnect) cannot flip the state of the new connection
+                    return () => {
+                        centrifuge.removeAllListeners();
+                        centrifuge.disconnect();
+                    };
+                }).pipe(takeUntil(action$.pipe(ofAction(connect.started))));
             }
             else {
-                return Observable.of(connect.failed({
+                return of(connect.failed({
                     params: action.payload,
                     error: null
                 }));
             }
 
-        });
+        })
+    );
 
 export default connectEpic;

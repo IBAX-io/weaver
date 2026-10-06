@@ -4,19 +4,22 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Epic } from 'modules';
-import { Observable } from 'rxjs/Observable';
+import { EMPTY, from } from 'rxjs';
+import { catchError, filter, map, mergeMap } from 'rxjs/operators';
+import { ofAction } from 'lib/rx/ofAction';
 import { discoverNetwork, initialize } from 'modules/engine/actions';
 import { connect } from '../actions';
 import keyring from 'lib/keyring';
 
-const initConnectEpic: Epic = (action$, store, { api, defaultKey }) => action$.ofType(discoverNetwork.done.type, initialize.done.type)
-    .filter(() => !!store.getState().engine.guestSession)
-    .flatMap(action => {
-        const state = store.getState();
+const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.pipe(
+    ofAction(discoverNetwork.done, initialize.done),
+    filter(() => !!state$.value.engine.guestSession),
+    mergeMap(action => {
+        const state = state$.value;
         const network = state.storage.networks.find(n => n.uuid === state.engine.guestSession.network.uuid);
 
         if (!network) {
-            return Observable.empty();
+            return EMPTY;
         }
 
         const publicKey = keyring.generatePublicKey(defaultKey);
@@ -24,24 +27,26 @@ const initConnectEpic: Epic = (action$, store, { api, defaultKey }) => action$.o
             apiHost: state.engine.guestSession.network.apiHost
         });
 
-        return Observable.from(client.getUid())
-            .flatMap(uid => client.authorize(uid.token).login({
+        return from(client.getUid()).pipe(
+            mergeMap(uid => client.authorize(uid.token).login({
                 publicKey,
                 signature: keyring.sign(uid.uid, defaultKey)
-            }))
-            .flatMap(loginResult =>
-                Observable.from(client.authorize(loginResult.token).getConfig({
+            })),
+            mergeMap(loginResult =>
+                from(client.authorize(loginResult.token).getConfig({
                     name: 'centrifugo'
 
-                })).map(centrifugo => connect.started({
+                })).pipe(map(centrifugo => connect.started({
                     wsHost: network.socketUrl || centrifugo,
                     session: loginResult.token,
                     socketToken: loginResult.notify_key,
                     timestamp: loginResult.timestamp,
                     userID: loginResult.key_id
-                }))
-            )
-            .catch((e: any) => Observable.empty());
-    });
+                })))
+            ),
+            catchError((e: any) => EMPTY)
+        );
+    })
+);
 
 export default initConnectEpic;

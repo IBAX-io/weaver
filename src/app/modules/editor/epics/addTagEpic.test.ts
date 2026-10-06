@@ -4,26 +4,24 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import 'rxjs';
-import 'lib/external/fsa';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { addTag } from '../actions';
 import addTagEpic from './addTagEpic';
 import { TProtypoElement } from 'ibax/protypo';
 import { TConstructorTreeElement } from 'ibax/editor';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 import dependencies from 'modules/dependencies';
 
 describe('addTagEpic', () => {
-    it('adds tag to tree json', () => {
+    it('adds tag to tree json', async () => {
 
-        const action$ = ActionsObservable.of<Action>(addTag.started({
+        const actions: Action[] = [addTag.started({
             tag: {
                 new: true,
                 element: 'div'
             }
-        }));
+        })];
 
         const jsonData: TProtypoElement[] = [
             {
@@ -421,10 +419,7 @@ describe('addTagEpic', () => {
 
         dependencies.constructorModule.idGenerator.setCounter(14);
 
-        addTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
-            .toArray()
-            .subscribe(actualOutput => {
-                expect(actualOutput).toEqual(expectedOutput);
-            });
+        const actualOutput = await runEpic(addTagEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+        expect(actualOutput).toEqual(expectedOutput);
     });
 });

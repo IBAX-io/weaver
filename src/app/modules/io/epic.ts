@@ -3,9 +3,9 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { combineEpics } from 'redux-observable';
+import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
 import sendAttachmentEpic from './epics/sendAttachmentEpic';
 
-export default combineEpics(
+export default combineIsolatedEpics({
     sendAttachmentEpic
-);
+});

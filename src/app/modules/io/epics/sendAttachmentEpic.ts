@@ -3,18 +3,20 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IRootState } from 'modules';
+import { EMPTY } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { Action } from 'redux';
-import { Observable } from 'rxjs/Observable';
+import { ofAction } from 'lib/rx/ofAction';
 import { sendAttachment } from '../actions';
 import { sendAttachment as fsSend } from 'lib/fs';
 
 const sendAttachmentEpic: Epic =
-    (action$, store) => action$.ofAction(sendAttachment)
-        .flatMap(action => {
+    action$ => action$.pipe(
+        ofAction(sendAttachment),
+        mergeMap(action => {
             fsSend(action.payload.name, action.payload.data);
-            return Observable.empty();
-        });
+            return EMPTY;
+        })
+    );
 
 export default sendAttachmentEpic;

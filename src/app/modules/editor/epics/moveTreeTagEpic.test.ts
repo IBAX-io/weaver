@@ -4,19 +4,17 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import 'rxjs';
-import 'lib/external/fsa';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { moveTreeTag } from '../actions';
 import moveTreeTagEpic from './moveTreeTagEpic';
 import dependencies from 'modules/dependencies';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('moveTreeTagEpic', () => {
-  it('move tree tag', () => {
+  it('move tree tag', async () => {
 
-    const action$ = ActionsObservable.of<Action>(moveTreeTag({
+    const actions: Action[] = [moveTreeTag({
       treeData: [
         {
           title: 'p: Paragraph text here',
@@ -272,7 +270,7 @@ describe('moveTreeTagEpic', () => {
       ],
       tagID: 'tag_0'
 
-    }));
+    })];
 
     const expectedOutput: any = [
       {
@@ -294,10 +292,7 @@ describe('moveTreeTagEpic', () => {
 
     dependencies.constructorModule.idGenerator.setCounter(15);
 
-    moveTreeTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule } as any)
-      .toArray()
-      .subscribe(actualOutput => {
-        expect(actualOutput).toEqual(expectedOutput);
-      });
+    const actualOutput = await runEpic(moveTreeTagEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+      expect(actualOutput).toEqual(expectedOutput);
   });
 });

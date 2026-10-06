@@ -3,16 +3,19 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { Action } from 'redux';
+import { concat, defer, EMPTY, from, iif, Observable, of } from 'rxjs';
+import { catchError, mergeMap, switchMap } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { Observable } from 'rxjs/Observable';
+import { ofAction } from 'lib/rx/ofAction';
 import { renderPage } from '../actions';
 import { STATIC_PAGES } from 'lib/staticPages';
 import { modalShow } from 'modules/modal/actions';
-import { Action } from 'redux';
 
-const renderPageEpic: Epic = (action$, store, { api }) => action$.ofAction(renderPage.started)
-    .switchMap(action => {
-        const state = store.getState();
+const renderPageEpic: Epic = (action$, state$, { api }) => action$.pipe(
+    ofAction(renderPage.started),
+    switchMap(action => {
+        const state = state$.value;
         const client = api({
             apiHost: state.auth.session.network.apiHost,
             sessionToken: state.auth.session.sessionToken
@@ -25,14 +28,14 @@ const renderPageEpic: Epic = (action$, store, { api }) => action$.ofAction(rende
             params: action.payload.params
         };
 
-        return Observable.from(client.content({
+        return from(client.content({
             type: 'page',
             locale: state.storage.locale,
             ...requestPage
 
-        })).flatMap(content => {
-            return Observable.concat<Action>(
-                Observable.of(renderPage.done({
+        })).pipe(
+            mergeMap((content): Observable<Action> => concat(
+                of(renderPage.done({
                     params: action.payload,
                     result: {
                         tree: content.tree,
@@ -41,9 +44,9 @@ const renderPageEpic: Epic = (action$, store, { api }) => action$.ofAction(rende
                         static: !!staticPage
                     }
                 })),
-                Observable.if(
+                iif(
                     () => !!action.payload.popup,
-                    Observable.defer(() => Observable.of(modalShow({
+                    defer(() => of(modalShow({
                         id: 'PAGE_MODAL' + action.payload.name,
                         type: 'PAGE_MODAL',
                         params: {
@@ -55,14 +58,16 @@ const renderPageEpic: Epic = (action$, store, { api }) => action$.ofAction(rende
                             params: action.payload.params,
                             static: !!staticPage
                         }
-                    })))
-                ),
-            );
-
-        }).catch(e => Observable.of(renderPage.failed({
-            params: action.payload,
-            error: (e && (e.error || e.message)) || 'E_SERVER'
-        })));
-    });
+                    }))),
+                    EMPTY
+                )
+            )),
+            catchError(e => of(renderPage.failed({
+                params: action.payload,
+                error: (e && (e.error || e.message)) || 'E_SERVER'
+            })))
+        );
+    })
+);
 
 export default renderPageEpic;

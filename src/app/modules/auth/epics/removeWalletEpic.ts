@@ -3,33 +3,39 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { EMPTY, merge, of } from 'rxjs';
+import { mergeMap, take } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { Observable } from 'rxjs/Observable';
+import { ofAction } from 'lib/rx/ofAction';
 import { removeWallet } from '../actions';
 import { removeWallet as removeStoredWallet } from 'modules/storage/actions';
 import { modalClose, modalShow } from 'modules/modal/actions';
 
-const removeWalletEpic: Epic = (action$, store) => action$.ofAction(removeWallet)
-    .flatMap(action =>
-        Observable.merge(
-            Observable.of(modalShow({
+const removeWalletEpic: Epic = action$ => action$.pipe(
+    ofAction(removeWallet),
+    mergeMap(action =>
+        merge(
+            of(modalShow({
                 id: 'AUTH_REMOVE_WALLET',
                 type: 'AUTH_REMOVE_WALLET',
                 params: {
                     wallet: action.payload
                 }
             })),
-            action$.ofAction(modalClose)
-                .take(1)
-                .flatMap(result => {
+            action$.pipe(
+                ofAction(modalClose),
+                take(1),
+                mergeMap(result => {
                     if ('RESULT' === result.payload.reason) {
-                        return Observable.of(removeStoredWallet(action.payload));
+                        return of(removeStoredWallet(action.payload));
                     }
                     else {
-                        return Observable.empty();
+                        return EMPTY;
                     }
                 })
+            )
         )
-    );
+    )
+);
 
 export default removeWalletEpic;

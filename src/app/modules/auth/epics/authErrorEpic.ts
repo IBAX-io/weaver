@@ -3,12 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { Action } from 'redux';
+import { ofType } from 'redux-observable';
+import { map } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { login, importWallet, createWallet } from '../actions';
 import { modalShow } from 'modules/modal/actions';
 
-const authErrorEpic: Epic = (action$, store) => action$.ofType(login.failed.type, importWallet.failed.type, createWallet.failed.type)
-    .map(action =>
+const authErrorEpic: Epic = action$ => action$.pipe(
+    ofType<Action, string, Action>(login.failed.type, importWallet.failed.type, createWallet.failed.type),
+    map(action =>
         modalShow({
             id: 'AUTH_ERROR',
             type: 'AUTH_ERROR',
@@ -16,6 +20,7 @@ const authErrorEpic: Epic = (action$, store) => action$.ofType(login.failed.type
                 error: (action as any).payload.error
             }
         })
-    );
+    )
+);
 
 export default authErrorEpic;

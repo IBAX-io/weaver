@@ -3,28 +3,31 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { concat, from, merge, of } from 'rxjs';
+import { map, mergeMap, take } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { Observable } from 'rxjs/Observable';
+import { ofAction } from 'lib/rx/ofAction';
 import { changePassword } from '../actions';
 import { modalShow, modalClose } from 'modules/modal/actions';
 import { logout } from 'modules/auth/actions';
 import { saveWallet } from 'modules/storage/actions';
 import keyring from 'lib/keyring';
 
-const changePasswordDoneEpic: Epic = (action$, store, { api }) => action$.ofAction(changePassword.done)
-    .flatMap(action => {
-        const auth = store.getState().auth;
+const changePasswordDoneEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(changePassword.done),
+    mergeMap(action => {
+        const auth = state$.value.auth;
         const wallet = auth.wallet;
-        const wallets = store.getState().storage.wallets;
+        const wallets = state$.value.storage.wallets;
         const privateKey = keyring.decryptAES(wallet.wallet.encKey, action.payload.result.oldPassword);
 
         if (!keyring.validatePrivateKey(privateKey)) {
-            return Observable.concat(
-                Observable.of(changePassword.failed({
+            return concat(
+                of(changePassword.failed({
                     params: null,
                     error: 'E_INVALID_PASSWORD'
                 })),
-                Observable.of(modalShow({
+                of(modalShow({
                     id: 'AUTH_ERROR',
                     type: 'AUTH_ERROR',
                     params: {
@@ -36,27 +39,31 @@ const changePasswordDoneEpic: Epic = (action$, store, { api }) => action$.ofActi
 
         const encKey = keyring.encryptAES(privateKey, action.payload.result.newPassword);
 
-        return Observable.concat(
+        return concat(
 
-            Observable.from(wallets.filter(l => l.id === wallet.wallet.id))
-                .map(w => saveWallet({
+            from(wallets.filter(l => l.id === wallet.wallet.id)).pipe(
+                map(w => saveWallet({
                     ...w,
                     encKey
-                })),
+                }))
+            ),
 
-            Observable.merge(
-                Observable.of(modalShow({
+            merge(
+                of(modalShow({
                     id: 'AUTH_PASSWORD_CHANGED',
                     type: 'AUTH_PASSWORD_CHANGED',
                     params: {}
                 })),
-                action$.ofAction(modalClose)
-                    .take(1)
-                    .flatMap(result => {
-                        return Observable.of(logout.started(null));
+                action$.pipe(
+                    ofAction(modalClose),
+                    take(1),
+                    mergeMap(result => {
+                        return of(logout.started(null));
                     })
+                )
             )
         );
-    });
+    })
+);
 
 export default changePasswordDoneEpic;

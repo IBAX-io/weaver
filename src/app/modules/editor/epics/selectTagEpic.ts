@@ -3,15 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { map } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import * as actions from '../actions';
-import { IRootState } from 'modules';
 
 const selectTagEpic: Epic =
-    (action$, store, { constructorModule }) => action$.ofAction(actions.selectTag.started)
-        .map(action => {
-            const state = store.getState().editor;
+    (action$, state$, { constructorModule }) => action$.pipe(
+        ofAction(actions.selectTag.started),
+        map(action => {
+            const state = state$.value.editor;
             const tabData = state.tabs[state.tabIndex].designer.data;
             const jsonData = tabData && constructorModule.copyObject(tabData.jsonData) || null;
 
@@ -25,6 +26,7 @@ const selectTagEpic: Epic =
                 }
             });
 
-        });
+        })
+    );
 
 export default selectTagEpic;

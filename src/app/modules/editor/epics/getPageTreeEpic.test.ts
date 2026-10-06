@@ -4,8 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import 'rxjs';
-import 'lib/external/fsa';
 import IbaxAPI, { IRequestTransport, } from 'lib/ibaxAPI';
 
 describe('getPageTreeEpic', () => {
