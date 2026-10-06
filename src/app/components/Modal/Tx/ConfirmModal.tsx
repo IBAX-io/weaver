@@ -29,8 +29,8 @@ class TxConfirmModal extends Modal<ITxConfirmModalProps, void> {
                 <Modal.Body>
                     <div>{this.props.params.text}</div>
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="link" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="link" onClick={this.props.onCancel.bind(this)}>
                         {this.props.params.cancelButton ?
                             (
                                 <div>{this.props.params.cancelButton}</div>
@@ -39,7 +39,7 @@ class TxConfirmModal extends Modal<ITxConfirmModalProps, void> {
                             )
                         }
                     </Button>
-                    <Button bsStyle="primary" onClick={this.props.onResult.bind(null, true)}>
+                    <Button variant="primary" onClick={this.props.onResult.bind(null, true)}>
                         {this.props.params.confirmButton ?
                             (
                                 <div>{this.props.params.confirmButton}</div>

@@ -9,7 +9,7 @@ export interface IForListProps {
 
 }
 
-const ForList: React.SFC<IForListProps> = (props) => (
+const ForList: React.FC<React.PropsWithChildren<IForListProps>> = (props) => (
     <div>{props.children}</div>
 );
 

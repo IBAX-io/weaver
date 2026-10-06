@@ -4,25 +4,25 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
+import classNames from 'classnames';
 import { resolveHandler, resolveFunction } from 'components/Protypo';
-import propTypes from 'prop-types';
 import contextDefinitions from './contexts';
+import { ProtypoContext, IProtypoContextValue } from './ProtypoContext';
 import { TProtypoElement, ISource } from 'ibax/protypo';
 import { IValidationResult } from 'components/Validation/ValidatedForm';
 import Heading from './components/Heading';
 import ToolButton, { IToolButtonProps } from 'containers/ToolButton/ToolButton';
 import { IConstructorElementProps } from 'ibax/editor';
-import { TBreadcrumbType } from 'ibax/content';
 
 export interface IProtypoProps extends IConstructorElementProps {
     apiHost: string;
-    wrapper?: JSX.Element;
+    wrapper?: React.JSX.Element;
     context: string;
     page?: string;
     menu?: string;
     section: string;
     content: TProtypoElement[];
-    menuPush: (params: { name: string, content: TProtypoElement[] }) => void;
+    menuPush: IProtypoContextValue['menuPush'];
     displayData: (link: string) => void;
 }
 
@@ -42,20 +42,24 @@ class Protypo extends React.Component<IProtypoProps> {
     private _toolButtons: IToolButtonProps[];
     private _sources: { [key: string]: ISource };
     private _errors: { name: string, description: string }[];
+    private _contextValue: IProtypoContextValue = null;
 
-    getChildContext() {
-        return {
-            protypo: this,
-            section: this.props.section,
-            menuPush: this.props.menuPush,
-            resolveSource: this.resolveSource,
-            resolveText: this.resolveText,
-            getFromContext: this.getFromContext,
-            renderElements: this.renderElements
-        };
+    getContextValue = (): IProtypoContextValue => {
+        if (!this._contextValue || this._contextValue.section !== this.props.section || this._contextValue.menuPush !== this.props.menuPush) {
+            this._contextValue = {
+                protypo: this,
+                section: this.props.section,
+                menuPush: this.props.menuPush,
+                resolveSource: this.resolveSource,
+                resolveText: this.resolveText,
+                getFromContext: this.getFromContext,
+                renderElements: this.renderElements
+            };
+        }
+        return this._contextValue;
     }
 
-    getFromContext: (computeTitle?: React.ReactNode) => { type: TBreadcrumbType, section: string, name: string } | undefined = computeTitle => {
+    getFromContext: IProtypoContextValue['getFromContext'] = computeTitle => {
         const title = computeTitle ? this.resolveText(computeTitle) : '';
 
         if (this.props.page) {
@@ -137,7 +141,7 @@ class Protypo extends React.Component<IProtypoProps> {
                 if (Array.isArray(value)) {
                     children = value;
                 }
-                else if ('props' in value) {
+                else if (React.isValidElement<{ children?: React.ReactNode }>(value)) {
                     children = value.props.children;
                 }
                 if (children) {
@@ -214,7 +218,7 @@ class Protypo extends React.Component<IProtypoProps> {
         return (this.props.context === 'page' && this._title) ? (
             <Heading key="func_heading">
                 <span>{this._title}</span>
-                <div className="pull-right">
+                <div className="float-end">
                     {this._toolButtons.map((props, index) => (
                         <ToolButton {...props} key={index} />
                     ))}
@@ -248,27 +252,23 @@ class Protypo extends React.Component<IProtypoProps> {
             ...body
         ];
 
-        if (this.props.wrapper) {
-            return React.cloneElement(this.props.wrapper, this.props.wrapper.props, children);
-        }
-        else {
-            return (
-                <div className="fullscreen">
+        const content = this.props.wrapper ?
+            React.cloneElement(
+                this.props.wrapper,
+                { className: classNames(this.props.wrapper.props.className, 'protypo-content') },
+                children
+            ) : (
+                <div className="fullscreen protypo-content">
                     {children}
                 </div>
             );
-        }
+
+        return (
+            <ProtypoContext.Provider value={this.getContextValue()}>
+                {content}
+            </ProtypoContext.Provider>
+        );
     }
 }
-
-(Protypo as any).childContextTypes = {
-    section: propTypes.string.isRequired,
-    protypo: propTypes.object.isRequired,
-    menuPush: propTypes.func.isRequired,
-    resolveSource: propTypes.func.isRequired,
-    resolveText: propTypes.func.isRequired,
-    renderElements: propTypes.func.isRequired,
-    getFromContext: propTypes.func.isRequired
-};
 
 export default Protypo;

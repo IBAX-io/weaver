@@ -4,9 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import TransitionAny from './TransitionShim';
-import TransitionGroupOrig from 'react-transition-group/TransitionGroup';
-const TransitionGroup = TransitionGroupOrig as any;
+import { Transition, TransitionGroup, TransitionStatus } from 'react-transition-group';
 
 const animationDuration = 300;
 const animationDef = {
@@ -37,21 +35,24 @@ const animationDef = {
   }
 };
 
-const Fade: React.SFC<{ in?: boolean }> = (props) => (
-  <TransitionAny in={props.in} timeout={{ enter: 0, exit: animationDuration }}>
-    {(state: string) => (
-      <div style={{ ...animationDef.defaultStyle, ...animationDef[state] }}>
-        {props.children}
-      </div>
-    )}
-  </TransitionAny>
-);
+const Fade: React.FC<React.PropsWithChildren<{ in?: boolean }>> = (props) => {
+  const nodeRef = React.useRef<HTMLDivElement>(null);
+  return (
+    <Transition nodeRef={nodeRef} in={props.in} timeout={{ enter: 0, exit: animationDuration }}>
+      {(state: TransitionStatus) => (
+        <div ref={nodeRef} style={{ ...animationDef.defaultStyle, ...animationDef[state] }}>
+          {props.children}
+        </div>
+      )}
+    </Transition>
+  );
+};
 
 export interface IStackGroupProps {
-  items: JSX.Element[];
+  items: React.JSX.Element[];
 }
 
-const StackGroup: React.SFC<IStackGroupProps> = (props) => (
+const StackGroup: React.FC<React.PropsWithChildren<IStackGroupProps>> = (props) => (
   <TransitionGroup>
     {props.items.map((item, index) => (
       <Fade key={index}>{item}</Fade>

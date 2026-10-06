@@ -5,7 +5,9 @@
 
 import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
 import sectionLoadEpic from './epics/sectionLoadEpic';
+import navigationEpic from './epics/navigationEpic';
 
 export default combineIsolatedEpics({
-    sectionLoadEpic
+    sectionLoadEpic,
+    navigationEpic
 });

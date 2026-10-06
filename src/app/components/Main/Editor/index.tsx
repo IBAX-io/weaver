@@ -23,7 +23,7 @@ interface Props {
   onTabCloseSaved?: () => void;
 }
 
-const Editor: React.SFC<Props> = (props) => (
+const Editor: React.FC<Props> = (props) => (
   <LocalizedDocumentTitle title="editor">
     <div className="fullscreen noscroll">
       <EditorToolbar />

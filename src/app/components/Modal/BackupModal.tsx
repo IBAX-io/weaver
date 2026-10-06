@@ -8,7 +8,7 @@ import { Button } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
 import { sendAttachment } from 'lib/fs';
 import CopyToClipboard from 'react-copy-to-clipboard';
-import QRCode from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 import Modal from './';
 
@@ -42,7 +42,7 @@ class BackupModal extends Modal<Props, void> {
                                         {this.props.params.privateKey}
                                     </span>
                                     <CopyToClipboard text={this.props.params.privateKey} onCopy={this.props.params.onCopy}>
-                                        <Button bsStyle="link" className="p0 ml" style={{ verticalAlign: 'top' }}>
+                                        <Button variant="link" className="p0 ml" style={{ verticalAlign: 'top' }}>
                                             <FormattedMessage id="general.clipboard.copy" defaultMessage="Copy to clipboard" />
                                         </Button>
                                     </CopyToClipboard>
@@ -66,7 +66,7 @@ class BackupModal extends Modal<Props, void> {
                                 </td>
                                 <td>
                                     <div className="text-center">
-                                        <QRCode value={this.props.params.privateKey} />
+                                        <QRCodeCanvas value={this.props.params.privateKey} />
                                         <div className="text-muted">
                                             <FormattedMessage id="auth.qrcode.desc" defaultMessage="Use this code to import the account on your mobile device" />
                                         </div>
@@ -76,13 +76,13 @@ class BackupModal extends Modal<Props, void> {
                         </tbody>
                     </table>
                     <div className="text-center">
-                        <Button bsStyle="link" onClick={this.onKeyDownload}>
+                        <Button variant="link" onClick={this.onKeyDownload}>
                             <FormattedMessage id="general.download.asfile" defaultMessage="Download as file" />
                         </Button>
                     </div>
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="primary" onClick={this.props.onCancel}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="primary" onClick={this.props.onCancel}>
                         <FormattedMessage id="close" defaultMessage="Close" />
                     </Button>
                 </Modal.Footer>

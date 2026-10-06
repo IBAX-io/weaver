@@ -5,7 +5,7 @@
 
 import * as React from 'react';
 import { FormattedMessage } from 'react-intl';
-import { Button, Well } from 'react-bootstrap';
+import { Button, Card } from 'react-bootstrap';
 import Cropper from 'react-cropper';
 import CropperJS from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -68,9 +68,9 @@ class ImageEditorModal extends Modal<IImageEditorModalProps, string> {
                     <FormattedMessage id="modal.imageeditor.title" defaultMessage="Image editor" />
                 </Modal.Header>
                 <Modal.Body>
-                    <Well>
+                    <Card body>
                         <FormattedMessage id="modal.imageeditor.desc" defaultMessage="Prepare your image for uploading by selecting which part of the image you want to use" />
-                    </Well>
+                    </Card>
                     <Cropper
                         onInitialized={(instance: CropperJS) => { this._cropper = instance; }}
                         src={this.props.params.data}
@@ -79,11 +79,11 @@ class ImageEditorModal extends Modal<IImageEditorModalProps, string> {
                         viewMode={1}
                     />
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="link" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="link" onClick={this.props.onCancel.bind(this)}>
                         <FormattedMessage id="modal.imageeditor.cancel" defaultMessage="Cancel" />
                     </Button>
-                    <Button type="button" bsStyle="primary" onClick={this.onSuccess.bind(this)}>
+                    <Button type="button" variant="primary" onClick={this.onSuccess.bind(this)}>
                         <FormattedMessage id="modal.imageeditor.confirm" defaultMessage="Confirm" />
                     </Button>
                 </Modal.Footer>

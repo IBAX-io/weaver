@@ -3,60 +3,31 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import React from 'react';
-import { loadModules } from 'react-arcgis';
+import React, { useMemo } from 'react';
+import type EsriMapView from '@arcgis/core/views/MapView.js';
+
+import useViewGraphic from './useViewGraphic';
 
 export interface ILineProps {
-    view?: any;
+    view: EsriMapView;
     coords: [number, number][];
 }
 
-class Line extends React.Component<ILineProps> {
-    private _graphic: any = null;
+const Line: React.FC<ILineProps> = ({ view, coords }) => {
+    const properties = useMemo(() => ({
+        geometry: {
+            type: 'polyline' as const,
+            paths: [[...coords]]
+        },
+        symbol: {
+            type: 'simple-line' as const,
+            color: [0, 0, 0],
+            width: 1
+        }
+    }), [coords]);
 
-    render() {
-        return null as JSX.Element;
-    }
-
-    componentWillReceiveProps(props: ILineProps) {
-        this.redraw(props.coords);
-    }
-
-    componentWillMount() {
-        this.redraw(this.props.coords);
-    }
-
-    componentWillUnmount() {
-        this.props.view.graphics.remove(this._graphic);
-    }
-
-    redraw(coords: [number, number][]) {
-        loadModules(['esri/Graphic']).then((deps: [any]) => {
-            const [Graphic] = deps;
-
-            const polyline = {
-                type: 'polyline',
-                paths: [...coords]
-            };
-
-            const fillSymbol = {
-                type: 'simple-fill',
-                color: [227, 139, 79, 0],
-                outline: {
-                    color: [0, 0, 0],
-                    width: 1
-                }
-            };
-
-            const graphic = new Graphic({
-                geometry: polyline as any,
-                symbol: fillSymbol
-            });
-
-            this._graphic = graphic;
-            this.props.view.graphics.add(graphic);
-        }).catch((err) => { /* Silently suppress errors */ });
-    }
-}
+    useViewGraphic(view, properties);
+    return null;
+};
 
 export default Line;

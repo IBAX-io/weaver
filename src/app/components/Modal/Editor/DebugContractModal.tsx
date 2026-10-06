@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { Button, Well, Row, Col } from 'react-bootstrap';
-import { FormattedMessage, injectIntl } from 'react-intl';
+import { Button, Card, Row, Col } from 'react-bootstrap';
+import { FormattedMessage } from 'react-intl';
 import { ITransactionCollection, ITxStatus, ITxError } from 'ibax/tx';
 import { TContractFieldType } from 'ibax/api';
 
-import Modal from '../';
+import Modal, { IModalProps } from '../';
 import Validation from 'components/Validation';
 import ValidatedContractForm from 'containers/Widgets/ValidatedContractForm';
 import Table, { ICellRenderer } from 'components/Table';
@@ -29,7 +29,7 @@ interface IDebugContractModalState {
 }
 
 class DebugContractModal extends Modal<IDebugContractModalProps, void, IDebugContractModalState> {
-    constructor(props: any) {
+    constructor(props: IModalProps<IDebugContractModalProps, void>) {
         super(props);
         this.state = {
             pending: false,
@@ -120,7 +120,7 @@ class DebugContractModal extends Modal<IDebugContractModalProps, void, IDebugCon
                             />
                         </Col>
                         <Col md={6} style={{ width: 400 }}>
-                            <Well style={{ whiteSpace: 'pre-wrap' }}>
+                            <Card body style={{ whiteSpace: 'pre-wrap' }}>
                                 {this.state.pending && (
                                     <div>
                                         <FormattedMessage id="pending" defaultMessage="Pending" />
@@ -131,15 +131,15 @@ class DebugContractModal extends Modal<IDebugContractModalProps, void, IDebugCon
                                         {JSON.stringify(this.state.result, null, 3)}
                                     </div>
                                 )}
-                            </Well>
+                            </Card>
                         </Col>
                     </Row>
                 </Modal.Body >
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="link" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="link" onClick={this.props.onCancel.bind(this)}>
                         <FormattedMessage id="cancel" defaultMessage="Cancel" />
                     </Button>
-                    <Validation.components.ValidatedSubmit bsStyle="primary">
+                    <Validation.components.ValidatedSubmit variant="primary">
                         <FormattedMessage id="exec" defaultMessage="Exec" />
                     </Validation.components.ValidatedSubmit>
                 </Modal.Footer>
@@ -147,4 +147,4 @@ class DebugContractModal extends Modal<IDebugContractModalProps, void, IDebugCon
         );
     }
 }
-export default injectIntl(DebugContractModal);
+export default DebugContractModal;

@@ -3,6 +3,8 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import React from 'react';
+
 import { connect } from 'react-redux';
 import { IRootState } from 'modules';
 import { displayData } from 'modules/content/actions';
@@ -11,7 +13,7 @@ import { TProtypoElement } from 'ibax/protypo';
 import Protypo from 'components/Protypo';
 
 export interface IProtypoProps {
-    wrapper?: JSX.Element;
+    wrapper?: React.JSX.Element;
     context: string;
     page?: string;
     menu?: string;
@@ -25,8 +27,9 @@ const mapStateToProps = (state: IRootState, props: IProtypoProps) => ({
     ...props
 });
 
-export default connect(mapStateToProps, {
+const connector = connect(mapStateToProps, {
     menuPush,
     displayData: displayData.started
+});
 
-})(Protypo as any);
+export default connector(Protypo);

@@ -4,8 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { actionCreatorFactory } from 'typescript-fsa';
-import { RouterState } from 'connected-react-router';
+import { INavigateCall, IRouterState } from './types';
 
-const actionCreator = actionCreatorFactory('@@router');
+const actionCreator = actionCreatorFactory('router');
 
-export const locationChange = actionCreator<RouterState>('LOCATION_CHANGE');
+// Emitted by the router whenever the current location changes (including the initial one)
+export const locationChange = actionCreator<IRouterState>('LOCATION_CHANGE');
+
+// Asks the router to go somewhere; performed by navigationEpic
+export const navigate = actionCreator<INavigateCall>('NAVIGATE');

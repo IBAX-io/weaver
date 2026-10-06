@@ -37,7 +37,7 @@ export interface ISystemMenuProps {
     onAbout: () => void;
 }
 
-const SystemMenu: React.SFC<ISystemMenuProps> = props => {
+const SystemMenu: React.FC<ISystemMenuProps> = props => {
     const elements = [
         (
             <SystemDropdown

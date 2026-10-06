@@ -4,12 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import { FormControl } from 'react-bootstrap';
+import { Form } from 'react-bootstrap';
 import { Validator } from './Validators';
-import * as propTypes from 'prop-types';
 import { readBinaryFile } from 'lib/fs';
 
-import ValidatedForm, { IValidatedControl } from './ValidatedForm';
+import { IValidatedControl, ValidatedFormContext } from './ValidatedForm';
 
 export interface IValidatedImageProps {
     format: 'png' | 'jpg' | 'jpeg';
@@ -28,7 +27,10 @@ interface IValidatedImageState {
 }
 
 export default class ValidatedImage extends React.Component<IValidatedImageProps, IValidatedImageState> implements IValidatedControl {
-    private _inputRef: HTMLInputElement = null;
+    static contextType = ValidatedFormContext;
+    declare context: React.ContextType<typeof ValidatedFormContext>;
+
+    private _inputRef = React.createRef<HTMLInputElement>();
     private _value: string = '';
 
     constructor(props: IValidatedImageProps) {
@@ -42,24 +44,26 @@ export default class ValidatedImage extends React.Component<IValidatedImageProps
 
     componentDidMount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._registerElement(this);
+            this.context.form._registerElement(this);
         }
     }
 
     componentWillUnmount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._unregisterElement(this);
+            this.context.form._unregisterElement(this);
         }
     }
 
-    componentWillReceiveProps(props: IValidatedImageProps) {
-        if (this.props.value !== props.value) {
+    componentDidUpdate(prevProps: IValidatedImageProps) {
+        if (prevProps.value !== this.props.value) {
             this.setState({
-                value: props.value as string,
-                resultFilename: props.value ? this.state.filename : ''
+                value: this.props.value as string,
+                resultFilename: this.props.value ? this.state.filename : ''
             });
-            this.onResult(props.value);
-            (this.context.form as ValidatedForm).updateState(props.name, props.value);
+            this.onResult(this.props.value);
+            if (this.context.form) {
+                this.context.form.updateState(this.props.name, this.props.value);
+            }
         }
     }
 
@@ -67,8 +71,8 @@ export default class ValidatedImage extends React.Component<IValidatedImageProps
         return this._value;
     }
 
-    onChange = (e: React.ChangeEvent<FormControl>) => {
-        const target = (e.target as object as HTMLInputElement);
+    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const target = e.target;
         if (target.files.length) {
             const file = target.files[0];
             readBinaryFile(file).then(r => {
@@ -88,11 +92,13 @@ export default class ValidatedImage extends React.Component<IValidatedImageProps
     }
 
     onBrowse() {
-        this._inputRef.click();
+        this._inputRef.current.click();
     }
 
-    onBlur = (e: React.FocusEvent<FormControl>) => {
-        (this.context.form as ValidatedForm).updateState(this.props.name);
+    onBlur = () => {
+        if (this.context.form) {
+            this.context.form.updateState(this.props.name);
+        }
     }
 
     onResult(data: string) {
@@ -117,26 +123,18 @@ export default class ValidatedImage extends React.Component<IValidatedImageProps
     render() {
         return (
             <div className="input-group">
-                <FormControl
-                    className="hidden"
+                <Form.Control
+                    className="d-none"
                     onChange={this.onChange}
                     onBlur={this.onBlur}
-                    inputRef={ref => this._inputRef = ref}
+                    ref={this._inputRef}
                     type="file"
-                    noValidate
                 />
                 <input type="text" className="form-control" readOnly value={this.state.resultFilename} />
-                <div className="group-span-filestyle input-group-btn">
-                    <button className="btn btn-default" style={{ border: 'solid 1px #dde6e9' }} type="button" onClick={this.onBrowse.bind(this)}>
-                        <span className="text-muted icon-span-filestyle glyphicon glyphicon-folder-open" />
-                        <span className="buttonText" />
-                    </button>
-                </div>
+                <button className="btn btn-secondary" style={{ border: 'solid 1px #dde6e9' }} type="button" onClick={this.onBrowse.bind(this)}>
+                    <span className="text-muted fa fa-folder-open" />
+                </button>
             </div>
         );
     }
 }
-
-(ValidatedImage as React.ComponentClass).contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
-};

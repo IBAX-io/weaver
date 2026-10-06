@@ -4,18 +4,19 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { Switch, Route } from 'react-router';
+import { Routes, Route } from 'react-router';
 
 import ActionSelector from 'containers/Auth/Wallet/ActionSelector';
 import Create from 'containers/Auth/Wallet/Create';
 import Import from 'containers/Auth/Wallet/Import';
 
-const Wallet: React.SFC = (props) => (
-  <Switch>
-    <Route path="/account/create" component={Create} />
-    <Route path="/account/import" component={Import} />
-    <Route path="/account" component={ActionSelector} />
-  </Switch>
+// Rendered under '/account/*', so paths are relative to '/account'
+const Wallet: React.FC = () => (
+  <Routes>
+    <Route path="create/*" element={<Create />} />
+    <Route path="import/*" element={<Import />} />
+    <Route path="*" element={<ActionSelector />} />
+  </Routes>
 );
 
 export default Wallet;

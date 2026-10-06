@@ -35,7 +35,7 @@ const StyledScrollView = styled.div`
     }
 `;
 
-const ScrollView: React.FC<IScrollViewProps> = props => {
+const ScrollView: React.FC<React.PropsWithChildren<IScrollViewProps>> = props => {
     const ref = useRef<HTMLDivElement>(null);
 
     // Vertical wheel scrolls horizontally. React's onWheel is passive, so preventDefault

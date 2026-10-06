@@ -10,11 +10,12 @@ import { FormattedMessage } from 'react-intl';
 
 export interface IPrintZoneProps {
     stylesheet: string;
+    children?: React.ReactNode;
 }
 
 class PrintZone extends React.Component<IPrintZoneProps> {
-    private _container: HTMLDivElement;
-    private _output: HTMLIFrameElement;
+    private _container = React.createRef<HTMLDivElement>();
+    private _output = React.createRef<HTMLIFrameElement>();
 
     componentDidUpdate() {
         this.onRepaint();
@@ -26,36 +27,37 @@ class PrintZone extends React.Component<IPrintZoneProps> {
 
     onRepaint = () => {
         setTimeout(() => {
-            if (!this._output || !this._output.contentDocument.body) {
+            const output = this._output.current;
+            if (!output || !output.contentDocument.body) {
                 return;
             }
 
-            this._output.style.height = '0px';
-            this._output.contentDocument.body.innerHTML = this._container.innerHTML;
-            const style = this._output.contentDocument.createElement('style');
+            output.style.height = '0px';
+            output.contentDocument.body.innerHTML = this._container.current.innerHTML;
+            const style = output.contentDocument.createElement('style');
             style.innerText = this.props.stylesheet;
-            this._output.contentDocument.body.appendChild(style);
-            this._output.style.height = this._output.contentDocument.body.scrollHeight + 'px';
+            output.contentDocument.body.appendChild(style);
+            output.style.height = output.contentDocument.body.scrollHeight + 'px';
         });
     }
 
     onSave = () => {
-        sendAttachment('Tx.html', this._output.contentDocument.body.innerHTML, 'text/html');
+        sendAttachment('Tx.html', this._output.current.contentDocument.body.innerHTML, 'text/html');
     }
 
     onPrint = () => {
-        this._output.contentWindow.focus();
-        this._output.contentWindow.print();
+        this._output.current.contentWindow.focus();
+        this._output.current.contentWindow.print();
     }
 
     render() {
         return (
             <div>
-                <div ref={l => this._container = l} style={{ position: 'absolute', top: -50000, left: -50000 }}>
+                <div ref={this._container} style={{ position: 'absolute', top: -50000, left: -50000 }}>
                     {this.props.children}
                 </div>
                 <iframe
-                    ref={l => this._output = l}
+                    ref={this._output}
                     scrolling="no"
                     style={{
                         background: '#fff',

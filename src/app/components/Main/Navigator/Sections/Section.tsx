@@ -21,7 +21,6 @@ interface Props {
 
 const StyledSection = themed.div`
     background: ${(props) => props.theme.contentBackground};
-   /*   box-shadow: rgba(0,0,0,0.06) -5px 0 10px;  */
     position: relative;
     z-index: 100;
     margin-left: ${(props) => props.theme.menuSize}px;
@@ -37,7 +36,7 @@ const StyledSection = themed.div`
     }
 `;
 
-const Section: React.SFC<Props> = props => (
+const Section: React.FC<Props> = props => (
     <StyledSection className={classNames('fullscreen', { section_folded: props.folded, section_unfolded: props.menuActive })}>
         <ResizeHandle />
         {props.page && (

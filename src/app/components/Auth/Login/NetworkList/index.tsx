@@ -23,14 +23,14 @@ export interface INetworkListProps {
   onRemove?: (network: INetwork) => void;
 }
 
-const NetworkList: React.SFC<INetworkListProps> = (props) => (
+const NetworkList: React.FC<INetworkListProps> = (props) => (
   <LocalizedDocumentTitle title="auth.login" defaultTitle="Login">
     <div className={classNames('desktop-flex-col desktop-flex-stretch')}>
       <HeadingNetwork returnUrl="/">
         <FormattedMessage id="general.networks" defaultMessage="Networks" />
       </HeadingNetwork>
 
-      <div className="text-left" style={{ margin: -15, marginBottom: 15 }}>
+      <div className="text-start" style={{ margin: -15, marginBottom: 15 }}>
         <NetworkListView
           pending={props.pending}
           current={props.current && props.current.uuid}

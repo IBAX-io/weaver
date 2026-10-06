@@ -164,9 +164,6 @@ declare module 'ibax/editor' {
     isOver?: boolean;
     isDragging?: boolean;
 
-    connectDropTarget?: any;
-    connectDragSource?: any;
-    connectDragPreview?: any;
   }
 
   interface ITreeNode<T> {

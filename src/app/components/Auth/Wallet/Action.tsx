@@ -6,7 +6,7 @@
 import * as React from 'react';
 import styled from 'styled-components';
 import classNames from 'classnames';
-import { Button, Clearfix } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
 
 export interface IAction {
   className?: string;
@@ -17,19 +17,19 @@ export interface IAction {
   onClick: () => void;
 }
 
-const Action: React.SFC<IAction> = (props) => (
-  <Clearfix componentClass="div" className={props.className}>
+const Action: React.FC<IAction> = (props) => (
+  <div className={classNames('clearfix', props.className)}>
     <div className="action-icon">
       <em className={classNames('text-primary', props.icon)} />
     </div>
     <h4>{props.title}</h4>
     <div>{props.description}</div>
-    <div className="text-right">
-      <Button bsStyle="link" onClick={props.onClick}>
+    <div className="text-end">
+      <Button variant="link" onClick={props.onClick}>
         {props.action}
       </Button>
     </div>
-  </Clearfix>
+  </div>
 );
 
 export default styled(Action)`

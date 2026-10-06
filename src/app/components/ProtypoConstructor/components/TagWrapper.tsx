@@ -6,6 +6,7 @@
 import * as React from 'react';
 import classnames from 'classnames';
 import styled from 'styled-components';
+import { ConnectDragSource } from '@nosferatu500/react-dnd';
 
 const Wrapper = styled.span`
     display: block;
@@ -129,14 +130,14 @@ const Wrapper = styled.span`
 `;
 
 export interface ITagWrapperProps {
+    children?: React.ReactNode;
     display: string;
     selected: boolean;
     canDrop: boolean;
     canDropPosition: string;
-    onClick?: any;
-    removeTag?: any;
-    connectDragSource: any;
-    dropEffect?: string;
+    onClick?: (e: React.MouseEvent<HTMLElement>) => void;
+    removeTag?: () => void;
+    connectDragSource: ConnectDragSource;
     canMove?: boolean;
 }
 
@@ -243,14 +244,14 @@ class TagWrapper extends React.Component<ITagWrapperProps, ITagWrapperState> {
         return (
             <Wrapper
                 className={classes}
-                onClick={this.props.onClick.bind(this)}
+                onClick={this.props.onClick}
                 onMouseMove={this.setOver.bind(this)}
                 onMouseOut={this.setOut.bind(this)}
                 data-dropeffect={this.state.dropEffect}
             >
                 { this.props.selected &&
                     <div className="b-controls">
-                        {this.props.canMove && this.props.connectDragSource(<span><span className="b-control fa fa-arrows b-control_move" onMouseDown={this.setDropEffect.bind(this, 'move')}/> <span className="b-control fa fa-clone" onMouseDown={this.setDropEffect.bind(this, 'copy')}/></span>)} <span className="b-control fa fa-times" onClick={this.props.removeTag.bind(this)}/>
+                        {this.props.canMove && <span ref={this.props.connectDragSource}><span className="b-control fa fa-arrows b-control_move" onMouseDown={this.setDropEffect.bind(this, 'move')}/> <span className="b-control fa fa-clone" onMouseDown={this.setDropEffect.bind(this, 'copy')}/></span>} <span className="b-control fa fa-times" onClick={this.props.removeTag}/>
                     </div>
                 }
                 {this.renderCanDropPosition()}

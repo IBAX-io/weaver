@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import QRCodeNative from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 export interface IQRCodeProps {
     text?: string;
 }
 
-const QRCode: React.SFC<IQRCodeProps> = props => (
-    <QRCodeNative value={props.text || ''} />
+const QRCode: React.FC<IQRCodeProps> = props => (
+    <QRCodeCanvas value={props.text || ''} />
 );
 
 export default QRCode;

@@ -4,10 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
+import classnames from 'classnames';
 import { Validator } from './Validators';
-import * as propTypes from 'prop-types';
 
-import ValidatedForm, { IValidatedControl } from './ValidatedForm';
+import { IValidatedControl, ValidatedFormContext } from './ValidatedForm';
+import { ValidatedFormGroupContext } from './ValidatedFormGroup';
 
 export interface IValidatedSelectProps {
     id?: string;
@@ -19,6 +20,7 @@ export interface IValidatedSelectProps {
     defaultValue?: string;
     onChange?: React.ChangeEventHandler<HTMLSelectElement>;
     onBlur?: React.FocusEventHandler<HTMLSelectElement>;
+    children?: React.ReactNode;
 }
 
 interface IValidatedSelectState {
@@ -26,6 +28,9 @@ interface IValidatedSelectState {
 }
 
 export default class ValidatedSelect extends React.Component<IValidatedSelectProps, IValidatedSelectState> implements IValidatedControl {
+    static contextType = ValidatedFormContext;
+    declare context: React.ContextType<typeof ValidatedFormContext>;
+
     constructor(props: IValidatedSelectProps) {
         super(props);
 
@@ -36,22 +41,24 @@ export default class ValidatedSelect extends React.Component<IValidatedSelectPro
 
     componentDidMount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._registerElement(this);
+            this.context.form._registerElement(this);
         }
     }
 
     componentWillUnmount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._unregisterElement(this);
+            this.context.form._unregisterElement(this);
         }
     }
 
-    componentWillReceiveProps(props: IValidatedSelectProps) {
-        if (this.props.value !== props.value) {
+    componentDidUpdate(prevProps: IValidatedSelectProps) {
+        if (prevProps.value !== this.props.value) {
             this.setState({
-                value: props.value as string
+                value: this.props.value as string
             });
-            (this.context.form as ValidatedForm).updateState(props.name, props.value);
+            if (this.context.form) {
+                this.context.form.updateState(this.props.name, this.props.value);
+            }
         }
     }
 
@@ -68,11 +75,15 @@ export default class ValidatedSelect extends React.Component<IValidatedSelectPro
             this.props.onChange(e);
         }
 
-        (this.context.form as ValidatedForm).emitUpdate(this.props.name, (e.target as any).value);
+        if (this.context.form) {
+            this.context.form.emitUpdate(this.props.name, e.target.value);
+        }
     }
 
     onBlur = (e: React.FocusEvent<HTMLSelectElement>) => {
-        (this.context.form as ValidatedForm).updateState(this.props.name);
+        if (this.context.form) {
+            this.context.form.updateState(this.props.name);
+        }
 
         if (this.props.onBlur) {
             this.props.onBlur(e);
@@ -81,21 +92,21 @@ export default class ValidatedSelect extends React.Component<IValidatedSelectPro
 
     render() {
         return (
-            <select
-                id={this.props.id}
-                className={`form-control ${this.props.className || ''}`}
-                disabled={this.props.disabled}
-                name={this.props.name}
-                value={this.state.value}
-                onChange={this.onChange}
-                onBlur={this.onBlur}
-            >
-                {this.props.children}
-            </select>
+            <ValidatedFormGroupContext.Consumer>
+                {group => (
+                    <select
+                        id={this.props.id}
+                        className={classnames('form-select', this.props.className, { 'is-invalid': group.invalid })}
+                        disabled={this.props.disabled}
+                        name={this.props.name}
+                        value={this.state.value}
+                        onChange={this.onChange}
+                        onBlur={this.onBlur}
+                    >
+                        {this.props.children}
+                    </select>
+                )}
+            </ValidatedFormGroupContext.Consumer>
         );
     }
 }
-
-(ValidatedSelect as React.ComponentClass).contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
-};

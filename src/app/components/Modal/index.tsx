@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { InjectedIntl } from 'react-intl';
+import { IntlShape } from 'react-intl';
 
 import themed from 'components/Theme/themed';
 import Header from 'containers/Modal/Header';
 
 export interface IModalProps<P, R> {
-    intl: InjectedIntl;
+    intl: IntlShape;
     params: P;
     onResult: (data: R) => void;
     onCancel: () => void;
@@ -20,7 +20,7 @@ export interface IModalProps<P, R> {
 
 export type TModalComponentClass<P, R> =
     React.ComponentType<IModalProps<P, R>> |
-    React.SFC<IModalProps<P, R>>;
+    React.FC<React.PropsWithChildren<IModalProps<P, R>>>;
 
 const StyledBody = themed.div`
     padding: 15px;

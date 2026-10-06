@@ -8,7 +8,7 @@ import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { createWallet } from '../actions';
-import { navigate } from 'modules/engine/actions';
+import { navigate } from 'modules/router/actions';
 import keyring from 'lib/keyring';
 import { publicToID } from 'lib/crypto';
 
@@ -30,7 +30,7 @@ const createWalletEpic: Epic = action$ => action$.pipe(
                     publicKey
                 }
             }),
-            navigate('/')
+            navigate({ to: '/' })
         );
 
     }).pipe(

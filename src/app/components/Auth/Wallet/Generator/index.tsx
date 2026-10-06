@@ -26,15 +26,15 @@ export interface IWalletGeneratorProps {
   action: 'create' | 'import';
 }
 
-const Generator: React.SFC<IWalletGeneratorProps> = (props) => (
+const Generator: React.FC<IWalletGeneratorProps> = (props) => (
   <div className={props.className}>
     <fieldset>
       <p className="text-center">{props.descriptionValue}</p>
     </fieldset>
     <fieldset>
-      <Validation.components.ValidatedFormGroup for="seed">
+      <Validation.components.ValidatedFormGroup for="seed" className="row">
         <Col md={3} className="clearfix">
-          <div className="pull-left">
+          <div className="float-start">
             {props.action === 'import' ? (
               <FormattedMessage
                 id="auth.backup"
@@ -44,7 +44,7 @@ const Generator: React.SFC<IWalletGeneratorProps> = (props) => (
               <FormattedMessage id="auth.seed" defaultMessage="Auth seed" />
             )}
           </div>
-          <div className="pull-right visible-sm visible-xs">
+          <div className="float-end d-md-none">
             <Validation.components.ValidationMessage for="seed" />
           </div>
         </Col>
@@ -85,25 +85,25 @@ const Generator: React.SFC<IWalletGeneratorProps> = (props) => (
               </GeneratorTool>
             )}
           </div>
-          <div className="visible-md visible-lg text-left">
+          <div className="d-none d-md-block text-start">
             <Validation.components.ValidationMessage for="seed" />
           </div>
         </Col>
       </Validation.components.ValidatedFormGroup>
     </fieldset>
     <fieldset>
-      <Validation.components.ValidatedFormGroup for="password">
+      <Validation.components.ValidatedFormGroup for="password" className="row">
         <Col md={3} className="clearfix">
-          <div className="pull-left">
+          <div className="float-start">
             <FormattedMessage id="general.password" defaultMessage="Password" />
           </div>
-          <div className="pull-right visible-sm visible-xs">
+          <div className="float-end d-md-none">
             <Validation.components.ValidationMessage for="password" />
           </div>
         </Col>
         <Col md={9}>
           <Validation.components.ValidatedControl
-            onChange={(e) => props.onPasswordChange((e.target as any).value)}
+            onChange={(e) => props.onPasswordChange(e.target.value)}
             value={props.password}
             name="password"
             type="password"
@@ -120,13 +120,13 @@ const Generator: React.SFC<IWalletGeneratorProps> = (props) => (
                 ]
             }
           />
-          <div className="visible-md visible-lg text-left">
+          <div className="d-none d-md-block text-start">
             <Validation.components.ValidationMessage for="password" />
           </div>
 
         </Col>
         <Col md={12}>
-          <div className="visible-md-text visible-lg text-left">
+          <div className="d-none d-lg-block text-start">
             <FormattedMessage
               id="auth.backup.warn"
               defaultMessage="Backup Payload (Private Key)"

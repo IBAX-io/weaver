@@ -11,12 +11,13 @@ import imgAlignCenter from 'images/constructor/group-27.svg';
 import imgAlignRight from 'images/constructor/group-26.svg';
 
 interface IRadioButtonsProps {
-  onSelect?: any;
+  onSelect?: (value: string) => void;
   initialValue?: string;
 }
 
 interface IRadioButtonsState {
   value: string;
+  initialValue: string;
 }
 
 export default class RadioButtons extends React.Component<
@@ -26,16 +27,23 @@ export default class RadioButtons extends React.Component<
   constructor(props: IRadioButtonsProps) {
     super(props);
     this.state = {
-      value: props.initialValue || ''
+      value: props.initialValue || '',
+      initialValue: props.initialValue
     };
   }
 
-  componentWillReceiveProps(props: IRadioButtonsProps) {
-    if (this.state.value !== props.initialValue) {
-      this.setState({
-        value: props.initialValue
-      });
+  // Follow the selected tag: reset the local selection whenever the tag value changes
+  static getDerivedStateFromProps(
+    props: IRadioButtonsProps,
+    state: IRadioButtonsState
+  ): Partial<IRadioButtonsState> | null {
+    if (props.initialValue !== state.initialValue) {
+      return {
+        value: props.initialValue,
+        initialValue: props.initialValue
+      };
     }
+    return null;
   }
 
   render() {

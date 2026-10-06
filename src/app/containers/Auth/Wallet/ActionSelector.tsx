@@ -6,7 +6,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { IRootState } from 'modules';
-import { navigate } from 'modules/engine/actions';
+import { navigate } from 'modules/router/actions';
 
 import ActionSelector from 'components/Auth/Wallet/ActionSelector';
 
@@ -28,11 +28,11 @@ const mapStateToProps = (state: IRootState) => ({
 });
 
 const mapDispatchToProps = {
-    onImport: () => navigate('/account/import'),
-    onCreate: () => navigate('/account/create')
+    onImport: () => navigate({ to: '/account/import' }),
+    onCreate: () => navigate({ to: '/account/create' })
 };
 
-const ActionSelectorContainer: React.SFC<IActionSelectorContainerProps & IActionSelectorContainerState & IActionSelectorContainerDispatch> = props => (
+const ActionSelectorContainer: React.FC<IActionSelectorContainerProps & IActionSelectorContainerState & IActionSelectorContainerDispatch> = props => (
     <ActionSelector {...props} />
 );
 

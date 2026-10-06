@@ -8,7 +8,8 @@ import { Epic } from 'modules';
 import { from, of } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
-import { addNetwork, navigate } from '../actions';
+import { addNetwork } from '../actions';
+import { navigate } from 'modules/router/actions';
 import { discover } from 'services/network';
 import NetworkError from 'services/network/errors';
 import { saveNetwork } from 'modules/storage/actions';
@@ -21,7 +22,7 @@ const addNetworkEpic: Epic = (action$, _state$, { defaultKey }) => action$.pipe(
 
     return from(discover({ uuid: uniqueID, apiHost: action.payload.apiHost }, defaultKey, action.payload.networkID)).pipe(
       mergeMap(result => of(
-        navigate('/networks'),
+        navigate({ to: '/networks' }),
         saveNetwork({
           uuid: uniqueID,
           id: result.networkID,

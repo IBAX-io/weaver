@@ -19,6 +19,7 @@ export interface ITxButtonProps {
     disabled?: boolean;
     silent?: boolean;
     className?: string;
+    children?: React.ReactNode;
 
     actions: IAction[];
     from?: {

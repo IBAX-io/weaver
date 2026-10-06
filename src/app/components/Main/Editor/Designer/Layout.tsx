@@ -5,77 +5,83 @@
 
 import * as React from 'react';
 import classnames from 'classnames';
-import { DropTarget } from 'react-dnd';
-
-const layoutTarget = {
-  drop(props: ILayoutProps, monitor: any) {
-    if (monitor.didDrop()) {
-      return;
-    }
-    const droppedItem = monitor.getItem();
-
-    if (droppedItem.new) {
-      props.addTag({
-        tag: droppedItem
-      });
-    } else {
-      switch (droppedItem.dropEffect) {
-        case 'move':
-          props.moveTag({
-            tag: droppedItem.tag
-          });
-          break;
-        case 'copy':
-          props.copyTag({
-            tag: droppedItem.tag
-          });
-          break;
-        default:
-          break;
-      }
-    }
-  }
-};
-
-function collect(connect?: any, monitor?: any) {
-  return {
-    connectDropTarget: connect.dropTarget(),
-    isOver: monitor.isOver({ shallow: true })
-  };
-}
-
-const ItemTypes = {
-  SOURCE: 'element'
-};
+import { useDrop } from '@nosferatu500/react-dnd';
+import { IAddTagCall, IOperateTagCall } from 'ibax/editor';
+import {
+  CONSTRUCTOR_DND_TYPE,
+  TConstructorDragItem,
+  isExistingTag
+} from 'components/ProtypoConstructor/handlers/DnDComponent';
 
 interface ILayoutProps {
   grid: boolean;
-  connectDropTarget?: any;
-  isOver?: boolean;
-  addTag?: any;
-  moveTag?: any;
-  copyTag?: any;
+  addTag?: (payload: IAddTagCall) => void;
+  moveTag?: (payload: IOperateTagCall) => void;
+  copyTag?: (payload: IOperateTagCall) => void;
 }
 
-interface ILayoutState {}
+const Layout: React.FC<React.PropsWithChildren<ILayoutProps>> = (props) => {
+  const propsRef = React.useRef(props);
+  React.useLayoutEffect(() => {
+    propsRef.current = props;
+  });
 
-class Layout extends React.Component<ILayoutProps, ILayoutState> {
-  constructor(props: ILayoutProps) {
-    super(props);
-  }
-  render() {
-    const { connectDropTarget, isOver } = this.props;
+  const [{ isOver }, drop] = useDrop(
+    () => ({
+      accept: CONSTRUCTOR_DND_TYPE,
+      drop: (droppedItem: TConstructorDragItem, monitor) => {
+        if (monitor.didDrop()) {
+          return;
+        }
+        const current = propsRef.current;
 
-    const classes = classnames({
-      'b-constructor-layout': true,
-      'b-constructor-layout_grid': this.props.grid,
-      'b-constructor-layout_can-drop': isOver
-    });
+        if (!isExistingTag(droppedItem)) {
+          current.addTag({
+            tag: droppedItem
+          });
+          return;
+        }
 
-    return connectDropTarget(
-      <div className={classes}>{this.props.children}</div>
-    );
-  }
-}
+        switch (droppedItem.dropEffect) {
+          case 'move':
+            current.moveTag({
+              tag: droppedItem.tag
+            });
+            break;
+          case 'copy':
+            current.copyTag({
+              tag: droppedItem.tag
+            });
+            break;
+          default:
+            break;
+        }
+      },
+      collect: (monitor) => ({
+        isOver: monitor.isOver({ shallow: true })
+      })
+    }),
+    []
+  );
 
-export default DropTarget(ItemTypes.SOURCE, layoutTarget, collect)(Layout);
+  const ref = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      drop(node);
+    },
+    [drop]
+  );
+
+  const classes = classnames({
+    'b-constructor-layout': true,
+    'b-constructor-layout_grid': props.grid,
+    'b-constructor-layout_can-drop': isOver
+  });
+
+  return (
+    <div ref={ref} className={classes}>
+      {props.children}
+    </div>
+  );
+};
+
+export default Layout;

@@ -20,7 +20,7 @@ export interface IHeadingProps {
   option: React.ReactNode;
 }
 
-const Heading: React.SFC<IHeadingProps> = (props) => (
+const Heading: React.FC<React.PropsWithChildren<IHeadingProps>> = (props) => (
   <div className={props.className}>
     <div className="heading-content" >
       <div className="heading-left">

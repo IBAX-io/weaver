@@ -22,7 +22,7 @@ export interface IHeadingProps {
     className?: string;
 }
 
-const Heading: React.SFC<IHeadingProps> = props => (
+const Heading: React.FC<React.PropsWithChildren<IHeadingProps>> = props => (
     <StyledHeading className={props.className}>
         <div>
             {props.children}

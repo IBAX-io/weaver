@@ -708,8 +708,7 @@ export const mockState: IRootState = {
       search: '',
       hash: '',
       key: '6r7g5h',
-      state: '',
-      query: {}
+      state: null
     },
     action: 'PUSH'
   }

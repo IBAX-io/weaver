@@ -11,7 +11,7 @@ export interface INotificationButtonProps {
     onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }
 
-const NotificationButton: React.SFC<INotificationButtonProps> = props => (
+const NotificationButton: React.FC<React.PropsWithChildren<INotificationButtonProps>> = props => (
     <button className={props.className} onClick={props.onClick}>
         {props.children}
     </button>

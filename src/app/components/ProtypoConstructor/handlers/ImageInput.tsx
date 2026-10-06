@@ -17,12 +17,9 @@ class ImageInput extends EditableBlock {
                 className={classes}
             >
                 <input type="text" className="form-control" readOnly={true}/>
-                <div className="group-span-filestyle input-group-btn">
-                    <button className="btn btn-default" type="button">
-                        <span className="icon-span-filestyle glyphicon glyphicon-folder-open" />
-                        <span className="buttonText" />
-                    </button>
-                </div>
+                <button className="btn btn-secondary" type="button">
+                    <em className="fa fa-folder-open" />
+                </button>
             </div>
         );
     }

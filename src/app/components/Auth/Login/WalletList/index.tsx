@@ -34,7 +34,7 @@ export interface IWalletListProps {
   onGuestLogin: () => any;
 }
 
-const WalletList: React.SFC<IWalletListProps> = (props) => (
+const WalletList: React.FC<IWalletListProps> = (props) => (
   <LocalizedDocumentTitle title="auth.login" defaultTitle="Login">
     <div
       className={classNames(
@@ -49,7 +49,7 @@ const WalletList: React.SFC<IWalletListProps> = (props) => (
         <Offline />
       ) : (
         <div
-          className="form-horizontal desktop-flex-col desktop-flex-stretch"
+          className="desktop-flex-col desktop-flex-stretch"
           style={{ padding: 10 }}
         >
           <div className="text-center desktop-flex-stretch">
@@ -75,7 +75,7 @@ const WalletList: React.SFC<IWalletListProps> = (props) => (
               ))
             )}
           </div>
-          <div className="text-left">
+          <div className="text-start">
             <ContextButton
               icon="icon-plus"
               onClick={props.onCreate}

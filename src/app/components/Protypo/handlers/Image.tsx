@@ -3,10 +3,9 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as React from 'react';
-import * as propTypes from 'prop-types';
+import React, { useContext } from 'react';
 
-import Protypo from '../Protypo';
+import { ProtypoContext } from '../ProtypoContext';
 import StyledComponent from './StyledComponent';
 
 export interface IImageProps {
@@ -16,18 +15,11 @@ export interface IImageProps {
     'alt'?: string;
 }
 
-interface IImageContext {
-    protypo: Protypo;
-}
-
-const Image: React.SFC<IImageProps> = (props, context: IImageContext) => {
+const Image: React.FC<IImageProps> = props => {
+    const context = useContext(ProtypoContext);
     return (
         <img className={[props.class, props.className].join(' ')} src={context.protypo.resolveData(props.src)} alt={props.alt} />
     );
-};
-
-Image.contextTypes = {
-    protypo: propTypes.object.isRequired
 };
 
 export default StyledComponent(Image);

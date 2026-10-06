@@ -45,7 +45,7 @@ const StyledRoleButton = themed.button`
     }
 `;
 
-const RoleButton: React.SFC<IRoleButtonProps> = (props) => (
+const RoleButton: React.FC<React.PropsWithChildren<IRoleButtonProps>> = (props) => (
   <StyledRoleButton className={props.className} onClick={props.onClick}>
     <div className="button-content">{props.children}</div>
     {0 !== props.badge && <div className="button-badge">{props.badge}</div>}

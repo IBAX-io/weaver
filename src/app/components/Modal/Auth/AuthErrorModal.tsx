@@ -24,8 +24,8 @@ class AuthErrorModal extends Modal<IAuthErrorModalProps, void> {
                 <Modal.Body>
                     <FormattedMessage id={`auth.error.${this.props.params.error}`} defaultMessage={this.props.params.message} />
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="primary" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="primary" onClick={this.props.onCancel.bind(this)}>
                         <FormattedMessage id="close" defaultMessage="Close" />
                     </Button>
                 </Modal.Footer>

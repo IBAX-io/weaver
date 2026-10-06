@@ -11,6 +11,7 @@ export interface IHintProps {
     'icon'?: string;
     'title'?: string;
     'text'?: string;
+    children?: React.ReactNode;
 }
 
 export const HintWrapper = themed.div`

@@ -44,7 +44,7 @@ class AboutModal extends Modal<void, void> {
                 defaultMessage="Molis - a software product developed by Ibax. It works with blockchain networks that are built to use Ibax Protocol"
               />
             </div>
-            <Button bsStyle="link" onClick={this.openWebsite}>
+            <Button variant="link" onClick={this.openWebsite}>
               <FormattedMessage
                 id="legal.homepage"
                 defaultMessage="https://ibax.io"
@@ -52,10 +52,10 @@ class AboutModal extends Modal<void, void> {
             </Button>
           </div>
         </Modal.Body>
-        <Modal.Footer className="text-right">
+        <Modal.Footer className="text-end">
           <Button
             type="button"
-            bsStyle="primary"
+            variant="primary"
             onClick={this.props.onCancel.bind(this)}
           >
             <FormattedMessage id="close" defaultMessage="Close" />

@@ -1,8 +1,127 @@
+// ========================================================================
+//   Bootstrap 5 (npm package `bootstrap`) configured with the app theme
+// ------------------------------------------------------------------------
+// Emits the complete Bootstrap CSS once (the first time this module is
+// loaded, from sass.scss) and forwards Bootstrap's functions, mixins and
+// variables plus the app tokens (app/variables) to every partial that does
+// `@use "bootstrap" as *` / `@use "../bootstrap" as *`.
 //
-// This file compiles to a custom bootstrap stylesheet for Angle
-//
+// Sizes keep the app's Bootstrap 3 metrics: 14px base font, 1.53 line
+// height, 30px grid gutter, BS3 heading scale, button/input paddings.
+// ========================================================================
 
-// Override bootstrap variables
-@import "app/variables";
-// Bootstrap
-@import "bootstrap/bootstrap";
+@use "app/variables" as app;
+
+@forward "app/variables";
+@forward "bootstrap/scss/bootstrap" with (
+  // Colors
+  $primary: app.$brand-primary,
+  $success: app.$brand-success,
+  $info: app.$brand-info,
+  $warning: app.$brand-warning,
+  $danger: app.$brand-danger,
+  $dark: app.$brand-dark,
+  // White text on the theme colors, as in the BS3 theme
+  $min-contrast-ratio: 2,
+
+  // Body and links
+  $body-bg: app.$app-content-bg,
+  $body-color: app.$app-text-color,
+  $body-secondary-color: app.$app-text-muted,
+  $link-color: app.$brand-primary,
+  $link-decoration: none,
+  $link-hover-color: app.$app-link-hover-color,
+  $link-hover-decoration: underline,
+  $hr-color: app.$app-gray-light,
+  $hr-opacity: 1,
+
+  // Typography (BS3 scale on a 14px base)
+  $font-family-sans-serif: ("Helvetica Neue", Helvetica, Arial, sans-serif),
+  $font-family-monospace: (Menlo, Monaco, Consolas, "Courier New", monospace),
+  $font-size-base: .875rem,
+  $font-size-sm: .75rem,
+  $font-size-lg: 1.125rem,
+  $line-height-base: 1.528571429,
+  $line-height-sm: 1.5,
+  $line-height-lg: 1.33,
+  $h1-font-size: 2.25rem,
+  $h2-font-size: 1.875rem,
+  $h3-font-size: 1.5rem,
+  $h4-font-size: 1.125rem,
+  $h5-font-size: .875rem,
+  $h6-font-size: .75rem,
+  $headings-margin-bottom: 10px,
+  $headings-font-weight: 500,
+  $headings-line-height: 1.1,
+  $paragraph-margin-bottom: 10px,
+
+  // Shape
+  $border-radius: 4px,
+  $border-radius-sm: 3px,
+  $border-radius-lg: 6px,
+  $grid-gutter-width: 30px,
+
+  // Buttons and inputs
+  $btn-padding-y: 6px,
+  $btn-padding-x: 16px,
+  $btn-padding-y-sm: 5px,
+  $btn-padding-x-sm: 10px,
+  $btn-padding-y-lg: 10px,
+  $btn-padding-x-lg: 20px,
+  $input-padding-y: 6px,
+  $input-padding-x: 16px,
+  $input-color: app.$app-gray-dark,
+  $input-border-color: app.$app-input-border,
+  $input-placeholder-color: #b7bac9,
+  $input-disabled-bg: app.$app-gray-lighter,
+  $input-group-addon-bg: app.$app-gray-lighter,
+
+  // Components
+  $table-cell-padding-y: 8px,
+  $table-cell-padding-x: 8px,
+  $table-cell-padding-y-sm: 5px,
+  $table-cell-padding-x-sm: 5px,
+  $table-border-color: #eee,
+  $table-striped-bg: #fafbfc,
+  $table-hover-bg: #fafbfc,
+  $table-active-bg: #fafbfc,
+  $dropdown-border-color: #e1e1e1,
+  $dropdown-border-radius: 3px,
+  $dropdown-link-color: #5f5f5f,
+  $dropdown-link-hover-bg: #fafbfc,
+  $dropdown-header-color: #a1a2a3,
+  $pagination-color: app.$app-text-color,
+  $pagination-border-color: #eee,
+  $pagination-hover-bg: #fafafa,
+  $pagination-hover-border-color: #eee,
+  $pagination-disabled-border-color: #eee,
+  $tooltip-bg: #222,
+  $popover-border-color: #eee,
+  $popover-border-radius: 3px,
+  $popover-box-shadow: none,
+  $popover-header-bg: #fafafa,
+  $alert-padding-y: 8px,
+  $alert-padding-x: 8px,
+  $alert-border-radius: 3px,
+  $progress-bg: #fff,
+  $progress-border-radius: 3px,
+  $progress-bar-bg: app.$brand-primary,
+  $list-group-border-color: app.$app-gray-light,
+  $list-group-border-radius: 0,
+  $list-group-hover-bg: #fafbfc,
+  $list-group-item-padding-y: 10px,
+  $list-group-item-padding-x: 10px,
+  $card-border-color: app.$app-panel-border,
+  $card-border-radius: 0,
+  $card-cap-bg: #fff,
+  $card-cap-padding-y: 10px,
+  $card-cap-padding-x: 15px,
+  $card-spacer-y: 15px,
+  $card-spacer-x: 15px,
+  $breadcrumb-divider-color: #c1c2c3,
+  $breadcrumb-active-color: app.$app-text-color,
+  $thumbnail-padding: 2px,
+  $thumbnail-bg: #e1e2e3,
+  $thumbnail-border-color: #e1e2e3,
+  $thumbnail-border-radius: 3px
+);

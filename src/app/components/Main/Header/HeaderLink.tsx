@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import classNames from 'classnames';
 
 import themed from 'components/Theme/themed';
@@ -45,7 +45,7 @@ interface Props {
   active?: boolean;
 }
 
-const HeaderLink: React.SFC<Props> = (props) => (
+const HeaderLink: React.FC<React.PropsWithChildren<Props>> = (props) => (
   <StyledHeaderLink
     className={classNames({ active: props.active })}
     to={props.to}

@@ -16,7 +16,7 @@ interface Props {
   onChange?: (index: number) => void;
 }
 
-const SegmentButton: React.SFC<Props> = (props) => (
+const SegmentButton: React.FC<Props> = (props) => (
   <ul className={classNames('button-sections', props.className)}>
     {props.items.map((l, i) => (
       <li key={i} className={props.activeIndex === i ? 'active' : null}>

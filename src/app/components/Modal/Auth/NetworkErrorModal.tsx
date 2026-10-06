@@ -23,8 +23,8 @@ class NetworkErrorModal extends Modal<INetworkErrorModalProps, void> {
                 <Modal.Body>
                     <FormattedMessage id={`general.network.error.${this.props.params.error}`} defaultMessage="Network is unreachable" />
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="primary" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="primary" onClick={this.props.onCancel.bind(this)}>
                         <FormattedMessage id="close" defaultMessage="Close" />
                     </Button>
                 </Modal.Footer>

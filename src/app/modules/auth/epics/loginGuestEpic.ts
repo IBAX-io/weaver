@@ -8,7 +8,7 @@ import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { loginGuest } from '../actions';
-import { push } from 'connected-react-router';
+import { navigate } from 'modules/router/actions';
 import keyring from 'lib/keyring';
 import { publicToID } from 'lib/crypto';
 
@@ -34,7 +34,7 @@ const loginGuestEpic: Epic = (action$, state$, { api, defaultKey, defaultPasswor
             // Successful authentication. Yield the result
             mergeMap(session => {
                 return of(
-                    push('/'),
+                    navigate({ to: '/' }),
                     loginGuest.done({
                         params: action.payload,
                         result: {

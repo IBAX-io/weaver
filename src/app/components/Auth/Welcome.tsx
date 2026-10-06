@@ -8,7 +8,7 @@ import { FormattedMessage } from 'react-intl';
 
 export interface IWelcomeProps {}
 
-const Welcome: React.SFC<IWelcomeProps> = (props) => (
+const Welcome: React.FC<IWelcomeProps> = (props) => (
   <div>
     <h4 className="p0 m0">
       <FormattedMessage id="auth.welcome" defaultMessage="Welcome" />

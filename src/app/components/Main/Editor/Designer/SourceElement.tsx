@@ -4,63 +4,40 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import { DragSource } from 'react-dnd';
-
-const ItemTypes = {
-  SOURCE: 'element'
-};
-
-const Source = {
-  beginDrag(props: ISourceElementProps) {
-    return {
-      new: true,
-      element: props.element,
-      template: props.template,
-      text: props.text
-    };
-  }
-};
-
-function collect(connect: any, monitor: any) {
-  return {
-    connectDragSource: connect.dragSource(),
-    connectDragPreview: connect.dragPreview(),
-    isDragging: monitor.isDragging()
-  };
-}
+import { useDrag } from '@nosferatu500/react-dnd';
+import { ISourceElement } from 'ibax/editor';
+import { CONSTRUCTOR_DND_TYPE } from 'components/ProtypoConstructor/handlers/DnDComponent';
 
 interface ISourceElementProps {
   text: string;
   element?: string;
   template?: string;
-  connectDragSource?: any;
-  connectDragPreview?: any;
-  isDragging?: boolean;
 }
 
-interface ISourceElementState {
-  collapsed: boolean;
-}
+const SourceElement: React.FC<ISourceElementProps> = (props) => {
+  const [, drag, preview] = useDrag(
+    () => ({
+      type: CONSTRUCTOR_DND_TYPE,
+      item: (): ISourceElement => ({
+        new: true,
+        element: props.element,
+        template: props.template,
+        text: props.text
+      }),
+      previewOptions: { offsetY: -10 }
+    }),
+    [props.element, props.template, props.text]
+  );
 
-class SourceElement extends React.Component<
-  ISourceElementProps,
-  ISourceElementState
-> {
-  constructor(props: ISourceElementProps) {
-    super(props);
-  }
-  render() {
-    const { connectDragSource, connectDragPreview, isDragging } = this.props;
-    return connectDragPreview(
-      connectDragSource(
-        <li>
-          {this.props.text} {isDragging ? '' : ''}
-        </li>
-      ),
-      { offsetY: -10 }
-    );
-  }
-}
+  const ref = React.useCallback(
+    (node: HTMLLIElement | null) => {
+      drag(node);
+      preview(node);
+    },
+    [drag, preview]
+  );
 
-// export default SourceElement;
-export default DragSource(ItemTypes.SOURCE, Source, collect)(SourceElement);
+  return <li ref={ref}>{props.text}</li>;
+};
+
+export default SourceElement;

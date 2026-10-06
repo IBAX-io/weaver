@@ -7,7 +7,7 @@ import React from 'react';
 import { Button } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
 import { IWallet } from 'ibax/auth';
-import QRCode from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import CopyToClipboard from 'react-copy-to-clipboard';
 
 import Modal from '../';
@@ -46,7 +46,7 @@ class CopyWalletModal extends Modal<ICopyWalletModalParams, void> {
                                 </td>
                                 <td>
                                     <div className="text-center">
-                                        <QRCode value={this.getCopyPayload()} />
+                                        <QRCodeCanvas value={this.getCopyPayload()} />
                                     </div>
                                 </td>
                             </tr>
@@ -54,14 +54,14 @@ class CopyWalletModal extends Modal<ICopyWalletModalParams, void> {
                     </table>
                     <div className="text-center">
                         <CopyToClipboard text={this.getCopyPayload()}>
-                            <Button bsStyle="link">
+                            <Button variant="link">
                                 <FormattedMessage id="general.clipboard.copy" defaultMessage="Copy to clipboard" />
                             </Button>
                         </CopyToClipboard>
                     </div>
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="primary" onClick={this.props.onCancel}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="primary" onClick={this.props.onCancel}>
                         <FormattedMessage id="close" defaultMessage="Close" />
                     </Button>
                 </Modal.Footer>

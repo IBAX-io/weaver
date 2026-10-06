@@ -3,11 +3,10 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as React from 'react';
+import React, { useContext } from 'react';
 import * as _ from 'lodash';
-import * as propTypes from 'prop-types';
 
-import Protypo from '../Protypo';
+import { ProtypoContext } from '../ProtypoContext';
 import StyledComponent from './StyledComponent';
 import Validation from 'components/Validation';
 import { Validator } from 'components/Validation/Validators';
@@ -25,11 +24,8 @@ export interface IRadioGroupProps {
     };
 }
 
-interface IRadioGroupContext {
-    protypo: Protypo;
-}
-
-const RadioGroup: React.SFC<IRadioGroupProps> = (props, context: IRadioGroupContext) => {
+const RadioGroup: React.FC<IRadioGroupProps> = props => {
+    const context = useContext(ProtypoContext);
 
     const compiledValidators: Validator[] = [];
     _.forEach(props.validate, (value, name) => {
@@ -86,10 +82,6 @@ const RadioGroup: React.SFC<IRadioGroupProps> = (props, context: IRadioGroupCont
             }))}
         />
     );
-};
-
-RadioGroup.contextTypes = {
-    protypo: propTypes.object.isRequired
 };
 
 export default StyledComponent(RadioGroup);

@@ -69,8 +69,7 @@ const StyledResizeHandle = themed.button`
     }
 `;
 
-const ResizeHandle: React.SFC<Props> = (props) => {
-  console.log(props);
+const ResizeHandle: React.FC<Props> = (props) => {
   return (
     <StyledResizeHandle onClick={props.onFoldToggle}>
       <div>
@@ -88,6 +87,6 @@ const ResizeHandle: React.SFC<Props> = (props) => {
       </div>
     </StyledResizeHandle>
   );
-} 
+};
 
 export default ResizeHandle;

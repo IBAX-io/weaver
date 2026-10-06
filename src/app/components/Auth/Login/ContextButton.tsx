@@ -13,7 +13,7 @@ export interface IContextButtonProps {
   onClick: () => void;
 }
 
-const ContextButton: React.SFC<IContextButtonProps> = (props) => (
+const ContextButton: React.FC<React.PropsWithChildren<IContextButtonProps>> = (props) => (
   <button className={props.className} onClick={props.onClick}>
     <div className="button-icon">
       <em className={props.icon} />

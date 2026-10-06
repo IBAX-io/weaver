@@ -13,7 +13,7 @@ import ProtypoConstructor from 'components/ProtypoConstructor';
 export interface IProtypoConstructorContainerProps {
     section: string;
     editable?: boolean;
-    wrapper?: JSX.Element;
+    wrapper?: React.JSX.Element;
     context: string;
     content: TProtypoElement[];
     changePage?: any;
@@ -35,7 +35,7 @@ interface IProtypoConstructorContainerState {
 interface IProtypoConstructorContainerDispatch {
 }
 
-const ProtypoConstructorContainer: React.SFC<IProtypoConstructorContainerState & IProtypoConstructorContainerDispatch & IProtypoConstructorContainerProps> = (props) => (
+const ProtypoConstructorContainer: React.FC<IProtypoConstructorContainerState & IProtypoConstructorContainerDispatch & IProtypoConstructorContainerProps> = (props) => (
     <ProtypoConstructor {...props} />
 );
 

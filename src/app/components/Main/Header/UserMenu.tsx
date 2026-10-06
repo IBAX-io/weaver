@@ -71,7 +71,7 @@ interface Props {
   onBackup: () => void;
 }
 
-const UserMenu: React.SFC<Props> = (props) =>
+const UserMenu: React.FC<Props> = (props) =>
   props.wallet &&
   props.wallet.wallet && (
     <HeaderButton

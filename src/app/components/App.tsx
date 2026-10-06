@@ -5,18 +5,17 @@
 
 import React from 'react';
 import { INetworkEndpoint } from 'ibax/auth';
-import { Route } from 'react-router-dom';
+import { Route, Routes, useParams } from 'react-router';
 import { FormattedMessage, IntlProvider } from 'react-intl';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { mainRoute } from 'lib/routing';
+import { DndProvider } from '@nosferatu500/react-dnd';
+import { HTML5Backend } from '@nosferatu500/react-dnd-html5-backend';
+import { mainRoute } from 'lib/routing/routes';
 import platform from 'lib/platform';
 import classnames from 'classnames';
 import baseTheme from 'components/Theme/baseTheme';
 
-import { AnimatedSwitch } from 'components/Animation';
 import themed from 'components/Theme/themed';
-import Auth from 'containers/Auth';
+import Auth from 'components/Auth';
 import Error from 'containers/Auth/Error';
 import Splash from 'components/Splash';
 import ModalProvider from 'containers/Modal/ModalProvider';
@@ -35,7 +34,7 @@ interface AppProps {
   isFatal: boolean;
   securityWarningClosed: boolean;
   localeMessages: { [key: string]: string };
-  initialize?: () => void;
+  initialize: () => void;
 }
 
 const ThemedApp = themed.div`
@@ -43,6 +42,16 @@ const ThemedApp = themed.div`
         border: solid 1px ${(props) => props.theme.windowBorder};
     }
 `;
+
+const FadeIn = themed.div`
+    animation: app-fade-in .3s ease-out;
+    @keyframes app-fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+`;
+
+const MainRoute: React.FC = () => <Main {...useParams()} />;
 
 const StyledTitlebar = themed.div`
     background: ${(props) => props.theme.headerBackground};
@@ -58,10 +67,39 @@ class App extends React.Component<AppProps> {
     this.props.initialize();
   }
 
+  // The first condition that holds decides the screen, in this order
+  screen() {
+    if (this.props.isFatal) {
+      return 'error';
+    }
+    if (!this.props.isLoaded) {
+      return 'splash';
+    }
+    if (!this.props.isAuthenticated) {
+      return 'auth';
+    }
+    if (!this.props.isSessionAcquired) {
+      return 'splash';
+    }
+    return 'main';
+  }
+
+  renderScreen() {
+    switch (this.screen()) {
+      case 'error': return <Error />;
+      case 'splash': return <Splash />;
+      case 'auth': return <Auth />;
+      default: return (
+        <Routes>
+          <Route path={mainRoute} element={<MainRoute />} />
+        </Routes>
+      );
+    }
+  }
+
   render() {
     const appTitle = `Weaver ${this.props.network ? '(' + this.props.network.apiHost + ')' : ''
       }`;
-    // console.log(this.props);
     const classes = classnames({
       wrapper: true,
       'layout-fixed': true,
@@ -77,6 +115,7 @@ class App extends React.Component<AppProps> {
         locale={this.props.locale}
         defaultLocale="en-US"
         messages={this.props.localeMessages}
+        textComponent="span"
       >
         <ThemeProvider theme={baseTheme}>
           <ThemedApp className={classes}>
@@ -98,20 +137,7 @@ class App extends React.Component<AppProps> {
               )
             })}
 
-            <AnimatedSwitch animation={AnimatedSwitch.animations.fade()}>
-              {this.props.isFatal && <Route path="/" component={Error} />}
-              {!this.props.isLoaded && <Route path="/" component={Splash} />}
-              {!this.props.isAuthenticated && (
-                <Route path="/" component={Auth} />
-              )}
-              {!this.props.isSessionAcquired && (
-                <Route path="/" component={Splash} />
-              )}
-              <Route
-                path={mainRoute}
-                render={(route) => <Main {...route.match.params} />}
-              />
-            </AnimatedSwitch>
+            <FadeIn key={this.screen()}>{this.renderScreen()}</FadeIn>
           </ThemedApp>
         </ThemeProvider>
       </IntlProvider>

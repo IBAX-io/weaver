@@ -1,0 +1,33 @@
+// ========================================================================
+//   App mixins shared by the app partials and protypo-content.scss
+// ========================================================================
+
+@use "../bootstrap" as *;
+
+// Solid alert (theme color background, white text) expressed through the
+// Bootstrap 5 alert custom properties, so .alert-link / .alert-dismissible
+// keep working.
+@mixin alert-solid($background, $color: #fff, $border: rgba(0, 0, 0, .1)) {
+  --#{$prefix}alert-color: #{$color};
+  --#{$prefix}alert-bg: #{$background};
+  --#{$prefix}alert-border-color: #{$border};
+  --#{$prefix}alert-link-color: #{$color};
+}
+
+// The app's "default" button skin (dark green, green on hover). Used by
+// .btn-secondary in the IDE chrome and .btn-default in protypo content.
+@mixin app-default-button {
+  --#{$prefix}btn-color: #333;
+  --#{$prefix}btn-bg: #{$primary};
+  --#{$prefix}btn-border-color: #eaeaea;
+  --#{$prefix}btn-hover-color: #fff;
+  --#{$prefix}btn-hover-bg: #{$brand-success};
+  --#{$prefix}btn-hover-border-color: #eaeaea;
+  --#{$prefix}btn-active-color: #fff;
+  --#{$prefix}btn-active-bg: #{$brand-success};
+  --#{$prefix}btn-active-border-color: #eaeaea;
+  --#{$prefix}btn-disabled-color: #333;
+  --#{$prefix}btn-disabled-bg: #{$primary};
+  --#{$prefix}btn-disabled-border-color: #eaeaea;
+  --#{$prefix}btn-focus-shadow-rgb: #{to-rgb($primary)};
+}

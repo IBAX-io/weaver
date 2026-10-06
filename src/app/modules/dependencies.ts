@@ -9,7 +9,8 @@ import Properties from 'lib/constructor/properties';
 import getConstructorTemplate from 'lib/constructor/templates';
 import resolveTagHandler from 'lib/constructor/tags';
 import * as routerService from 'services/router';
-import 'whatwg-fetch';
+import { navigationService } from 'lib/routing/navigation';
+import { INavigationService } from 'modules/router/types';
 
 export interface IStoreDependencies {
     api: IAPIDependency;
@@ -17,6 +18,7 @@ export interface IStoreDependencies {
     defaultPassword: string;
     constructorModule: IConstructorDependenies;
     routerService: typeof routerService;
+    navigation: INavigationService;
 }
 
 export interface IAPIDependency {
@@ -57,7 +59,8 @@ const storeDependencies: IStoreDependencies = {
         CodeGenerator,
         Properties
     },
-    routerService
+    routerService,
+    navigation: navigationService
 };
 
 export default storeDependencies;

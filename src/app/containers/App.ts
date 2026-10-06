@@ -10,7 +10,6 @@ import { initialize } from 'modules/engine/actions';
 import App from 'components/App';
 
 const mapStateToProps = (state: IRootState) => ({
-  //locale: state.engine.locale || 'en-US',
   locale: 'en-US',
   localeMessages: state.engine.localeMessages,
   isSessionAcquired: state.auth.isAcquired,
@@ -22,7 +21,7 @@ const mapStateToProps = (state: IRootState) => ({
 });
 
 const mapDispatchToProps = {
-  initialize: initialize.started
+  initialize: () => initialize.started(undefined)
 };
 
-export default connect(mapStateToProps, mapDispatchToProps, null, { pure: false })(App as any);
+export default connect(mapStateToProps, mapDispatchToProps)(App);

@@ -32,7 +32,7 @@ const StyledContent = themed.section`
     overflow: hidden;
 `;
 
-const Navigator: React.SFC<Props> = (props) => {
+const Navigator: React.FC<Props> = (props) => {
   const section = props.sections[props.section];
 
   return (

@@ -87,7 +87,7 @@ const StyledBody = styled.tbody`
 `;
 
 export interface ICellRenderer {
-    (value: any, rowData: IRowData): JSX.Element | any;
+    (value: any, rowData: IRowData): React.JSX.Element | any;
 }
 
 export interface IColData {

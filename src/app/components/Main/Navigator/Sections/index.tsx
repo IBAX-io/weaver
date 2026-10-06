@@ -19,7 +19,7 @@ interface Props {
     };
 }
 
-const Sections: React.SFC<Props> = (props) => (
+const Sections: React.FC<Props> = (props) => (
     <div className="fullscreen" style={{ position: 'relative' }}>
         <Menu section={props.section} />
         <Section

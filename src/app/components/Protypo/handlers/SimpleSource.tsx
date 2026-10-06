@@ -3,31 +3,23 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import React from 'react';
-import propTypes from 'prop-types';
+import React, { useContext } from 'react';
 import { ISource } from 'ibax/protypo';
 
-import Protypo from '../';
+import { ProtypoContext } from '../ProtypoContext';
 
 export interface ISimpleSourceProps extends ISource {
     source: string;
 }
 
-interface ISimpleSourceContext {
-    protypo: Protypo;
-}
-
-const SimpleSource: React.SFC<ISimpleSourceProps> = (props, context: ISimpleSourceContext) => {
+const SimpleSource: React.FC<ISimpleSourceProps> = props => {
+    const context = useContext(ProtypoContext);
     context.protypo.registerSource(props.source, {
         columns: props.columns,
         types: props.types,
         data: props.data
     });
     return null;
-};
-
-SimpleSource.contextTypes = {
-    protypo: propTypes.object.isRequired
 };
 
 export default SimpleSource;

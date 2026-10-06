@@ -88,15 +88,15 @@ class AddNetwork extends React.Component<IAddNetworkProps, IAddNetworkState> {
               </p>
             </fieldset>
             <fieldset>
-              <Validation.components.ValidatedFormGroup for="name">
+              <Validation.components.ValidatedFormGroup for="name" className="row">
                 <Col md={3} className="clearfix">
-                  <div className="pull-left">
+                  <div className="float-start">
                     <FormattedMessage
                       id="general.network.name"
                       defaultMessage="Name"
                     />
                   </div>
-                  <div className="pull-right visible-sm visible-xs">
+                  <div className="float-end d-md-none">
                     <Validation.components.ValidationMessage for="name" />
                   </div>
                 </Col>
@@ -115,20 +115,20 @@ class AddNetwork extends React.Component<IAddNetworkProps, IAddNetworkState> {
               </Validation.components.ValidatedFormGroup>
             </fieldset>
             <fieldset>
-              <Validation.components.ValidatedFormGroup for="id">
+              <Validation.components.ValidatedFormGroup for="id" className="row">
                 <Col md={3} className="clearfix">
-                  <div className="pull-left">
+                  <div className="float-start">
                     <FormattedMessage
                       id="general.network.id.short"
                       defaultMessage="ID"
                     />
                   </div>
-                  <div className="pull-right visible-sm visible-xs">
+                  <div className="float-end d-md-none">
                     <Validation.components.ValidationMessage for="id" />
                   </div>
                 </Col>
                 <Col md={9}>
-                  <div className="text-left">
+                  <div className="text-start">
                     <Validation.components.ValidatedControl
                       onChange={(e) =>
                         this.onNetworkIDChange(
@@ -166,21 +166,21 @@ class AddNetwork extends React.Component<IAddNetworkProps, IAddNetworkState> {
               </Validation.components.ValidatedFormGroup>
             </fieldset>
             <fieldset>
-              <Validation.components.ValidatedFormGroup for="url">
+              <Validation.components.ValidatedFormGroup for="url" className="row">
                 <Col md={3} className="clearfix">
-                  <div className="pull-left">
+                  <div className="float-start">
                     <FormattedMessage
                       id="general.network.url"
                       defaultMessage="Node URL"
                     />
                   </div>
-                  <div className="pull-right visible-sm visible-xs">
+                  <div className="float-end d-md-none">
                     <Validation.components.ValidationMessage for="url" />
                   </div>
                 </Col>
                 {/* node IP */}
                 <Col md={9}>
-                  <div className="text-left">
+                  <div className="text-start">
                     <Validation.components.ValidatedControl
                       onChange={(e) =>
                         this.onApiHostChange(
@@ -196,9 +196,9 @@ class AddNetwork extends React.Component<IAddNetworkProps, IAddNetworkState> {
               </Validation.components.ValidatedFormGroup>
             </fieldset>
 
-            <div className="text-right">
+            <div className="text-end">
               <Validation.components.ValidatedSubmit
-                bsStyle="primary"
+                variant="primary"
                 disabled={this.props.pending}
               >
                 <FormattedMessage

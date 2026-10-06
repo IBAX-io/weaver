@@ -8,7 +8,7 @@ import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { txExec } from '../actions';
 import { modalShow } from '../../modal/actions';
-import { push } from 'connected-react-router';
+import { navigate } from 'modules/router/actions';
 
 export const txExecFailedEpic: Epic = (action$, state$, { routerService }) => action$.pipe(
     ofAction(txExec.failed),
@@ -18,7 +18,7 @@ export const txExecFailedEpic: Epic = (action$, state$, { routerService }) => ac
             const errorRedirect = action.payload.params.errorRedirects[action.payload.error.id];
             if (errorRedirect) {
                 const route = routerService.routeToBrowser(action.payload.params.section, errorRedirect.pagename, errorRedirect.pageparams);
-                return push(route);
+                return navigate({ to: route });
             }
         }
 

@@ -4,28 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action, createStore, applyMiddleware, compose, combineReducers } from 'redux';
-import { connectRouter, routerMiddleware } from 'connected-react-router';
 import { createEpicMiddleware } from 'redux-observable';
 import { IPersistenceBackend, mergePersistedState, persistedStateChanged, selectPersistedState } from 'lib/persistence';
 import createLocalStorageBackend from 'lib/persistence/localStorageBackend';
 
-import { History, createBrowserHistory, createMemoryHistory } from 'history';
 import rootReducer, { rootEpic, IRootState, IStoreDependencies } from './modules';
 import platform from 'lib/platform';
 import dependencies from 'modules/dependencies';
-
-export const history = platform.select<() => History>({
-  desktop: createMemoryHistory,
-  web: createBrowserHistory
-})();
-
-const createRootReducer = (hist: History) => {
-  const combined = combineReducers<any>({
-    ...rootReducer,
-    router: connectRouter(hist)
-  });
-  return combined;
-};
 
 const createElectronBackend = (): IPersistenceBackend => {
   const Electron = require('electron');
@@ -41,36 +26,23 @@ const persistence = platform.select<() => IPersistenceBackend>({
 })();
 
 const configureStore = () => {
-  const reducer = createRootReducer(history);
+  const reducer = combineReducers(rootReducer);
   const initialState = reducer(undefined, { type: '@@weaver/INIT' });
-  const enhancers: any[] = [];
 
   const epicMiddleware = createEpicMiddleware<Action, Action, IRootState, IStoreDependencies>({
     dependencies
   });
 
-  const middleware = [
-    routerMiddleware(history),
-    epicMiddleware
-  ];
+  const middleware = [epicMiddleware];
 
-  if (import.meta.env.DEV) {
-    const devToolsExtension = (window as { devToolsExtension?: Function }).devToolsExtension;
-
-    if (typeof devToolsExtension === 'function') {
-      enhancers.push(devToolsExtension());
-    }
-  }
-
-  const composedEnhancers: any = compose(
-    applyMiddleware(...middleware),
-    ...enhancers
-  );
+  const composeEnhancers: typeof compose = import.meta.env.DEV
+    && (window as { __REDUX_DEVTOOLS_EXTENSION_COMPOSE__?: typeof compose }).__REDUX_DEVTOOLS_EXTENSION_COMPOSE__
+    || compose;
 
   const store = createStore(
     reducer,
     mergePersistedState(initialState, persistence.load()),
-    composedEnhancers
+    composeEnhancers(applyMiddleware(...middleware))
   );
 
   let persisted = selectPersistedState(store.getState());

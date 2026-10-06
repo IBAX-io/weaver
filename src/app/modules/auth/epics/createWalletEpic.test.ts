@@ -7,7 +7,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import keyring from 'lib/keyring';
 import { runEpic } from 'test/runEpic';
 import { createWallet } from '../actions';
-import { navigate } from 'modules/engine/actions';
+import { navigate } from 'modules/router/actions';
 import createWalletEpic from './createWalletEpic';
 
 describe('createWalletEpic', () => {
@@ -25,6 +25,6 @@ describe('createWalletEpic', () => {
 
         expect(output[0]).toEqual(createWallet.failed({ params: failing, error: 'E_IMPORT_FAILED' }));
         expect(createWallet.done.match(output[1])).toBe(true);
-        expect(output.map(a => a.type)).toEqual([createWallet.failed.type, createWallet.done.type, navigate('/').type]);
+        expect(output.map(a => a.type)).toEqual([createWallet.failed.type, createWallet.done.type, navigate({ to: '/' }).type]);
     });
 });

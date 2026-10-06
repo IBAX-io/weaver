@@ -3,20 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as React from 'react';
-import * as propTypes from 'prop-types';
+import React, { useContext } from 'react';
 
-import Protypo from '../Protypo';
+import { ProtypoContext } from '../ProtypoContext';
 
 export interface ILongTextProps {
     link: string;
 }
 
-interface ILongTextContext {
-    protypo: Protypo;
-}
-
-const LongText: React.SFC<ILongTextProps> = (props, context: ILongTextContext) => {
+const LongText: React.FC<React.PropsWithChildren<ILongTextProps>> = props => {
+    const context = useContext(ProtypoContext);
     const onClick = () => {
         context.protypo.displayData(props.link);
     };
@@ -26,10 +22,6 @@ const LongText: React.SFC<ILongTextProps> = (props, context: ILongTextContext) =
             {props.children}...
         </button>
     );
-};
-
-LongText.contextTypes = {
-    protypo: propTypes.object.isRequired
 };
 
 export default LongText;

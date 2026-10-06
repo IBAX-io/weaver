@@ -272,10 +272,10 @@ class SourceElements extends React.Component<
 
       return (
         <CategoryList>
-          <form className="form-horizontal b-panel-light">
+          <form className="b-panel-light">
             <input
               type="text"
-              className="form-control input-sm "
+              className="form-control form-control-sm"
               placeholder="Search..."
               value={this.state.searchText}
               onChange={this.onSearchTextChange.bind(this)}

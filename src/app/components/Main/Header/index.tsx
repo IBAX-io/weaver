@@ -48,7 +48,7 @@ const StyledHeader = themed.header`
     }
 `;
 
-const Header: React.SFC<Props> = (props) => (
+const Header: React.FC<Props> = (props) => (
   <StyledHeader>
     <div className="header-logo" />
     <HeaderSpacer />
@@ -78,7 +78,6 @@ const Header: React.SFC<Props> = (props) => (
     <LangMenu />
 
     <NotificationsMenu />
-    {/*<TransactionsMenu />*/}
     <UserMenu />
   </StyledHeader>
 );

@@ -11,11 +11,12 @@ export interface IGeneratorToolProps {
   onClick: () => void;
 }
 
-const GeneratorTool: React.SFC<IGeneratorToolProps> = (props) => (
+const GeneratorTool: React.FC<React.PropsWithChildren<IGeneratorToolProps>> = (props) => (
   <Col xs={4} className="pl0 pr0">
     <Button
+      variant="secondary"
       disabled={props.disabled}
-      className="btn-block"
+      className="w-100"
       onClick={props.onClick}
     >
       {props.children}

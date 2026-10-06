@@ -3,12 +3,12 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import React from 'react';
+import React, { useContext } from 'react';
 import classnames from 'classnames';
-import propTypes from 'prop-types';
 
 import themed from 'components/Theme/themed';
-import Protypo, { IParamsSpec } from '../Protypo';
+import { IParamsSpec } from '../Protypo';
+import { ProtypoContext } from '../ProtypoContext';
 import PageLink from 'containers/Routing/PageLink';
 
 export interface IMenuItemProps {
@@ -68,15 +68,8 @@ export const StyledMenuItem = themed.div`
     }
 `;
 
-interface IMenuItemContext {
-  section: string;
-  protypo: Protypo;
-}
-
-const MenuItem: React.SFC<IMenuItemProps> = (
-  props,
-  context: IMenuItemContext
-) => {
+const MenuItem: React.FC<IMenuItemProps> = props => {
+  const context = useContext(ProtypoContext);
   const isActive = context.protypo.getCurrentPage() === props.page;
   const classes = classnames({
     active: isActive
@@ -106,11 +99,6 @@ const MenuItem: React.SFC<IMenuItemProps> = (
       </PageLink>
     </StyledMenuItem>
   );
-};
-
-MenuItem.contextTypes = {
-  section: propTypes.string.isRequired,
-  protypo: propTypes.object.isRequired
 };
 
 export default MenuItem;

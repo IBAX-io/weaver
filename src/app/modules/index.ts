@@ -70,6 +70,7 @@ const rootReducer = {
     notifications: notifications.reducer,
     storage: storage.reducer,
     socket: socket.reducer,
+    router: router.reducer
 };
 
 export default rootReducer;

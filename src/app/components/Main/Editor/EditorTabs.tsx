@@ -33,7 +33,7 @@ interface Props {
   onCloseSaved: () => void;
 }
 
-const EditorTabs: React.SFC<Props> = (props) => (
+const EditorTabs: React.FC<Props> = (props) => (
   <div className={props.className}>
     <div className="editortabs__selector">
       <ScrollView

@@ -12,12 +12,13 @@ import { locationChange } from '../actions';
 import { renderPage } from 'modules/sections/actions';
 import { initialize } from 'modules/engine/actions';
 import { isType } from 'typescript-fsa';
-import { RouterState, replace } from 'connected-react-router';
+import { navigate } from '../actions';
+import { IRouterState } from '../types';
 import { createEditorTab, loadEditorTab } from 'modules/editor/actions';
 
 const sectionLoadEpic: Epic = (action$, state$, { routerService }) => action$.pipe(
     ofAction(initialize.started, locationChange),
-    map((action): RouterState => {
+    map((action): IRouterState => {
         // Only initialize.started and locationChange reach here (see ofAction above)
         if (isType(action, locationChange)) {
             return action.payload;
@@ -26,7 +27,7 @@ const sectionLoadEpic: Epic = (action$, state$, { routerService }) => action$.pi
         return state$.value.router;
     }),
     delayWhen(() => state$.pipe(filter(l => l.auth.isAcquired), take(1))),
-    mergeMap((routerState: RouterState): Observable<ReduxAction> => defer((): Observable<ReduxAction> => {
+    mergeMap((routerState: IRouterState): Observable<ReduxAction> => defer((): Observable<ReduxAction> => {
         const match = routerService.matchRoute('/browse(/:section)(/:page)', routerState.location.pathname + routerState.location.search);
         const state = state$.value;
 
@@ -34,9 +35,10 @@ const sectionLoadEpic: Epic = (action$, state$, { routerService }) => action$.pi
             const section = state.sections.sections[match.parts.section || state.sections.mainSection];
 
             if (!section) {
-                return of(replace(
-                    routerService.routeToBrowser(state.sections.mainSection, state.sections.sections[state.sections.mainSection].defaultPage)
-                ));
+                return of(navigate({
+                    to: routerService.routeToBrowser(state.sections.mainSection, state.sections.sections[state.sections.mainSection].defaultPage),
+                    replace: true
+                }));
             }
 
             const pageName = match.parts.page || section.defaultPage;
@@ -46,13 +48,13 @@ const sectionLoadEpic: Epic = (action$, state$, { routerService }) => action$.pi
                 if (match.query.create) {
                     return of(
                         createEditorTab.started(match.query.create),
-                        replace('/editor')
+                        navigate({ to: '/editor', replace: true })
                     );
                 }
                 else if (match.query.open) {
                     return of(
                         loadEditorTab.started({ type: match.query.open, name: match.query.name }),
-                        replace('/editor')
+                        navigate({ to: '/editor', replace: true })
                     );
                 }
             }

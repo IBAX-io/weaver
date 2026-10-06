@@ -70,7 +70,7 @@ class AuthChangePasswordModal extends Modal<IAuthChangePasswordModalProps, {}, I
                             <FormattedMessage id="general.password.old" defaultMessage="Old password" />
                         </label>
                         <Validation.components.ValidatedControl key="password_old" name="password_old" type="password" validators={[Validation.validators.password]} />
-                        <div className="visible-md visible-lg text-left">
+                        <div className="d-none d-md-block text-start">
                             <Validation.components.ValidationMessage for="password_old" />
                         </div>
                     </Validation.components.ValidatedFormGroup>
@@ -85,7 +85,7 @@ class AuthChangePasswordModal extends Modal<IAuthChangePasswordModalProps, {}, I
                             validators={[Validation.validators.password]}
                             onChange={(e: any) => this.onNewPasswordChange(e.target.value)}
                         />
-                        <div className="visible-md visible-lg text-left">
+                        <div className="d-none d-md-block text-start">
                             <Validation.components.ValidationMessage for="password_new" />
                         </div>
                     </Validation.components.ValidatedFormGroup>
@@ -101,17 +101,17 @@ class AuthChangePasswordModal extends Modal<IAuthChangePasswordModalProps, {}, I
                             validators={[Validation.validators.password, Validation.validators.compare(this.state.newPassword)]}
                             onChange={(e: any) => this.onNewPasswordRepeatChange(e.target.value)}
                         />
-                        <div className="visible-md visible-lg text-left">
+                        <div className="d-none d-md-block text-start">
                             <Validation.components.ValidationMessage for="password_new_repeat" />
                         </div>
                     </Validation.components.ValidatedFormGroup>
 
                 </Modal.Body >
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="link" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="link" onClick={this.props.onCancel.bind(this)}>
                         <FormattedMessage id="cancel" defaultMessage="Cancel" />
                     </Button>
-                    <Validation.components.ValidatedSubmit bsStyle="primary">
+                    <Validation.components.ValidatedSubmit variant="primary">
                         <FormattedMessage id="confirm" defaultMessage="Confirm" />
                     </Validation.components.ValidatedSubmit>
                 </Modal.Footer>

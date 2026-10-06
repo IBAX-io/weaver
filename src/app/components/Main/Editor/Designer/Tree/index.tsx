@@ -8,11 +8,8 @@ import styled from 'styled-components';
 import {
   SortableTreeWithoutDndContext as SortableTree,
   ReactSortableTreeProps
-} from 'react-sortable-tree';
-
-interface IMySortableTreeProps extends ReactSortableTreeProps {
-  theme?: any;
-}
+} from '@nosferatu500/react-sortable-tree';
+import { TConstructorTreeElement } from 'ibax/editor';
 
 const TreeWrapper = styled.div`
   height: 100%;
@@ -274,9 +271,9 @@ const TreeWrapper = styled.div`
   }
 `;
 
-const MySortableTree: React.SFC<IMySortableTreeProps> = (props) => (
+const MySortableTree: React.FC<ReactSortableTreeProps<TConstructorTreeElement>> = (props) => (
   <TreeWrapper>
-    <SortableTree {...props} />
+    <SortableTree<TConstructorTreeElement> {...props} />
   </TreeWrapper>
 );
 

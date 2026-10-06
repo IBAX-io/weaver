@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { generateRoute } from 'services/router';
 import { TBreadcrumbType } from 'ibax/content';
 
@@ -22,14 +22,18 @@ export interface IPageLinkProps {
     };
 }
 
-const PageLink: React.SFC<IPageLinkProps> = props => (
+// Router location state attached by PageLink
+export interface IPageLinkState {
+    from?: IPageLinkProps['from'];
+}
+
+export const isPageLinkState = (state: unknown): state is IPageLinkState =>
+    !!state && 'object' === typeof state && 'from' in state;
+
+const PageLink: React.FC<React.PropsWithChildren<IPageLinkProps>> = props => (
     <Link
-        to={{
-            pathname: generateRoute(`/browse/${props.section}/${props.page}`, props.params),
-            state: {
-                from: props.from
-            }
-        }}
+        to={generateRoute(`/browse/${props.section}/${props.page}`, props.params)}
+        state={{ from: props.from }}
         className={props.className}
     >
         {props.children}

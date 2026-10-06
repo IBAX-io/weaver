@@ -38,7 +38,7 @@ class RegisterModal extends Modal<IRegisterModalParams, void> {
                                     <FormattedMessage id="auth.wallet.registration.type.email.desc" defaultMessage="To activate using E-Mail copy your public key and send it to {mail}" values={{ mail: this.props.params.activationEmail }} />
                                 </div>
                                 <CopyToClipboard text={this.props.params.wallet.publicKey}>
-                                    <Button bsStyle="link" className="p0 m0">
+                                    <Button variant="link" className="p0 m0">
                                         <FormattedMessage id="auth.wallet.copy.public" defaultMessage="Copy public key" />
                                     </Button>
                                 </CopyToClipboard>
@@ -57,8 +57,8 @@ class RegisterModal extends Modal<IRegisterModalParams, void> {
                         onClick={null}
                     />*/}
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="primary" onClick={this.props.onCancel}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="primary" onClick={this.props.onCancel}>
                         <FormattedMessage id="close" defaultMessage="Close" />
                     </Button>
                 </Modal.Footer>

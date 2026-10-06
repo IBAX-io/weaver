@@ -23,7 +23,7 @@ export interface ITxInfoProps {
     children: TProtypoElement[];
 }
 
-const TxInfo: React.SFC<ITxInfoProps> = props => (
+const TxInfo: React.FC<React.PropsWithChildren<ITxInfoProps>> = props => (
     <div className="content-wrapper">
         <PrintZone stylesheet={props.stylesheet}>
             <div style={{ padding: 20, wordBreak: 'break-all' }}>

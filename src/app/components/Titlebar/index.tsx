@@ -25,7 +25,7 @@ const StyledControls = styled.div`
     }
 `;
 
-const Titlebar = platform.select<React.SFC<ITitlebarProps>>({
+const Titlebar = platform.select<React.FC<React.PropsWithChildren<ITitlebarProps>>>({
     web: () => null,
     desktop: props => {
         const DarwinTitlebar = require('./DarwinTitlebar').default;

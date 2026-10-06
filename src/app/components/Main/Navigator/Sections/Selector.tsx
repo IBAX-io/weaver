@@ -42,7 +42,7 @@ const StyledSelector = themed.ul`
     }
 `;
 
-const Selector: React.SFC<ISelectorProps> = (props) => (
+const Selector: React.FC<ISelectorProps> = (props) => (
   <StyledSelector>
     {props.values.map((section) => (
       <li key={section.name}>

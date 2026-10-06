@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { injectIntl, FormattedMessage, InjectedIntlProps } from 'react-intl';
+import { FormattedMessage } from 'react-intl';
 import { readTextFile } from 'lib/fs';
 
 import LocalizedDocumentTitle from 'components/DocumentTitle/LocalizedDocumentTitle';
@@ -22,12 +22,12 @@ interface IImportState {
 }
 
 class Import extends React.Component<
-  IImportProps & InjectedIntlProps,
+  IImportProps,
   IImportState
 > {
-  private _inputFile: HTMLInputElement;
+  private _inputFile = React.createRef<HTMLInputElement>();
 
-  constructor(props: IImportProps & InjectedIntlProps) {
+  constructor(props: IImportProps) {
     super(props);
     this.state = {
       backup: '',
@@ -55,13 +55,13 @@ class Import extends React.Component<
   };
 
   onLoad = () => {
-    this._inputFile.click();
+    this._inputFile.current.click();
   };
 
   onLoadSuccess = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const backup = await readTextFile(e.target.files[0]);
-      this._inputFile.setAttribute('value', '');
+      this._inputFile.current.setAttribute('value', '');
 
       this.setState({
         backup
@@ -86,9 +86,9 @@ class Import extends React.Component<
           </HeadingNetwork>
           <input
             type="file"
-            className="hidden"
+            className="d-none"
             onChange={this.onLoadSuccess}
-            ref={(l) => (this._inputFile = l)}
+            ref={this._inputFile}
           />
           <div className="text-center">
             <Validation.components.ValidatedForm
@@ -108,8 +108,8 @@ class Import extends React.Component<
                   />
                 }
               />
-              <div className="text-right">
-                <Validation.components.ValidatedSubmit bsStyle="primary">
+              <div className="text-end">
+                <Validation.components.ValidatedSubmit variant="primary">
                   <FormattedMessage
                     id="process.confirm1"
                     defaultMessage="Confirm"
@@ -124,4 +124,4 @@ class Import extends React.Component<
   }
 }
 
-export default injectIntl(Import);
+export default Import;

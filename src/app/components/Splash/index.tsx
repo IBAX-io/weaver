@@ -4,8 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-/* import imgLogo from 'images/logo.svg';
- */
+
 export default class extends React.Component {
   render() {
     return (

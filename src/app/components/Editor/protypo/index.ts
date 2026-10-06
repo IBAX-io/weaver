@@ -9,12 +9,20 @@ import * as monaco from 'monaco-editor';
 
 const langName = 'protypo';
 
+interface ICompletionDef {
+  label: string;
+  documentation: string;
+  kind?: monaco.languages.CompletionItemKind;
+  insertText: string;
+  params?: ICompletionDef[];
+}
+
 const register = (editor: typeof monaco) => {
   if (monaco.languages.getLanguages().find(l => langName === l.id)) {
     return;
   }
 
-  const staticParamTypes = {
+  const staticParamTypes: { [name: string]: ICompletionDef } = {
     Body: {
       label: 'Body',
       kind: monaco.languages.CompletionItemKind.Property,
@@ -29,7 +37,7 @@ const register = (editor: typeof monaco) => {
     }
   };
 
-  const functionDefs = {
+  const functionDefs: { [name: string]: ICompletionDef } = {
     Address: {
       label: 'Address',
       documentation: 'Converts wallet ID to address in readable format',
@@ -771,57 +779,45 @@ const register = (editor: typeof monaco) => {
     },
   };
 
-  const functionProposals = () =>
-    _.map(functionDefs, (value) => value);
+  // Monaco mutates the suggestion objects it receives, so every request gets fresh objects
+  // with an explicit range (the word being typed at the cursor)
+  const toSuggestion = (def: ICompletionDef, range: monaco.IRange): monaco.languages.CompletionItem => ({
+    label: def.label,
+    kind: def.kind === undefined ? monaco.languages.CompletionItemKind.Property : def.kind,
+    documentation: def.documentation,
+    insertText: def.insertText,
+    range
+  });
 
   editor.languages.registerCompletionItemProvider(langName, {
     provideCompletionItems: (model, position) => {
       const textUntilPosition = model.getValueInRange({ startLineNumber: 1, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column });
+      const word = model.getWordUntilPosition(position);
+      const range: monaco.IRange = {
+        startLineNumber: position.lineNumber,
+        endLineNumber: position.lineNumber,
+        startColumn: word.startColumn,
+        endColumn: word.endColumn
+      };
 
       // Match function parameters. There must be an opening bracket or separating comma
       const paramsMatch = textUntilPosition.match(/([A-Z][a-zA-Z]*)\(/g);
 
       if (paramsMatch) {
         const token = paramsMatch[paramsMatch.length - 1].slice(0, -1);
-        if (functionDefs[token]) {
+        const functionDef = functionDefs.hasOwnProperty(token) ? functionDefs[token] : null;
+        if (functionDef) {
           return {
-            suggestions: functionDefs[token].params
+            suggestions: (functionDef.params || []).map(param => toSuggestion(param, range))
           };
         }
       }
 
       return {
-        suggestions: functionProposals()
+        suggestions: _.map(functionDefs, def => toSuggestion(def, range))
       };
     }
   });
-
-  /*editor.languages.registerSignatureHelpProvider(langName, {
-      signatureHelpTriggerCharacters: ['(', ','],
-      provideSignatureHelp: (model, position) => {
-          const textUntilPosition = model.getValueInRange({ startLineNumber: position.lineNumber, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column });
-
-          // Match function name. There must be an opening bracket to provide signature help
-          const funcMatch = textUntilPosition.match(/([a-z0-9]+)\((([a-z]+,?)*)$/i);
-          if (funcMatch && functionDefs[funcMatch[1]]) {
-              const functionDef = functionDefs[funcMatch[1]];
-              const paramNames = functionDef.params.map((l: any) => l.label);
-
-              return {
-                  signatures: [{
-                      label: `${functionDef.label}(${paramNames.join(',')})`,
-                      parameters: functionDef.params
-                  }],
-
-                  activeSignature: 0,
-                  activeParameter: 1
-              };
-          }
-          else {
-              return null;
-          }
-      }
-  });*/
 
   monaco.languages.register({
     id: langName

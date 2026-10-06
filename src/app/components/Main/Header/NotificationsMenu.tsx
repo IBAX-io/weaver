@@ -19,7 +19,7 @@ interface Props {
   notificationsBody: TProtypoElement[];
 }
 
-const NotificationsMenu: React.SFC<Props> = (props) => (
+const NotificationsMenu: React.FC<Props> = (props) => (
   <HeaderButton
     badge={props.count}
     warning={props.offline}

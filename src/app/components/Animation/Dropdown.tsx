@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import TransitionAny from './TransitionShim';
+import { Transition, TransitionStatus } from 'react-transition-group';
 
 const animationDuration = 200;
 const containerAnimationDef = {
@@ -72,30 +72,34 @@ export interface IDropdownProps {
   width?: number;
 }
 
-const Dropdown: React.SFC<IDropdownProps> = (props) => (
-  <TransitionAny in={props.visible} timeout={animationDuration}>
-    {(state: string) => (
-      <div
-        style={{
-          ...containerAnimationDef.defaultStyle,
-          ...containerAnimationDef[state],
-          ...(props.align
-            ? containerAnimationDef.alignStyle[props.align]
-            : null)
-        }}
-      >
+const Dropdown: React.FC<React.PropsWithChildren<IDropdownProps>> = (props) => {
+  const nodeRef = React.useRef<HTMLDivElement>(null);
+  return (
+    <Transition nodeRef={nodeRef} in={props.visible} timeout={animationDuration}>
+      {(state: TransitionStatus) => (
         <div
+          ref={nodeRef}
           style={{
-            ...animationDef.defaultStyle,
-            ...animationDef[state],
-            width: props.width
+            ...containerAnimationDef.defaultStyle,
+            ...containerAnimationDef[state],
+            ...(props.align
+              ? containerAnimationDef.alignStyle[props.align]
+              : null)
           }}
         >
-          {props.children}
+          <div
+            style={{
+              ...animationDef.defaultStyle,
+              ...animationDef[state],
+              width: props.width
+            }}
+          >
+            {props.children}
+          </div>
         </div>
-      </div>
-    )}
-  </TransitionAny>
-);
+      )}
+    </Transition>
+  );
+};
 
 export default Dropdown;

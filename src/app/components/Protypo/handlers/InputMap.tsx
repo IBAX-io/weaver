@@ -15,7 +15,7 @@ export interface IInputMapProps {
     maptype: TMapType;
 }
 
-const InputMap: React.SFC<IInputMapProps> = (props) => {
+const InputMap: React.FC<IInputMapProps> = (props) => {
     const value: IMapValue = parseData(props.value) || {
         type: 'point',
         coords: [],

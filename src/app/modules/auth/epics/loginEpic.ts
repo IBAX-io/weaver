@@ -9,7 +9,7 @@ import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { login, acquireSession } from '../actions';
 import keyring from 'lib/keyring';
-import { push } from 'connected-react-router';
+import { navigate } from 'modules/router/actions';
 
 const loginEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(login.started),
@@ -48,7 +48,7 @@ const loginEpic: Epic = (action$, state$, { api }) => action$.pipe(
                 };
 
                 return of(
-                    push('/'),
+                    navigate({ to: '/' }),
                     login.done({
                         params: action.payload,
                         result: {

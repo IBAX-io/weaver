@@ -12,7 +12,7 @@ const Tab = styled.div`
 
 export interface ITabViewProps {
     tabs: string[];
-    children: JSX.Element[];
+    children: React.JSX.Element[];
     className?: string;
     tabsClassName?: string;
     wrapperClassName?: string;
@@ -42,8 +42,17 @@ export default class TabView extends React.Component<ITabViewProps, ITabViewStat
             <Tab className={`${this.props.wrapperClassName || ''}`}>
                 <ul className={`nav nav-tabs ${this.props.tabsClassName || ''}`}>
                     {this.props.tabs.map((tab, index) => (
-                        <li key={index} className={`uib-tab ${index === this.state.tabIndex ? 'active' : ''}`}>
-                            <a href="javascript:void(0)" onClick={this.onTabSwitch.bind(this, index)}>{tab}</a>
+                        <li key={index} className={`nav-item uib-tab ${index === this.state.tabIndex ? 'active' : ''}`}>
+                            <a
+                                href="#"
+                                className={`nav-link ${index === this.state.tabIndex ? 'active' : ''}`}
+                                onClick={e => {
+                                    e.preventDefault();
+                                    this.onTabSwitch(index);
+                                }}
+                            >
+                                {tab}
+                            </a>
                         </li>
                     ))}
                 </ul>

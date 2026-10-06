@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IRootState } from 'modules';
-import { connect } from 'react-redux';
+import { connect, ResolveThunks } from 'react-redux';
 import { modalShow } from 'modules/modal/actions';
 
 import SystemMenu from 'components/Titlebar/SystemMenu';
@@ -16,7 +16,7 @@ const mapDispatchToProps = {
     modalShow: modalShow
 };
 
-export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: any, props) => ({
+export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: ResolveThunks<typeof mapDispatchToProps>, props) => ({
     ...props,
     onAbout: () => dispatch.modalShow({
         id: 'ABOUT',

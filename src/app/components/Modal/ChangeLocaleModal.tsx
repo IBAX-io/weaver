@@ -29,14 +29,16 @@ class ChangeLocaleModal extends Modal<IChangeLocaleModalProps, void> {
                 <FormattedMessage id="modal.locale.title" defaultMessage="Switch language" />
                 </Modal.Header>
                 <Modal.Body>
-                    {this.props.params.locales.map(l => (
-                        <Button key={l.key} block disabled={!l.enabled || l.key === this.props.params.value} type="button" bsStyle="default" onClick={() => this.changeLocale(l.key)}>
-                            <span>{l.name}</span>
-                        </Button>
-                    ))}
+                    <div className="d-grid gap-1">
+                        {this.props.params.locales.map(l => (
+                            <Button key={l.key} disabled={!l.enabled || l.key === this.props.params.value} type="button" variant="secondary" onClick={() => this.changeLocale(l.key)}>
+                                <span>{l.name}</span>
+                            </Button>
+                        ))}
+                    </div>
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="primary" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="primary" onClick={this.props.onCancel.bind(this)}>
                         <FormattedMessage id="close" defaultMessage="Close" />
                     </Button>
                 </Modal.Footer>

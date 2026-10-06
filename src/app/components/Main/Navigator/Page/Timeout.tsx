@@ -9,7 +9,7 @@ import { FormattedMessage } from 'react-intl';
 import LocalizedDocumentTitle from 'components/DocumentTitle/LocalizedDocumentTitle';
 import Center from 'components/Center';
 
-const Timeout: React.SFC = (props) => (
+const Timeout: React.FC = (props) => (
     <LocalizedDocumentTitle title="general.error" defaultTitle="Error">
         <Center>
             <div className="text-muted">

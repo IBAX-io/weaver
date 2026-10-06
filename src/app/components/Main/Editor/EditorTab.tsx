@@ -19,7 +19,7 @@ interface Props extends TEditorTab {
   onClose?: (e: React.MouseEvent<HTMLElement>) => void;
 }
 
-const EditorTab: React.SFC<Props> = (props) => {
+const EditorTab: React.FC<Props> = (props) => {
   const onClose = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     if (props.onClose) {

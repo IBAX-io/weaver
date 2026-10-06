@@ -1,0 +1,1334 @@
+// ========================================================================
+//   Protypo content: Bootstrap 3 class vocabulary
+// ------------------------------------------------------------------------
+// CONTRACT
+// Protypo pages are page JSON stored on chain and shared with other
+// clients. Their `class` attributes use the Bootstrap 3 class vocabulary
+// (and the app theme helpers in app/utils.scss). Those class names are a
+// public contract and are never rewritten. This stylesheet gives them their
+// Bootstrap 3 look on top of Bootstrap 5.
+//
+// SCOPE
+// Every rule is scoped under `.protypo-content`, the class the renderers
+// put on the root element of rendered page content (components/Protypo,
+// the constructor canvas in components/ProtypoConstructor and the designer
+// in components/Main/Editor/Designer). The IDE chrome uses Bootstrap 5
+// classes and is not affected.
+//
+// BREAKPOINTS
+// The grid and the responsive visibility classes use the Bootstrap 3
+// breakpoints (sm >= 768px, md >= 992px, lg >= 1200px), not Bootstrap 5's.
+//
+// VOCABULARY (keep this list in sync with the rules below)
+//   Base       h1-h6 margins, label, ul/ol, .lead, .small, .page-header,
+//              .list-inline, .text-left/-right/-center/-justify,
+//              .text-hide, .hidden, .sr-only, .pull-left/-right,
+//              .center-block, .clearfix, .caret, .close
+//   Grid       .row, .col-{xs,sm,md,lg}-{1..12},
+//              .col-{xs,sm,md,lg}-{offset,push,pull}-{0..12}
+//   Responsive .visible-{xs,sm,md,lg}[-block|-inline|-inline-block],
+//              .hidden-{xs,sm,md,lg}, .visible-print[-block|-inline|
+//              -inline-block], .hidden-print
+//   Panels     .panel, .panel-{default,primary,success,info,warning,danger}
+//              (+ app theme: -inverse,-green,-pink,-purple,-dark),
+//              .panel-heading, .panel-title, .panel-body, .panel-footer,
+//              .panel-group, .panel-collapse
+//   Wells      .well, .well-sm, .well-lg
+//   Buttons    .btn-default, .btn-xs, .btn-block (.btn, .btn-primary,
+//              .btn-success, .btn-info, .btn-warning, .btn-danger,
+//              .btn-link, .btn-sm, .btn-lg come from Bootstrap 5)
+//   Labels     .label, .label-{default,primary,success,info,warning,danger}
+//              (+ app theme: -inverse,-green,-pink,-purple)
+//   Badges     .badge
+//   Images     .img-responsive, .img-rounded, .img-circle, .thumbnail
+//              (.img-thumbnail comes from Bootstrap 5)
+//   Lists      .list-group, .list-group-item (also outside .list-group),
+//              .list-group-item-heading, .list-group-item-text,
+//              a.list-group-item
+//   Tables     .table margins, .table-condensed, row/cell states
+//              .active/.success/.info/.warning/.danger (.table-striped,
+//              .table-bordered, .table-hover, .table-responsive come from
+//              Bootstrap 5)
+//   Forms      .form-group, .form-horizontal, .form-inline,
+//              .control-label, .help-block, .form-control-static,
+//              .has-{error,warning,success}, .input-sm, .input-lg,
+//              .input-group-addon, .input-group-btn, .checkbox, .radio,
+//              .checkbox-inline, .radio-inline
+//   Alerts     .alert h4/p/ul spacing, .alert-dismissable/-dismissible
+//              (.alert and .alert-{success,info,warning,danger} come
+//              from Bootstrap 5 with the app's solid colors)
+//   Progress   .progress, .progress-bar-{success,info,warning,danger},
+//              .progress-striped, .progress.active / .progress-bar.active
+//   Media      .media, .media-body, .media-object, .media-heading,
+//              .media-left, .media-right, .media-middle, .media-bottom,
+//              .media-list
+//   Icons      .glyphicon + -chevron-{up,down,left,right}, -folder-open
+//              (rendered with Font Awesome 4)
+// ========================================================================
+
+@use "sass:color";
+@use "sass:map";
+@use "sass:math";
+@use "bootstrap" as *;
+@use "app/mixins" as *;
+
+// Bootstrap 3 metrics -------------------------------------------------------
+$bs3-screen-sm: 768px;
+$bs3-screen-md: 992px;
+$bs3-screen-lg: 1200px;
+$bs3-columns: 12;
+$bs3-gutter: 30px;
+$bs3-line-height-computed: 20px;
+$bs3-panel-inner-border: #eee;
+$bs3-state-bg: (
+  "success": #dff0d8,
+  "info": #d9edf7,
+  "warning": #fcf8e3,
+  "danger": #f2dede
+);
+$bs3-state-text: (
+  "success": $success,
+  "info": $info,
+  "warning": $warning,
+  "danger": $danger
+);
+
+// Media ranges of the Bootstrap 3 size classes.
+$bs3-ranges: (
+  "xs": "(max-width: #{$bs3-screen-sm - 1})",
+  "sm": "(min-width: #{$bs3-screen-sm}) and (max-width: #{$bs3-screen-md - 1})",
+  "md": "(min-width: #{$bs3-screen-md}) and (max-width: #{$bs3-screen-lg - 1})",
+  "lg": "(min-width: #{$bs3-screen-lg})"
+);
+$bs3-min-widths: ("sm": $bs3-screen-sm, "md": $bs3-screen-md, "lg": $bs3-screen-lg);
+
+@mixin bs3-clearfix {
+  &::before,
+  &::after {
+    content: " ";
+    display: table;
+  }
+
+  &::after {
+    clear: both;
+  }
+}
+
+@mixin bs3-grid-columns($size) {
+  @for $i from 1 through $bs3-columns {
+    .col-#{$size}-#{$i} {
+      float: left;
+      width: math.percentage(math.div($i, $bs3-columns));
+    }
+  }
+
+  @for $i from 0 through $bs3-columns {
+    $value: auto;
+    $offset: 0;
+
+    @if $i > 0 {
+      $value: math.percentage(math.div($i, $bs3-columns));
+      $offset: $value;
+    }
+
+    .col-#{$size}-push-#{$i} {
+      left: $value;
+    }
+
+    .col-#{$size}-pull-#{$i} {
+      right: $value;
+    }
+
+    .col-#{$size}-offset-#{$i} {
+      margin-left: $offset;
+    }
+  }
+}
+
+@mixin panel-variant($border, $heading-text-color, $heading-bg-color, $heading-border) {
+  border-color: $border;
+
+  > .panel-heading {
+    color: $heading-text-color;
+    background-color: $heading-bg-color;
+    border-color: $heading-border;
+
+    + .panel-collapse > .panel-body {
+      border-top-color: $border;
+    }
+
+    .badge {
+      color: $heading-bg-color;
+      background-color: $heading-text-color;
+    }
+  }
+
+  > .panel-footer + .panel-collapse > .panel-body {
+    border-bottom-color: $border;
+  }
+}
+
+@mixin label-variant($color) {
+  background-color: $color;
+
+  &[href] {
+    &:hover,
+    &:focus {
+      background-color: color.adjust($color, $lightness: -10%);
+    }
+  }
+}
+
+@mixin form-control-validation($state) {
+  $text: map.get($bs3-state-text, $state);
+  $background: map.get($bs3-state-bg, $state);
+
+  .help-block,
+  .control-label,
+  .radio,
+  .checkbox,
+  .radio-inline,
+  .checkbox-inline,
+  &.radio label,
+  &.checkbox label,
+  &.radio-inline label,
+  &.checkbox-inline label {
+    color: $text;
+  }
+
+  .form-control {
+    border-color: $text;
+
+    &:focus {
+      border-color: color.adjust($text, $lightness: -10%);
+    }
+  }
+
+  .input-group-addon {
+    color: $text;
+    border-color: $text;
+    background-color: $background;
+  }
+}
+
+.protypo-content {
+  // List group items are used without a .list-group parent in page
+  // templates, so the Bootstrap 5 list-group custom properties are
+  // provided by the content root.
+  --#{$prefix}list-group-color: #{$app-text-color};
+  --#{$prefix}list-group-bg: #fff;
+  --#{$prefix}list-group-border-color: #{$app-gray-light};
+  --#{$prefix}list-group-border-width: 1px;
+  --#{$prefix}list-group-border-radius: 0;
+  --#{$prefix}list-group-item-padding-x: 10px;
+  --#{$prefix}list-group-item-padding-y: 10px;
+  --#{$prefix}list-group-action-color: #555;
+  --#{$prefix}list-group-action-hover-color: #555;
+  --#{$prefix}list-group-action-hover-bg: #fafbfc;
+  --#{$prefix}list-group-action-active-color: #555;
+  --#{$prefix}list-group-action-active-bg: #{$app-gray-lighter};
+  --#{$prefix}list-group-disabled-color: #{$app-gray-light};
+  --#{$prefix}list-group-disabled-bg: #{$app-gray-lighter};
+  --#{$prefix}list-group-active-color: #fff;
+  --#{$prefix}list-group-active-bg: #{$primary};
+  --#{$prefix}list-group-active-border-color: #{$primary};
+
+  // Base -------------------------------------------------------------------
+
+  h1,
+  h2,
+  h3 {
+    margin-top: $bs3-line-height-computed;
+    margin-bottom: $bs3-line-height-computed * .5;
+  }
+
+  h4,
+  h5,
+  h6 {
+    margin-top: $bs3-line-height-computed * .5;
+    margin-bottom: $bs3-line-height-computed * .5;
+  }
+
+  ul,
+  ol {
+    margin-top: 0;
+    margin-bottom: $bs3-line-height-computed * .5;
+
+    ul,
+    ol {
+      margin-bottom: 0;
+    }
+  }
+
+  label {
+    display: inline-block;
+    max-width: 100%;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+
+  .lead {
+    margin-bottom: $bs3-line-height-computed;
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.4;
+
+    @media (min-width: $bs3-screen-sm) {
+      font-size: 21px;
+    }
+  }
+
+  small,
+  .small {
+    font-size: 85%;
+  }
+
+  .page-header {
+    padding-bottom: $bs3-line-height-computed * .5 - 1;
+    margin: $bs3-line-height-computed * 2 0 $bs3-line-height-computed;
+    border-bottom: 1px solid $app-gray-light;
+  }
+
+  .list-inline {
+    padding-left: 0;
+    margin-left: -5px;
+    list-style: none;
+
+    > li {
+      display: inline-block;
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+  }
+
+  .text-left {
+    text-align: left;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .text-justify {
+    text-align: justify;
+  }
+
+  .text-hide {
+    font: 0/0 a;
+    color: transparent;
+    text-shadow: none;
+    background-color: transparent;
+    border: 0;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .sr-only {
+    @include visually-hidden();
+  }
+
+  .pull-left {
+    float: left !important;
+  }
+
+  .pull-right {
+    float: right !important;
+  }
+
+  .center-block {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .clearfix {
+    @include bs3-clearfix;
+  }
+
+  .caret {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-left: 2px;
+    vertical-align: middle;
+    border-top: 4px dashed;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+  }
+
+  .dropup .caret {
+    border-top: 0;
+    border-bottom: 4px dashed;
+  }
+
+  .close {
+    float: right;
+    font-size: 21px;
+    font-weight: bold;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: .2;
+
+    &:hover,
+    &:focus {
+      color: #000;
+      text-decoration: none;
+      cursor: pointer;
+      opacity: .5;
+    }
+  }
+
+  button.close {
+    padding: 0;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    -webkit-appearance: none;
+  }
+
+  // Grid -------------------------------------------------------------------
+  // Float grid like Bootstrap 3: Bootstrap 5's flex row and its
+  // `.row > *` / `.col-sm|md|lg-*` rules are neutralised first.
+
+  .row {
+    --#{$prefix}gutter-x: 0;
+    --#{$prefix}gutter-y: 0;
+    display: block;
+    margin-left: $bs3-gutter * -.5;
+    margin-right: $bs3-gutter * -.5;
+    @include bs3-clearfix;
+
+    > * {
+      flex-shrink: 1;
+      width: auto;
+      max-width: none;
+    }
+  }
+
+  @each $size in (xs, sm, md, lg) {
+    @for $i from 1 through $bs3-columns {
+      .col-#{$size}-#{$i} {
+        position: relative;
+        min-height: 1px;
+        padding-left: $bs3-gutter * .5;
+        padding-right: $bs3-gutter * .5;
+        flex: none;
+        width: auto;
+      }
+    }
+  }
+
+  @include bs3-grid-columns(xs);
+
+  @each $size, $min in $bs3-min-widths {
+    @media (min-width: $min) {
+      @include bs3-grid-columns($size);
+    }
+  }
+
+  // Responsive visibility -------------------------------------------------
+
+  @each $size, $range in $bs3-ranges {
+    .visible-#{$size},
+    .visible-#{$size}-block,
+    .visible-#{$size}-inline,
+    .visible-#{$size}-inline-block {
+      display: none !important;
+    }
+  }
+
+  @each $size, $range in $bs3-ranges {
+    @media #{$range} {
+      .visible-#{$size} {
+        display: block !important;
+      }
+
+      table.visible-#{$size} {
+        display: table !important;
+      }
+
+      tr.visible-#{$size} {
+        display: table-row !important;
+      }
+
+      th.visible-#{$size},
+      td.visible-#{$size} {
+        display: table-cell !important;
+      }
+
+      .visible-#{$size}-block {
+        display: block !important;
+      }
+
+      .visible-#{$size}-inline {
+        display: inline !important;
+      }
+
+      .visible-#{$size}-inline-block {
+        display: inline-block !important;
+      }
+
+      .hidden-#{$size} {
+        display: none !important;
+      }
+    }
+  }
+
+  .visible-print,
+  .visible-print-block,
+  .visible-print-inline,
+  .visible-print-inline-block {
+    display: none !important;
+  }
+
+  @media print {
+    .visible-print {
+      display: block !important;
+    }
+
+    table.visible-print {
+      display: table !important;
+    }
+
+    tr.visible-print {
+      display: table-row !important;
+    }
+
+    th.visible-print,
+    td.visible-print {
+      display: table-cell !important;
+    }
+
+    .visible-print-block {
+      display: block !important;
+    }
+
+    .visible-print-inline {
+      display: inline !important;
+    }
+
+    .visible-print-inline-block {
+      display: inline-block !important;
+    }
+
+    .hidden-print {
+      display: none !important;
+    }
+  }
+
+  // Panels -----------------------------------------------------------------
+
+  .panel {
+    margin-bottom: $bs3-line-height-computed;
+    background-color: #fff;
+    border: 1px solid transparent;
+    border-radius: 0;
+    box-shadow: none;
+
+    > .panel-heading {
+      margin: -1px -1px 0;
+    }
+
+    &.panel-default {
+      border-top-width: 3px;
+
+      > .panel-heading {
+        margin: 0;
+      }
+    }
+
+    .table {
+      margin-bottom: 0;
+      border: 0;
+    }
+
+    > .list-group,
+    > .panel-collapse > .list-group {
+      margin-bottom: 0;
+
+      .list-group-item {
+        border-width: 0 0 1px;
+        border-radius: 0;
+      }
+    }
+
+    > .table,
+    > .table-responsive > .table,
+    > .panel-collapse > .table {
+      caption {
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+    }
+
+    > .panel-body + .table,
+    > .panel-body + .table-responsive,
+    > .table + .panel-body,
+    > .table-responsive + .panel-body {
+      border-top: 1px solid $table-border-color;
+    }
+
+    > .table > tbody:first-child > tr:first-child > th,
+    > .table > tbody:first-child > tr:first-child > td {
+      border-top: 0;
+    }
+
+    > .table-bordered,
+    > .table-responsive > .table-bordered {
+      > * > tr > :first-child {
+        border-left: 0;
+      }
+
+      > * > tr > :last-child {
+        border-right: 0;
+      }
+    }
+
+    > .table-responsive {
+      border: 0;
+      margin-bottom: 0;
+    }
+  }
+
+  .panel-body {
+    padding: 15px;
+    @include bs3-clearfix;
+  }
+
+  .panel-heading {
+    padding: 10px 15px;
+    border-bottom: 0;
+    border-radius: 0;
+    font-size: 14px;
+
+    a {
+      text-decoration: none !important;
+    }
+
+    > .dropdown .dropdown-toggle {
+      color: inherit;
+    }
+
+    + .list-group .list-group-item:first-child {
+      border-top-width: 0;
+    }
+  }
+
+  .panel-title {
+    margin-top: 0;
+    margin-bottom: 0;
+    font-size: 16px;
+    color: inherit;
+
+    > a,
+    > small,
+    > .small,
+    > small > a,
+    > .small > a {
+      color: inherit;
+    }
+  }
+
+  .panel-footer {
+    padding: 10px 15px;
+    background-color: #fafafa;
+    border-top: 1px solid $bs3-panel-inner-border;
+    border-radius: 0;
+
+    p,
+    .pagination {
+      margin: 0;
+    }
+  }
+
+  .list-group + .panel-footer {
+    border-top-width: 0;
+  }
+
+  .panel-group {
+    margin-bottom: $bs3-line-height-computed;
+
+    .panel {
+      margin-bottom: 0;
+
+      + .panel {
+        margin-top: 5px;
+      }
+    }
+
+    .panel-heading {
+      border-bottom: 0;
+
+      + .panel-collapse > .panel-body,
+      + .panel-collapse > .list-group {
+        border-top: 1px solid $bs3-panel-inner-border;
+      }
+    }
+
+    .panel-footer {
+      border-top: 0;
+
+      + .panel-collapse .panel-body {
+        border-bottom: 1px solid $bs3-panel-inner-border;
+      }
+    }
+  }
+
+  .panel-default {
+    @include panel-variant($app-panel-border, #444, #fff, $app-panel-border);
+  }
+
+  @each $name, $color in ("primary": $primary, "success": $success, "info": $info, "warning": $warning, "danger": $danger) {
+    .panel-#{$name} {
+      @include panel-variant($app-panel-border, #fff, $color, $app-panel-border);
+    }
+  }
+
+  @each $name, $color in ("inverse": $brand-inverse, "green": $brand-green, "pink": $brand-pink, "purple": $brand-purple, "dark": $brand-dark) {
+    .panel-#{$name} {
+      @include panel-variant($app-panel-border, #fff, $color, $color);
+    }
+  }
+
+  // Wells ------------------------------------------------------------------
+
+  .well {
+    min-height: 20px;
+    padding: 19px;
+    margin-bottom: 20px;
+    background-color: #fff;
+    border: 1px solid $app-gray;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .05);
+
+    blockquote {
+      border-color: rgba(0, 0, 0, .15);
+    }
+  }
+
+  .well-lg {
+    padding: 24px;
+    border-radius: 6px;
+  }
+
+  .well-sm {
+    padding: 9px;
+    border-radius: 3px;
+  }
+
+  // Buttons ----------------------------------------------------------------
+  // Sizes are expressed through the Bootstrap 5 button custom properties;
+  // the app-wide button skin in fluent.scss applies on top, as it always has.
+
+  .btn-default {
+    @include app-default-button;
+  }
+
+  .btn-xs {
+    --#{$prefix}btn-padding-y: 1px;
+    --#{$prefix}btn-padding-x: 5px;
+    --#{$prefix}btn-font-size: 12px;
+    --#{$prefix}btn-border-radius: 3px;
+    line-height: 1.5;
+  }
+
+  .btn-block {
+    display: block;
+    width: 100%;
+
+    + .btn-block {
+      margin-top: 5px;
+    }
+  }
+
+  // Labels -----------------------------------------------------------------
+
+  .label {
+    display: inline;
+    padding: .2em .6em .3em;
+    font-size: 75%;
+    font-weight: bold;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: .25em;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  .btn .label {
+    position: relative;
+    top: -1px;
+  }
+
+  a.label {
+    &:hover,
+    &:focus {
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  }
+
+  .label-default {
+    @include label-variant($app-gray-light);
+  }
+
+  @each $name, $color in ("primary": $primary, "success": $success, "info": $info, "warning": $warning, "danger": $danger, "inverse": $brand-inverse, "green": $brand-green, "pink": $brand-pink, "purple": $brand-purple) {
+    .label-#{$name} {
+      @include label-variant($color);
+    }
+  }
+
+  // Badges -----------------------------------------------------------------
+
+  .badge {
+    display: inline-block;
+    min-width: 10px;
+    padding: 3px 7px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1;
+    vertical-align: middle;
+    white-space: nowrap;
+    text-align: center;
+    background-color: $app-gray-light;
+    border-radius: 10px;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  .btn .badge {
+    position: relative;
+    top: -1px;
+  }
+
+  .btn-xs .badge {
+    top: 0;
+    padding: 1px 5px;
+  }
+
+  a.badge {
+    &:hover,
+    &:focus {
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  }
+
+  .list-group-item.active > .badge,
+  .nav-pills > .active > a > .badge {
+    color: $link-color;
+    background-color: #fff;
+  }
+
+  .list-group-item > .badge {
+    float: right;
+
+    + .badge {
+      margin-right: 5px;
+    }
+  }
+
+  // Images -----------------------------------------------------------------
+
+  .img-responsive {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .img-rounded {
+    border-radius: 6px;
+  }
+
+  .img-circle {
+    border-radius: 50%;
+  }
+
+  .thumbnail {
+    display: block;
+    padding: 2px;
+    margin-bottom: $bs3-line-height-computed;
+    line-height: $line-height-base;
+    background-color: #e1e2e3;
+    border: 1px solid #e1e2e3;
+    border-radius: 3px;
+
+    > img,
+    a > img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .caption {
+      padding: 9px;
+      color: $app-text-color;
+    }
+  }
+
+  // List groups ------------------------------------------------------------
+  // Bootstrap 5 styles .list-group/.list-group-item from the custom
+  // properties set on .protypo-content above.
+
+  .list-group {
+    margin-bottom: $bs3-line-height-computed;
+  }
+
+  a.list-group-item {
+    color: var(--#{$prefix}list-group-action-color);
+
+    &:hover,
+    &:focus {
+      color: var(--#{$prefix}list-group-action-hover-color);
+      text-decoration: none;
+      background-color: var(--#{$prefix}list-group-action-hover-bg);
+    }
+
+    .list-group-item-heading {
+      color: #333;
+    }
+  }
+
+  .list-group-item-heading {
+    margin-top: 0;
+    margin-bottom: 5px;
+  }
+
+  .list-group-item-text {
+    margin-bottom: 0;
+    line-height: 1.3;
+  }
+
+  // Tables -----------------------------------------------------------------
+
+  .table {
+    margin-bottom: $bs3-line-height-computed;
+  }
+
+  .table-condensed > :not(caption) > * > * {
+    padding: 5px;
+  }
+
+  @each $state, $background in map.merge(("active": $table-active-bg), $bs3-state-bg) {
+    .table > * > tr > .#{$state},
+    .table > * > tr.#{$state} > * {
+      --#{$prefix}table-bg-state: #{$background};
+    }
+
+    .table-hover > tbody > tr > .#{$state}:hover,
+    .table-hover > tbody > tr:hover > .#{$state},
+    .table-hover > tbody > tr.#{$state}:hover > * {
+      --#{$prefix}table-bg-state: #{color.adjust($background, $lightness: -5%)};
+    }
+  }
+
+  // Forms ------------------------------------------------------------------
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  .help-block {
+    display: block;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    color: color.adjust($app-text-color, $lightness: 25%);
+  }
+
+  .form-control-static {
+    min-height: 34px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    margin-bottom: 0;
+  }
+
+  .input-sm {
+    height: 31px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 3px;
+  }
+
+  .input-lg {
+    height: 46px;
+    padding: 10px 20px;
+    font-size: 18px;
+    line-height: 1.33;
+    border-radius: 6px;
+  }
+
+  select.input-sm {
+    line-height: 31px;
+  }
+
+  select.input-lg {
+    line-height: 46px;
+  }
+
+  textarea.input-sm,
+  select[multiple].input-sm,
+  textarea.input-lg,
+  select[multiple].input-lg {
+    height: auto;
+  }
+
+  .radio,
+  .checkbox {
+    position: relative;
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 10px;
+
+    label {
+      min-height: $bs3-line-height-computed;
+      padding-left: 20px;
+      margin-bottom: 0;
+      font-weight: normal;
+      cursor: pointer;
+    }
+  }
+
+  .radio input[type="radio"],
+  .radio-inline input[type="radio"],
+  .checkbox input[type="checkbox"],
+  .checkbox-inline input[type="checkbox"] {
+    position: absolute;
+    margin-left: -20px;
+    margin-top: 4px;
+  }
+
+  .radio + .radio,
+  .checkbox + .checkbox {
+    margin-top: -5px;
+  }
+
+  .radio-inline,
+  .checkbox-inline {
+    position: relative;
+    display: inline-block;
+    padding-left: 20px;
+    margin-bottom: 0;
+    vertical-align: middle;
+    font-weight: normal;
+    cursor: pointer;
+  }
+
+  .radio-inline + .radio-inline,
+  .checkbox-inline + .checkbox-inline {
+    margin-top: 0;
+    margin-left: 10px;
+  }
+
+  .input-group-addon {
+    display: flex;
+    align-items: center;
+    padding: 6px 16px;
+    font-size: 14px;
+    font-weight: normal;
+    line-height: 1;
+    color: $app-gray-dark;
+    text-align: center;
+    white-space: nowrap;
+    background-color: $app-gray-lighter;
+    border: 1px solid $app-input-border;
+    border-radius: 4px;
+
+    &.input-sm {
+      height: auto;
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 3px;
+    }
+
+    &.input-lg {
+      height: auto;
+      padding: 10px 20px;
+      font-size: 18px;
+      border-radius: 6px;
+    }
+
+    input[type="radio"],
+    input[type="checkbox"] {
+      margin-top: 0;
+    }
+  }
+
+  .input-group-sm > .input-group-addon {
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 3px;
+  }
+
+  .input-group-lg > .input-group-addon {
+    padding: 10px 20px;
+    font-size: 18px;
+    border-radius: 6px;
+  }
+
+  .input-group-btn {
+    position: relative;
+    display: flex;
+    white-space: nowrap;
+
+    > .btn {
+      position: relative;
+    }
+
+    &:not(:last-child) > .btn {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    &:not(:first-child) > .btn {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+  }
+
+  .has-success {
+    @include form-control-validation("success");
+  }
+
+  .has-warning {
+    @include form-control-validation("warning");
+  }
+
+  .has-error {
+    @include form-control-validation("danger");
+  }
+
+  @media (min-width: $bs3-screen-sm) {
+    .form-inline {
+      .form-group {
+        display: inline-block;
+        margin-bottom: 0;
+        vertical-align: middle;
+      }
+
+      .form-control {
+        display: inline-block;
+        width: auto;
+        vertical-align: middle;
+      }
+
+      .form-control-static {
+        display: inline-block;
+      }
+
+      .input-group {
+        display: inline-flex;
+        width: auto;
+        vertical-align: middle;
+      }
+
+      .control-label {
+        margin-bottom: 0;
+        vertical-align: middle;
+      }
+
+      .radio,
+      .checkbox {
+        display: inline-block;
+        margin-top: 0;
+        margin-bottom: 0;
+        vertical-align: middle;
+
+        label {
+          padding-left: 0;
+        }
+      }
+
+      .radio input[type="radio"],
+      .checkbox input[type="checkbox"] {
+        position: relative;
+        margin-left: 0;
+      }
+    }
+  }
+
+  .form-horizontal {
+    .radio,
+    .checkbox,
+    .radio-inline,
+    .checkbox-inline {
+      margin-top: 0;
+      margin-bottom: 0;
+      padding-top: 7px;
+    }
+
+    .radio,
+    .checkbox {
+      min-height: 27px;
+    }
+
+    .form-group {
+      margin-left: $bs3-gutter * -.5;
+      margin-right: $bs3-gutter * -.5;
+      @include bs3-clearfix;
+    }
+
+    @media (min-width: $bs3-screen-sm) {
+      .control-label {
+        text-align: right;
+        margin-bottom: 0;
+        padding-top: 7px;
+      }
+    }
+  }
+
+  // Alerts -----------------------------------------------------------------
+
+  .alert {
+    margin-bottom: $bs3-line-height-computed;
+
+    h4 {
+      margin-top: 0;
+      color: inherit;
+    }
+
+    > p,
+    > ul {
+      margin-bottom: 0;
+    }
+
+    > p + p {
+      margin-top: 5px;
+    }
+  }
+
+  .alert-dismissable,
+  .alert-dismissible {
+    padding-right: 35px;
+
+    .close {
+      position: relative;
+      top: -2px;
+      right: -21px;
+      color: inherit;
+    }
+  }
+
+  // Progress bars ----------------------------------------------------------
+
+  .progress {
+    --#{$prefix}progress-height: #{$bs3-line-height-computed};
+    --#{$prefix}progress-font-size: 12px;
+    margin-bottom: $bs3-line-height-computed;
+  }
+
+  @each $name, $color in ("success": $success, "info": $info, "warning": $warning, "danger": $danger) {
+    .progress-bar-#{$name} {
+      --#{$prefix}progress-bar-bg: #{$color};
+    }
+  }
+
+  .progress-striped .progress-bar {
+    @include gradient-striped();
+    background-size: var(--#{$prefix}progress-height) var(--#{$prefix}progress-height);
+  }
+
+  .progress.active .progress-bar,
+  .progress-bar.active {
+    animation: 1s linear infinite progress-bar-stripes;
+  }
+
+  // Media object -----------------------------------------------------------
+
+  .media {
+    margin-top: 15px;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  .media,
+  .media-body {
+    overflow: hidden;
+    zoom: 1;
+  }
+
+  .media-body {
+    width: 10000px;
+  }
+
+  .media-object {
+    display: block;
+
+    &.img-thumbnail {
+      max-width: none;
+    }
+  }
+
+  .media-right,
+  .media > .pull-right {
+    padding-left: 10px;
+  }
+
+  .media-left,
+  .media > .pull-left {
+    padding-right: 10px;
+  }
+
+  .media-left,
+  .media-right,
+  .media-body {
+    display: table-cell;
+    vertical-align: top;
+  }
+
+  .media-middle {
+    vertical-align: middle;
+  }
+
+  .media-bottom {
+    vertical-align: bottom;
+  }
+
+  .media-heading {
+    margin-top: 0;
+    margin-bottom: 5px;
+  }
+
+  .media-list {
+    padding-left: 0;
+    list-style: none;
+  }
+
+  // Glyphicons (rendered with Font Awesome 4) -----------------------------
+
+  .glyphicon {
+    display: inline-block;
+    font: normal normal normal 14px/1 FontAwesome;
+    font-size: inherit;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  @each $name, $glyph in ("chevron-right": "\f054", "chevron-left": "\f053", "chevron-up": "\f077", "chevron-down": "\f078", "folder-open": "\f07c") {
+    .glyphicon-#{$name}::before {
+      content: $glyph;
+    }
+  }
+}

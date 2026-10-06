@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { Route, Switch } from 'react-router-dom';
 import { IAccountContext } from 'ibax/auth';
 
 import WalletList from 'containers/Auth/Login/WalletList';
@@ -15,14 +14,13 @@ export interface ILoginProps {
   isAuthenticating: boolean;
 }
 
-const Login: React.SFC<ILoginProps> = (props) => (
+const Login: React.FC<ILoginProps> = (props) => (
   <div>
-    <Switch>
-      {props.wallet && props.wallet.wallet && props.isAuthenticating ? (
-        <Route path="/" component={PasswordPrompt} />
-      ) : null}
-      <Route path="/" component={WalletList} />
-    </Switch>
+    {props.wallet && props.wallet.wallet && props.isAuthenticating ? (
+      <PasswordPrompt />
+    ) : (
+      <WalletList />
+    )}
   </div>
 );
 

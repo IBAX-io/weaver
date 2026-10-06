@@ -4,11 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { FormControl } from 'react-bootstrap';
+import { Form } from 'react-bootstrap';
 import { Validator } from './Validators';
-import propTypes from 'prop-types';
 
-import ValidatedForm, { IValidatedControl } from './ValidatedForm';
+import { IValidatedControl, ValidatedFormContext } from './ValidatedForm';
 
 export interface IValidatedFileProps {
     name: string;
@@ -24,7 +23,10 @@ interface IValidatedFileState {
 }
 
 export default class ValidatedFile extends React.Component<IValidatedFileProps, IValidatedFileState> implements IValidatedControl {
-    private _inputRef: HTMLInputElement = null;
+    static contextType = ValidatedFormContext;
+    declare context: React.ContextType<typeof ValidatedFormContext>;
+
+    private _inputRef = React.createRef<HTMLInputElement>();
 
     constructor(props: IValidatedFileProps) {
         super(props);
@@ -36,23 +38,25 @@ export default class ValidatedFile extends React.Component<IValidatedFileProps, 
 
     componentDidMount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._registerElement(this);
+            this.context.form._registerElement(this);
         }
     }
 
     componentWillUnmount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._unregisterElement(this);
+            this.context.form._unregisterElement(this);
         }
     }
 
-    componentWillReceiveProps(props: IValidatedFileProps) {
-        if (this.props.value !== props.value) {
+    componentDidUpdate(prevProps: IValidatedFileProps) {
+        if (prevProps.value !== this.props.value) {
             this.setState({
-                value: props.value,
-                filename: props.value ? this.state.filename : ''
+                value: this.props.value,
+                filename: this.props.value ? this.state.filename : ''
             });
-            (this.context.form as ValidatedForm).updateState(props.name, props.value);
+            if (this.context.form) {
+                this.context.form.updateState(this.props.name, this.props.value);
+            }
         }
     }
 
@@ -60,8 +64,8 @@ export default class ValidatedFile extends React.Component<IValidatedFileProps, 
         return this.state.value;
     }
 
-    onChange = (e: React.ChangeEvent<FormControl>) => {
-        const target = (e.target as object as HTMLInputElement);
+    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const target = e.target;
         if (target.files.length) {
             const file = target.files[0];
             this.setState({
@@ -73,36 +77,30 @@ export default class ValidatedFile extends React.Component<IValidatedFileProps, 
     }
 
     onBrowse() {
-        this._inputRef.click();
+        this._inputRef.current.click();
     }
 
-    onBlur = (e: React.FocusEvent<FormControl>) => {
-        (this.context.form as ValidatedForm).updateState(this.props.name);
+    onBlur = () => {
+        if (this.context.form) {
+            this.context.form.updateState(this.props.name);
+        }
     }
 
     render() {
         return (
             <div className="input-group">
-                <FormControl
-                    className="hidden"
+                <Form.Control
+                    className="d-none"
                     onChange={this.onChange}
                     onBlur={this.onBlur}
-                    inputRef={ref => this._inputRef = ref}
+                    ref={this._inputRef}
                     type="file"
-                    noValidate
                 />
                 <input type="text" className="form-control" readOnly value={this.state.filename} placeholder={this.props.placeholder} />
-                <div className="group-span-filestyle input-group-btn">
-                    <button className="btn btn-default" style={{ border: 'solid 1px #dde6e9' }} type="button" disabled={this.props.disabled} onClick={this.onBrowse.bind(this)}>
-                        <span className="text-muted icon-span-filestyle glyphicon glyphicon-folder-open" />
-                        <span className="buttonText" />
-                    </button>
-                </div>
+                <button className="btn btn-secondary" style={{ border: 'solid 1px #dde6e9' }} type="button" disabled={this.props.disabled} onClick={this.onBrowse.bind(this)}>
+                    <span className="text-muted fa fa-folder-open" />
+                </button>
             </div>
         );
     }
 }
-
-(ValidatedFile as React.ComponentClass).contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
-};

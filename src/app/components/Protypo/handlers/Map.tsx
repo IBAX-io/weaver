@@ -47,7 +47,8 @@ export const parseData = (plain: string): IMapValue => {
 
         if (value.center) {
             if ('number' === typeof value.center.lng && 'number' === typeof value.center.lat) {
-                result.center = [value.center.lat, value.center.lng];
+                // Coordinates are [longitude, latitude] everywhere in the app (ArcGIS order)
+                result.center = [value.center.lng, value.center.lat];
             }
         }
 
@@ -71,7 +72,7 @@ export const parseData = (plain: string): IMapValue => {
     return result;
 };
 
-const InputMap: React.SFC<IMapProps> = (props) => {
+const InputMap: React.FC<IMapProps> = (props) => {
     const value: IMapValue = parseData(props.value) || {
         type: 'point',
         coords: [],

@@ -1,33 +1,14 @@
-/* ========================================================================
-     Component: form-elements
- ========================================================================== */
+// ========================================================================
+//   Custom checkbox and radio (.c-checkbox / .c-radio)
+// ------------------------------------------------------------------------
+// Markup: <label class="c-checkbox"><input type="checkbox"><em class="fa fa-check"></em>Text</label>
+// ========================================================================
 
-/**
- * Custom form elements
- *    - Checkbox
- *    - Radios
- *    - Switch
- *    - Rounded inputs
- */
+@use "../bootstrap" as *;
 
-//
-// CHECKBOX AND RADIOS
-//
-
-$ui-fg-color: $brand-primary;
+$ui-fg-color: $primary;
 $ui-bg-color: #ddd;
 
-
-@mixin switch-variant($wd, $hg)
-{
-  & em {
-    width: $wd; height: $hg;
-  }
-
-  & em:after {
-   height: $hg - 2; width: $hg - 2;
-  }
-}
 
 .c-checkbox,
 .c-radio {
@@ -142,8 +123,8 @@ $ui-bg-color: #ddd;
       content: "";
       width: $sz; height: $sz;
       top: 50%; left: 50%;
-      margin-top: -($sz/2);
-      margin-left: -($sz/2);
+      margin-top: -($sz * .5);
+      margin-left: -($sz * .5);
       border-radius: 500px;
 
     }
@@ -182,143 +163,4 @@ $ui-bg-color: #ddd;
     }
   }
 
-}
-
-//
-// Form Rounded
-//
-
-.form-control-rounded {
-  border-radius: 100px;
-}
-
-//
-// Form SWITCH
-// Supports radio and checkbox
-//
-
-$switch-wd: 40px;
-$switch-hg: $switch-wd/2;
-
-$switch-lg-wd: 50px;
-$switch-lg-hg: $switch-lg-wd/2;
-
-$switch-sm-wd: 30px;
-$switch-sm-hg: $switch-sm-wd/2;
-
-.switch {
-  .form-control {
-    padding-top: 7px;
-    margin-bottom: 0;
-  }
-}
-
-.switch * {
-  cursor: pointer;
-}
-
-.switch input {
-  opacity: 0;
-  position: absolute;
-  z-index: -1;
-}
-
-.switch {
-  & em {
-    position: relative;
-    display: inline-block;
-    width: $switch-wd; height: $switch-hg;
-    background-color: #fff;
-    border: 1px solid $ui-bg-color;
-    border-radius: 100px;
-    transition: all .5s;
-    box-shadow: 1px 2px 3px rgba(0,0,0,0.1) inset;
-    vertical-align: middle;
-  }
-
-  & em:after {
-   content: "";
-   position: absolute;
-   background-color: #fff;
-   top: 0; left: 0;
-   height: $switch-hg - 2; width: $switch-hg - 2;
-   border: 1px solid #ddd;
-   border-radius: 400px;
-   box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-   -webkit-transition: all .2s;
-  }
-
-  &.switch-lg { @include switch-variant($switch-lg-wd, $switch-lg-hg); }
-  &.switch-sm { @include switch-variant($switch-sm-wd, $switch-sm-hg); }
-}
-
-
-.switch input:checked + em {
-  background-color: $ui-fg-color;
-  border-color: $ui-fg-color;
-  transition: all .5s;
-}
-
-.switch input:checked + em:after {
-  left: 50%;
-  transition: all .2s;
-}
-
-.switch input:disabled + span {
-    background-color: #f1f1f1;
-    cursor: not-allowed;
-}
-
-// form feedback variants
-
-.form-control-feedback {
-  // top: 10px;
-  left: $padding-base-horizontal;
-  right: auto;
-
-  .form-control + &,
-  .form-control + .parsley-errors-list + & {
-    right: 0;
-    left: auto;
-    // top: 10px;
-  }
-
-  .input-sm + &,
-  .input-sm + .parsley-errors-list + & {
-    top: 0;
-  }
-
-  label + .form-control + &,
-  label + .form-control + .parsley-errors-list + & {
-    // top: 36px;
-  }
-
-}
-
-.input-md {
-  width: 260px;
-}
-
-
-.note-editor {
-  background-image: -webkit-linear-gradient(#eee .1em, transparent .1em);
-  background-image: linear-gradient(#eee .1em, transparent .1em);
-
-  background-size: 100% 20px;
-  background-color: #fff;
-
-  line-height: 20px;
-  margin-top: 5px;
-  padding: 0;
-  padding-bottom: 1px;
-  border: none;
-  $margin-color: $brand-warning;
-  &.note-editor-margin {
-    background-image:
-      -webkit-linear-gradient(0deg, transparent 49px, lighten($margin-color, 30%) 49px, lighten($margin-color, 30%) 51px, transparent 51px), -webkit-linear-gradient(#eee .1em, transparent .1em);
-    background-image:
-      linear-gradient(90deg, transparent 49px, lighten($margin-color, 30%) 49px, lighten($margin-color, 30%) 51px, transparent 51px),
-      linear-gradient(#eee .1em, transparent .1em);
-    padding-left: 55px;
-  }
 }

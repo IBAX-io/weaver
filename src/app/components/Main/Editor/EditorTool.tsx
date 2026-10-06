@@ -14,7 +14,7 @@ interface Props {
   value: TEditorTab;
 }
 
-const EditorTool: React.SFC<Props> = (props) => {
+const EditorTool: React.FC<Props> = (props) => {
   switch (props.value.tool) {
     case 'constructor':
       return (

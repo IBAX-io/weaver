@@ -30,11 +30,11 @@ class RemoveNetworkModal extends Modal<IRemoveNetworkModalProps, string> {
                         }}
                     />
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="link" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="link" onClick={this.props.onCancel.bind(this)}>
                         <FormattedMessage id="cancel" defaultMessage="Cancel" />
                     </Button>
-                    <Button bsStyle="primary" onClick={this.props.onResult.bind(null, this.props.params.uuid)}>
+                    <Button variant="primary" onClick={this.props.onResult.bind(null, this.props.params.uuid)}>
                         <FormattedMessage id="confirm" defaultMessage="Confirm" />
                     </Button>
                 </Modal.Footer>

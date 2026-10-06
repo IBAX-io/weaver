@@ -4,32 +4,22 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import { connect } from 'react-redux';
-import { IRootState } from 'modules';
+import { connect, ConnectedProps } from 'react-redux';
 import SecurityWarning from 'components/SecurityWarning';
 import { closeSecurityWarning } from 'modules/storage/actions';
 
-export interface ISecurityWarningContainerProps {
-    closed?: boolean;
-}
-
-interface ISecurityWarningContainerState {
-}
-
-interface ISecurityWarningContainerDispatch {
-    close: () => void;
-}
-
-const SecurityWarningContainer: React.SFC<ISecurityWarningContainerProps & ISecurityWarningContainerState & ISecurityWarningContainerDispatch> = props => (
-    <SecurityWarning {...props} />
-);
-
-const mapStateToProps = (state: IRootState) => ({
-    closed: state.storage.securityWarningClosed
-});
-
 const mapDispatchToProps = {
-    close: closeSecurityWarning
+    close: () => closeSecurityWarning(undefined)
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(SecurityWarningContainer as any);
+const connector = connect(null, mapDispatchToProps);
+
+type Props = React.PropsWithChildren<ConnectedProps<typeof connector>>;
+
+const SecurityWarningContainer: React.FC<Props> = props => (
+    <SecurityWarning close={props.close}>
+        {props.children}
+    </SecurityWarning>
+);
+
+export default connector(SecurityWarningContainer);

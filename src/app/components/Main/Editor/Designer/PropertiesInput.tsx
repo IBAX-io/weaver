@@ -4,34 +4,34 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import { Col } from 'react-bootstrap';
+import { Col, Form, Row } from 'react-bootstrap';
 
 export interface IPropertiesInputProps {
   name: string;
   title: string;
   placeholder?: string;
   value: string;
-  onChange?: any;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
 }
 
-const PropertiesInput: React.SFC<IPropertiesInputProps> = (props) => {
+const PropertiesInput: React.FC<IPropertiesInputProps> = (props) => {
   return (
-    <div className="form-group">
-      <label className="col-xs-3 control-label g-no-padding">
+    <Form.Group as={Row} className="mb-3">
+      <Form.Label column xs={3} className="g-no-padding">
         <small>{props.title}</small>
-      </label>
+      </Form.Label>
       <Col xs={9}>
-        <input
+        <Form.Control
           type="text"
-          className="form-control input-sm"
+          size="sm"
           placeholder={props.placeholder || props.title}
           value={props.value}
           onChange={props.onChange}
           readOnly={!!props.readOnly}
         />
       </Col>
-    </div>
+    </Form.Group>
   );
 };
 

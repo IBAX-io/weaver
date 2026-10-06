@@ -27,7 +27,7 @@ interface Props {
   width?: number;
 }
 
-const Dropdown: React.SFC<Props> = (props) => (
+const Dropdown: React.FC<React.PropsWithChildren<Props>> = (props) => (
   <DropdownAnimation visible={props.active} align={props.align}>
     <StyledDropdown
       className={props.active ? 'dropdown-active' : ''}

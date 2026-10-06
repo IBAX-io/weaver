@@ -35,7 +35,7 @@ class SignatureModal extends Modal<ISignatureModalProps, boolean> {
                 </Modal.Header>
                 <Modal.Body>
                     {this.props.params.signs.map((sign, index) => (
-                        <div key={index} className="text-left">
+                        <div key={index} className="text-start">
                             <div>{sign.title}</div>
                             <div>
                                 {sign.params.map(param => (
@@ -65,11 +65,11 @@ class SignatureModal extends Modal<ISignatureModalProps, boolean> {
                         </div>
                     ))}
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="link" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="link" onClick={this.props.onCancel.bind(this)}>
                         <FormattedMessage id="cancel" defaultMessage="Cancel" />
                     </Button>
-                    <Button bsStyle="primary" onClick={this.props.onResult.bind(null, true)}>
+                    <Button variant="primary" onClick={this.props.onResult.bind(null, true)}>
                         <FormattedMessage id="confirm" defaultMessage="Confirm" />
                     </Button>
                 </Modal.Footer>

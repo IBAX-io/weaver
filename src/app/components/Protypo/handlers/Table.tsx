@@ -5,12 +5,12 @@
 
 import _ from 'lodash';
 import React from 'react';
-import propTypes from 'prop-types';
-import { TProtypoElement, ISource } from 'ibax/protypo';
+import { ISource } from 'ibax/protypo';
 
 import StyledComponent from './StyledComponent';
 import LongText from 'components/Protypo/components/LongText';
 import BlobData from 'components/Protypo/components/BlobData';
+import { ProtypoContext } from 'components/Protypo/ProtypoContext';
 
 export interface ITableProps {
     id: string;
@@ -19,26 +19,19 @@ export interface ITableProps {
     columns?: { Name: string, Title: string }[];
 }
 
-interface ITableContext {
-    resolveSource: (name: string) => ISource;
-    renderElements: (elements: TProtypoElement[], keyPrefix?: string) => React.ReactNode[];
-}
-
 class Table extends React.Component<ITableProps> {
     private _cachedSourceData: ISource;
 
-    static contextTypes = {
-        resolveSource: propTypes.func.isRequired,
-        renderElements: propTypes.func.isRequired
-    };
+    static contextType = ProtypoContext;
+    declare context: React.ContextType<typeof ProtypoContext>;
 
-    shouldComponentUpdate(props: ITableProps, state: never, context: ITableContext) {
+    shouldComponentUpdate(props: ITableProps, state: never, context: React.ContextType<typeof ProtypoContext>) {
         const source = context.resolveSource(props.source);
         return !_.isEqual(props, this.props) || !_.isEqual(this._cachedSourceData, source);
     }
 
     render() {
-        const context = this.context as ITableContext;
+        const context = this.context;
 
         this._cachedSourceData = context.resolveSource(this.props.source);
 

@@ -6,7 +6,7 @@
 import * as React from 'react';
 import styled from 'styled-components';
 
-type TComponentConstructor<T> = React.ComponentClass<T & IStyledComponentProps> | React.SFC<T & IStyledComponentProps>;
+type TComponentConstructor<T> = React.ComponentClass<T & IStyledComponentProps> | React.FC<T & IStyledComponentProps>;
 
 interface IStyledComponentProps {
     style?: string;

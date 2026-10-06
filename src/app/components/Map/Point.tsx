@@ -3,57 +3,32 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import React from 'react';
-import { loadModules } from 'react-arcgis';
+import React, { useMemo } from 'react';
+import type EsriMapView from '@arcgis/core/views/MapView.js';
+
+import useViewGraphic from './useViewGraphic';
 
 export interface IPointProps {
-    view?: any;
+    view: EsriMapView;
     coords: [number, number];
 }
 
-class Point extends React.Component<IPointProps> {
-    private _graphic: any = null;
+const Point: React.FC<IPointProps> = ({ view, coords }) => {
+    const [longitude, latitude] = coords;
+    const properties = useMemo(() => ({
+        geometry: {
+            type: 'point' as const,
+            longitude,
+            latitude
+        },
+        symbol: {
+            type: 'simple-marker' as const,
+            color: [226, 119, 40]
+        }
+    }), [longitude, latitude]);
 
-    render() {
-        return null as JSX.Element;
-    }
-
-    componentWillReceiveProps(props: IPointProps) {
-        this.redraw(props.coords);
-    }
-
-    componentWillMount() {
-        this.redraw(this.props.coords);
-    }
-
-    componentWillUnmount() {
-        this.props.view.graphics.remove(this._graphic);
-    }
-
-    redraw(coords: [number, number]) {
-        loadModules(['esri/Graphic']).then((deps: [any]) => {
-            const [Graphic] = deps;
-
-            const point = {
-                type: 'point',
-                longitude: coords[0],
-                latitude: coords[1]
-            };
-
-            const fillSymbol = {
-                type: 'simple-marker',
-                color: [226, 119, 40]
-            };
-
-            const graphic = new Graphic({
-                geometry: point as any,
-                symbol: fillSymbol
-            });
-
-            this._graphic = graphic;
-            this.props.view.graphics.add(graphic);
-        }).catch((err) => { /* Silently suppress errors */ });
-    }
-}
+    useViewGraphic(view, properties);
+    return null;
+};
 
 export default Point;

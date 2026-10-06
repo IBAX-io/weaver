@@ -6,7 +6,8 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
-import { copyFileSync, existsSync, readFileSync } from 'node:fs';
+import { copyFileSync, cpSync, createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
 import type { Plugin } from 'vite';
 
 const appRoot = fileURLToPath(new URL('./src/app', import.meta.url));
@@ -26,10 +27,44 @@ const seedSettings = (): Plugin => ({
     }
 });
 
+// @arcgis/core loads workers, wasm and locale files at runtime from `esriConfig.assetsPath`
+// (components/Map/arcgisConfig.ts points it at /arcgis-assets). Serve and ship them locally so
+// the app never pulls code from js.arcgis.com.
+const ARCGIS_ASSETS_URL = '/arcgis-assets/';
+const arcgisAssetsDir = fileURLToPath(new URL('./node_modules/@arcgis/core/assets', import.meta.url));
+const ARCGIS_MIME: { [ext: string]: string } = {
+    '.js': 'text/javascript', '.json': 'application/json', '.wasm': 'application/wasm',
+    '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2'
+};
+
+const arcgisAssets = (): Plugin => {
+    let outDir = 'build';
+    return {
+        name: 'weaver-arcgis-assets',
+        configResolved(config) {
+            outDir = config.build.outDir;
+        },
+        configureServer(server) {
+            server.middlewares.use(ARCGIS_ASSETS_URL, (req, res, next) => {
+                const relative = decodeURIComponent((req.url || '').split('?')[0]);
+                const file = path.join(arcgisAssetsDir, relative);
+                if (!file.startsWith(arcgisAssetsDir + path.sep) || !existsSync(file) || !statSync(file).isFile()) {
+                    return next();
+                }
+                res.setHeader('Content-Type', ARCGIS_MIME[path.extname(file)] || 'application/octet-stream');
+                createReadStream(file).pipe(res);
+            });
+        },
+        writeBundle() {
+            cpSync(arcgisAssetsDir, path.join(outDir, ARCGIS_ASSETS_URL), { recursive: true });
+        }
+    };
+};
+
 export default defineConfig(({ mode }) => ({
     // The desktop build is loaded from file://, so asset URLs must be relative
     base: mode === 'desktop' ? './' : '/',
-    plugins: [react(), seedSettings()],
+    plugins: [react(), seedSettings(), arcgisAssets()],
     define: {
         __APP_VERSION__: JSON.stringify(version)
     },
@@ -44,7 +79,9 @@ export default defineConfig(({ mode }) => ({
     css: {
         preprocessorOptions: {
             scss: {
-                loadPaths: [`${appRoot}/styles/scss`, fileURLToPath(new URL('./node_modules', import.meta.url))]
+                loadPaths: [`${appRoot}/styles/scss`, fileURLToPath(new URL('./node_modules', import.meta.url))],
+                // Bootstrap's own SCSS still triggers Sass deprecations; ours must stay warning-free
+                quietDeps: true
             }
         }
     },

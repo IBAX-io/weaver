@@ -57,7 +57,7 @@ const StyledHeaderButton = themed(DropdownButton)`
     }
 `;
 
-const HeaderButton: React.SFC<Props> = (props) => (
+const HeaderButton: React.FC<React.PropsWithChildren<Props>> = (props) => (
   <StyledHeaderButton
     className={classNames(props.className, {
       _warning: props.warning,

@@ -12,7 +12,7 @@ import { buttonInteraction } from 'modules/content/actions';
 import { isType } from 'typescript-fsa';
 import { txCall, txExec } from 'modules/tx/actions';
 import { modalShow, modalClose } from 'modules/modal/actions';
-import { push } from 'connected-react-router';
+import { navigate } from 'modules/router/actions';
 import { renderPage } from 'modules/sections/actions';
 import { createEditorTab, loadEditorTab } from 'modules/editor/actions';
 
@@ -105,7 +105,7 @@ const buttonInteractionEpic: Epic = (action$, state$, { routerService }) => acti
                 else {
                     const redirectUrl = routerService.generateRoute(`/browse/${action.payload.page.section}/${action.payload.page.name}`, action.payload.page.params);
                     return of(
-                        push(redirectUrl, { from: action.payload.from })
+                        navigate({ to: redirectUrl, state: { from: action.payload.from } })
                     );
                 }
             }

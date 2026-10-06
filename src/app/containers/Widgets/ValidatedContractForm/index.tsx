@@ -5,8 +5,7 @@
 
 import React from 'react';
 import uuid from 'uuid';
-import { connect } from 'react-redux';
-import { OrderedMap } from 'immutable';
+import { connect, ConnectedProps } from 'react-redux';
 import { IRootState } from 'modules';
 import { txCall } from 'modules/tx/actions';
 import { ITransactionCollection } from 'ibax/tx';
@@ -19,28 +18,33 @@ interface IValidatedContractFormProps {
     onExec?: (result: ITransactionCollection) => void;
     contract?: string;
     contractParams?: { [key: string]: any } | ((payload: { [key: string]: string }) => { [key: string]: any });
+    children?: React.ReactNode;
 }
 
-interface IValidatedContractFormStateProps {
-    transactions: OrderedMap<string, ITransactionCollection>;
-}
+const mapStateToProps = (state: IRootState) => ({
+    transactions: state.tx.transactions
+});
 
-interface IValidatedContractFormDispatchProps {
-    txCall: typeof txCall;
-}
+const mapDispatchToProps = {
+    txCall
+};
 
-class ValidatedContractForm extends React.Component<IValidatedContractFormProps & IValidatedContractFormStateProps & IValidatedContractFormDispatchProps> {
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+type TValidatedContractFormProps = IValidatedContractFormProps & ConnectedProps<typeof connector>;
+
+class ValidatedContractForm extends React.Component<TValidatedContractFormProps> {
     private _uuid: string = null;
 
-    componentWillReceiveProps(props: IValidatedContractFormProps & IValidatedContractFormStateProps & IValidatedContractFormDispatchProps) {
-        const oldTransaction = this.props.transactions.get(this._uuid);
-        const newTransaction = props.transactions.get(this._uuid);
+    componentDidUpdate(prevProps: TValidatedContractFormProps) {
+        const oldTransaction = prevProps.transactions.get(this._uuid);
+        const newTransaction = this.props.transactions.get(this._uuid);
         const oldDone = oldTransaction && 'pending' !== oldTransaction.status;
         const newDone = newTransaction && 'pending' !== newTransaction.status;
 
         if (!oldDone && newDone) {
-            if (props.onExec) {
-                props.onExec(newTransaction);
+            if (this.props.onExec) {
+                this.props.onExec(newTransaction);
             }
         }
     }
@@ -78,12 +82,4 @@ class ValidatedContractForm extends React.Component<IValidatedContractFormProps 
     }
 }
 
-const mapStateToProps = (state: IRootState) => ({
-    transactions: state.tx.transactions
-});
-
-const mapDispatchToProps = {
-    txCall
-};
-
-export default connect<IValidatedContractFormStateProps, IValidatedContractFormDispatchProps, IValidatedContractFormProps>(mapStateToProps, mapDispatchToProps)(ValidatedContractForm);
+export default connector(ValidatedContractForm);

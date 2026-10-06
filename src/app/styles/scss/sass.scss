@@ -3,6 +3,9 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-@import "bootstrap.scss";
-@import "app.scss";
-@import "fluent.scss";
+// Order matters: Bootstrap first, then the app theme, the IDE chrome
+// overrides (fluent) and the protypo content contract last.
+@use "bootstrap";
+@use "app";
+@use "fluent";
+@use "protypo-content";

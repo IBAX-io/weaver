@@ -5,12 +5,11 @@
 
 import React from 'react';
 import uuid from 'uuid';
-import propTypes from 'prop-types';
-import { IRootState } from 'modules';
-import { connect } from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
 import { buttonInteraction } from 'modules/content/actions';
 
 import ToolButton from 'components/Protypo/components/ToolButton';
+import { ProtypoContext } from 'components/Protypo/ProtypoContext';
 
 export interface IToolButtonProps {
     title?: string;
@@ -28,20 +27,15 @@ export interface IToolButtonProps {
     };
 }
 
-interface IToolButtonState {
-}
+const connector = connect(null, { buttonInteraction });
 
-interface IToolButtonDispatch {
-    buttonInteraction: typeof buttonInteraction;
-}
+type TToolButtonContainerProps = IToolButtonProps & ConnectedProps<typeof connector>;
 
-class ToolButtonContainer extends React.Component<IToolButtonProps & IToolButtonState & IToolButtonDispatch> {
+class ToolButtonContainer extends React.Component<TToolButtonContainerProps> {
     private _uuid: string = null;
 
-    static contextTypes = {
-        protypo: propTypes.object.isRequired,
-        section: propTypes.string.isRequired
-    };
+    static contextType = ProtypoContext;
+    declare context: React.ContextType<typeof ProtypoContext>;
 
     onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
@@ -83,11 +77,4 @@ class ToolButtonContainer extends React.Component<IToolButtonProps & IToolButton
     }
 }
 
-const mapStateToProps = (state: IRootState) => ({
-});
-
-const mapDispatchToProps = {
-    buttonInteraction
-};
-
-export default connect<IToolButtonState, IToolButtonDispatch, IToolButtonProps>(mapStateToProps, mapDispatchToProps)(ToolButtonContainer);
+export default connector(ToolButtonContainer);

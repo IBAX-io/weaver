@@ -24,7 +24,7 @@ interface IAvatarContainerDispatch {
 
 }
 
-const AvatarContainer: React.SFC<IAvatarContainerProps & IAvatarContainerState & IAvatarContainerDispatch> = props => (
+const AvatarContainer: React.FC<IAvatarContainerProps & IAvatarContainerState & IAvatarContainerDispatch> = props => (
     <Avatar
         className={props.className}
         size={props.size}

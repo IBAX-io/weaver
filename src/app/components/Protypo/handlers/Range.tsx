@@ -12,7 +12,7 @@ export interface IRangeProps extends Pick<ISource, 'data' | 'columns'> {
     source?: string;
 }
 
-const Range: React.SFC<IRangeProps> = props => (
+const Range: React.FC<IRangeProps> = props => (
     <SimpleSource
         source={props.source}
         columns={props.columns}

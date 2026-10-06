@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import TransitionAny from 'components/Animation/TransitionShim';
+import { Transition, TransitionStatus } from 'react-transition-group';
 import themed from 'components/Theme/themed';
 import platform from 'lib/platform';
 
@@ -95,7 +95,7 @@ const StyledModalWrapper = themed.div`
 `;
 
 export interface IModalWrapperProps {
-
+    children?: React.ReactNode;
 }
 
 interface IModalWrapperState {
@@ -104,8 +104,12 @@ interface IModalWrapperState {
     queuedModal: React.ReactNode;
 }
 
+const getNodeKey = (node: React.ReactNode) => React.isValidElement(node) ? node.key : undefined;
+
 class ModalWrapper extends React.Component<IModalWrapperProps, IModalWrapperState> {
     private _exited = false;
+    private _containerRef = React.createRef<HTMLDivElement>();
+    private _childRef = React.createRef<HTMLDivElement>();
 
     constructor(props: IModalWrapperProps) {
         super(props);
@@ -120,20 +124,21 @@ class ModalWrapper extends React.Component<IModalWrapperProps, IModalWrapperStat
         this.enqueueModal(this.props.children);
     }
 
-    componentWillReceiveProps(props: IModalWrapperProps & { children: React.ReactNode }) {
-        if (!this.props.children) {
-            this.enqueueModal(props.children);
+    componentDidUpdate(prevProps: IModalWrapperProps) {
+        if (prevProps.children === this.props.children) {
+            return;
+        }
+
+        if (!prevProps.children) {
+            this.enqueueModal(this.props.children);
+        }
+        else if (getNodeKey(prevProps.children) === getNodeKey(this.props.children)) {
+            this.setState({
+                activeModal: this.props.children
+            });
         }
         else {
-            const updateProc = (this.props.children as any || {}).key === (props.children as any || {}).key;
-            if (updateProc) {
-                this.setState({
-                    activeModal: props.children
-                });
-            }
-            else {
-                this.enqueueModal(props.children);
-            }
+            this.enqueueModal(this.props.children);
         }
     }
 
@@ -179,26 +184,23 @@ class ModalWrapper extends React.Component<IModalWrapperProps, IModalWrapperStat
         }
     }
 
-    renderChild(state: string) {
-        return (
-            <div className="modal-wnd" style={{ ...childAnimationDef.defaultStyle, ...childAnimationDef[state] }}>
-                {this.state.activeModal}
-            </div>
-        );
-    }
+    renderChild = (state: TransitionStatus) => (
+        <div ref={this._childRef} className="modal-wnd" style={{ ...childAnimationDef.defaultStyle, ...childAnimationDef[state] }}>
+            {this.state.activeModal}
+        </div>
+    )
 
     render() {
         return (
-            <TransitionAny in={this.state.active} timeout={containerAnimationDuration} onEntered={this.onEntered} onExited={this.onExited} unmountOnExit>
-                {(state: string) => (
-                    <StyledModalWrapper style={{ ...containerAnimationDef.defaultStyle, ...containerAnimationDef[state] }}>
-                        <TransitionAny in={state === 'entered'} timeout={childAnimationDuration}>
-                            {this.renderChild.bind(this)}
-                        </TransitionAny>
+            <Transition nodeRef={this._containerRef} in={this.state.active} timeout={containerAnimationDuration} onEntered={this.onEntered} onExited={this.onExited} unmountOnExit>
+                {(state: TransitionStatus) => (
+                    <StyledModalWrapper ref={this._containerRef} style={{ ...containerAnimationDef.defaultStyle, ...containerAnimationDef[state] }}>
+                        <Transition nodeRef={this._childRef} in={state === 'entered'} timeout={childAnimationDuration}>
+                            {this.renderChild}
+                        </Transition>
                     </StyledModalWrapper>
                 )}
-            </TransitionAny>
-
+            </Transition>
         );
     }
 }

@@ -5,9 +5,8 @@
 
 import * as React from 'react';
 import { Validator } from './Validators';
-import * as propTypes from 'prop-types';
 
-import ValidatedForm, { IValidatedControl } from './ValidatedForm';
+import { IValidatedControl, ValidatedFormContext } from './ValidatedForm';
 
 export interface IValidatedCheckboxProps {
     validators?: Validator[];
@@ -26,6 +25,9 @@ interface IValidatedCheckboxState {
 }
 
 export default class ValidatedCheckbox extends React.Component<IValidatedCheckboxProps, IValidatedCheckboxState> implements IValidatedControl {
+    static contextType = ValidatedFormContext;
+    declare context: React.ContextType<typeof ValidatedFormContext>;
+
     constructor(props: IValidatedCheckboxProps) {
         super(props);
 
@@ -36,22 +38,24 @@ export default class ValidatedCheckbox extends React.Component<IValidatedCheckbo
 
     componentDidMount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._registerElement(this);
+            this.context.form._registerElement(this);
         }
     }
 
     componentWillUnmount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._unregisterElement(this);
+            this.context.form._unregisterElement(this);
         }
     }
 
-    componentWillReceiveProps(props: IValidatedCheckboxProps) {
-        if (this.props.checked !== props.checked) {
+    componentDidUpdate(prevProps: IValidatedCheckboxProps) {
+        if (prevProps.checked !== this.props.checked) {
             this.setState({
-                checked: props.checked
+                checked: this.props.checked
             });
-            (this.context.form as ValidatedForm).updateState(props.name, props.checked);
+            if (this.context.form) {
+                this.context.form.updateState(this.props.name, this.props.checked);
+            }
         }
     }
 
@@ -68,11 +72,15 @@ export default class ValidatedCheckbox extends React.Component<IValidatedCheckbo
             this.props.onChange(e);
         }
 
-        (this.context.form as ValidatedForm).emitUpdate(this.props.name, String(e.target.checked));
+        if (this.context.form) {
+            this.context.form.emitUpdate(this.props.name, String(e.target.checked));
+        }
     }
 
     onBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        (this.context.form as ValidatedForm).updateState(this.props.name);
+        if (this.context.form) {
+            this.context.form.updateState(this.props.name);
+        }
 
         if (this.props.onBlur) {
             this.props.onBlur(e);
@@ -81,7 +89,7 @@ export default class ValidatedCheckbox extends React.Component<IValidatedCheckbo
 
     render() {
         return (
-            <div className={`checkbox c-checkbox ${this.props.className || ''}`}>
+            <div className={`form-check c-checkbox ${this.props.className || ''}`}>
                 <label>
                     <input
                         type="checkbox"
@@ -98,7 +106,3 @@ export default class ValidatedCheckbox extends React.Component<IValidatedCheckbo
         );
     }
 }
-
-(ValidatedCheckbox as React.ComponentClass).contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
-};

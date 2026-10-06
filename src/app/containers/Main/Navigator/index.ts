@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { connect } from 'react-redux';
+import { connect, ResolveThunks } from 'react-redux';
 import { IRootState } from 'modules';
 import { reloadPage } from 'modules/sections/actions';
 
@@ -32,7 +32,7 @@ const mapDispatchToProps = {
     reloadPage
 };
 
-export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: any, props) => ({
+export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: ResolveThunks<typeof mapDispatchToProps>, props) => ({
     ...state,
     onRefresh: () => dispatch.reloadPage({ section: props.section })
 }))(Navigator);

@@ -12,7 +12,7 @@ export interface IButtonProps {
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }
 
-const Button: React.SFC<IButtonProps> = (props) => (
+const Button: React.FC<React.PropsWithChildren<IButtonProps>> = (props) => (
   <button
     type="button"
     onClick={props.onClick}

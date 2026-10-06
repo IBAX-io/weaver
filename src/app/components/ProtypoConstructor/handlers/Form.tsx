@@ -13,7 +13,7 @@ class Form extends EditableBlock {
     protected editableDisplay = 'block';
     protected editable = true;
 
-    onSubmit(e: any) {
+    onSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.stopPropagation();
         e.preventDefault();
     }

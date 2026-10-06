@@ -9,7 +9,7 @@ import DropdownButton from 'components/Button/DropdownButton';
 
 interface Props {}
 
-const TransactionsMenu: React.SFC<Props> = (props) => (
+const TransactionsMenu: React.FC<Props> = (props) => (
   <DropdownButton
     align="right"
     menuWidth={300}

@@ -9,6 +9,7 @@ import StyledComponent from './StyledComponent';
 export interface IPProps {
     'className'?: string;
     'class'?: string;
+    children?: React.ReactNode;
 }
 
 interface IPState {

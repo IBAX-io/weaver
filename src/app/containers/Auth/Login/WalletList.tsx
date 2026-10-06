@@ -3,10 +3,10 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { connect } from 'react-redux';
+import { connect, ResolveThunks } from 'react-redux';
 import { IRootState } from 'modules';
 import { login, selectWallet, removeWallet, loginGuest } from 'modules/auth/actions';
-import { navigate } from 'modules/engine/actions';
+import { navigate } from 'modules/router/actions';
 import { IWallet } from 'ibax/auth';
 import { modalShow } from 'modules/modal/actions';
 
@@ -65,11 +65,11 @@ const mapDispatchToProps = {
             activationEmail
         }
     }),
-    onCreate: () => navigate('/account'),
+    onCreate: () => navigate({ to: '/account' }),
     onGuestLogin: () => loginGuest.started(undefined)
 };
 
-export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: any, props) => ({
+export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: ResolveThunks<typeof mapDispatchToProps>, props) => ({
     ...props,
     isOffline: state.isOffline,
     pending: state.pending,

@@ -3,7 +3,9 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import * as React from 'react';
 import ProtypoConstructor from './ProtypoConstructor';
+import { IEditableBlockProps } from './handlers/EditableBlock';
 import Button from './handlers/Button';
 import If from './handlers/If';
 import ElseIf from './handlers/ElseIf';
@@ -24,7 +26,7 @@ import Hint from './handlers/Hint';
 import Table from './handlers/Table';
 import Logic from './handlers/Logic';
 
-const handlers = {
+const handlers: { [name: string]: React.ComponentType<IEditableBlockProps> } = {
     'button': Button,
     'if': If,
     'elseif': ElseIf,
@@ -44,7 +46,7 @@ const handlers = {
     'hint': Hint
 };
 
-export const resolveHandler = (name: string) => {
+export const resolveHandler = (name: string): React.ComponentType<IEditableBlockProps> => {
     return handlers[name] || Logic;
 };
 

@@ -3,11 +3,10 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as React from 'react';
+import React, { useContext } from 'react';
 import * as _ from 'lodash';
-import * as propTypes from 'prop-types';
 
-import Protypo from '../Protypo';
+import { ProtypoContext } from '../ProtypoContext';
 import StyledComponent from './StyledComponent';
 import Validation from 'components/Validation';
 import { Validator } from 'components/Validation/Validators';
@@ -25,11 +24,8 @@ export interface ISelectProps {
     };
 }
 
-interface ISelectContext {
-    protypo: Protypo;
-}
-
-const Select: React.SFC<ISelectProps> = (props, context: ISelectContext) => {
+const Select: React.FC<ISelectProps> = props => {
+    const context = useContext(ProtypoContext);
     const compiledValidators: Validator[] = [];
     _.forEach(props.validate, (value, name) => {
         const validator = Validation.validators[name];
@@ -90,10 +86,6 @@ const Select: React.SFC<ISelectProps> = (props, context: ISelectContext) => {
             ))}
         </Validation.components.ValidatedSelect>
     );
-};
-
-Select.contextTypes = {
-    protypo: propTypes.object.isRequired
 };
 
 export default StyledComponent(Select);

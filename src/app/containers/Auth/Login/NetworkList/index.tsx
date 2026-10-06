@@ -5,7 +5,8 @@
 
 import { connect } from 'react-redux';
 import { IRootState } from 'modules';
-import { discoverNetwork, navigate } from 'modules/engine/actions';
+import { discoverNetwork } from 'modules/engine/actions';
+import { navigate } from 'modules/router/actions';
 import { INetwork } from 'ibax/auth';
 
 import NetworkList from 'components/Auth/Login/NetworkList';
@@ -37,7 +38,7 @@ const mapStateToProps = (state: IRootState) => ({
 
 export default connect(mapStateToProps, {
     onConnect: (uuid: string) => discoverNetwork.started({ uuid }),
-    onAddNetwork: () => navigate('/networks/add'),
+    onAddNetwork: () => navigate({ to: '/networks/add' }),
     onRemove: (network: INetwork) => modalShow({
         id: 'REMOVE_NETWORK',
         type: 'REMOVE_NETWORK',

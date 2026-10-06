@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { connect } from 'react-redux';
+import { connect, ResolveThunks } from 'react-redux';
 import { IRootState } from 'modules';
 import { menuPop } from 'modules/sections/actions';
 import { setMenuActive } from 'modules/content/actions';
@@ -27,7 +27,7 @@ const mapDispatchToProps = {
     setMenuActive
 };
 
-export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: any, props) => ({
+export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: ResolveThunks<typeof mapDispatchToProps>, props) => ({
     ...state,
     ...props,
     menuPop: () => dispatch.menuPop(props.section),

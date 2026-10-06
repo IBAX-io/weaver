@@ -4,82 +4,82 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
+import { ConnectDragPreview, ConnectDragSource } from '@nosferatu500/react-dnd';
+import { NodeData, TreeItem } from '@nosferatu500/react-sortable-tree';
+import { TConstructorTreeElement } from 'ibax/editor';
 
-function isDescendant(older: any, younger: any) {
+type TTreeNode = TreeItem<TConstructorTreeElement>;
+
+function isDescendant(older: TTreeNode, younger: TTreeNode): boolean {
   return (
     !!older.children &&
     typeof older.children !== 'function' &&
     older.children.some(
-      (child: any) => child === younger || isDescendant(child, younger)
+      (child: TTreeNode) => child === younger || isDescendant(child, younger)
     )
   );
 }
 
-interface IFileThemeNodeContentRendererProps {
-  scaffoldBlockPxWidth: any;
-  toggleChildrenVisibility: any;
-  onSelect?: any;
-  connectDragPreview: any;
-  connectDragSource: any;
-  isDragging: any;
-  canDrop: any;
-  canDrag: any;
-  node: any;
-  title: any;
-  draggedNode: any;
-  path: any;
-  treeIndex: any;
-  isSearchMatch: any;
-  isSearchFocus: any;
-  icons: any;
-  buttons: any;
-  className: any;
-  style: any;
-  didDrop: any;
-  lowerSiblingCounts: any;
-  listIndex: any;
-  swapFrom: any;
-  swapLength: any;
-  swapDepth: any;
-  treeId: any;
-  isOver: any;
-  parentNode: any;
+// Props injected by the tree row (scaffold/swap data is cloned in by the tree node renderer)
+export interface IFileThemeNodeContentRendererProps {
+  scaffoldBlockPxWidth: number;
+  toggleChildrenVisibility?: (data: NodeData<TConstructorTreeElement>) => void;
+  connectDragPreview: ConnectDragPreview;
+  connectDragSource: ConnectDragSource;
+  isDragging: boolean;
+  canDrop?: boolean;
+  canDrag?: boolean;
+  node: TTreeNode;
+  title?: React.ReactNode | ((data: NodeData<TConstructorTreeElement>) => React.ReactNode);
+  draggedNode?: TTreeNode;
+  path: number[];
+  treeIndex: number;
+  isSearchMatch?: boolean;
+  isSearchFocus?: boolean;
+  icons?: React.ReactNode[];
+  buttons?: React.ReactNode[];
+  className?: string;
+  style?: React.CSSProperties;
+  didDrop?: boolean;
+  lowerSiblingCounts?: number[];
+  listIndex?: number;
+  swapFrom?: number;
+  swapLength?: number;
+  swapDepth?: number;
 }
 
-const FileThemeNodeContentRenderer: React.SFC<IFileThemeNodeContentRendererProps> = (
-  props
-) => {
-  const {
-    scaffoldBlockPxWidth,
-    toggleChildrenVisibility = null,
-    onSelect = null,
-    connectDragPreview,
-    connectDragSource,
-    isDragging,
-    canDrop = false,
-    canDrag = false,
-    node,
-    title = null,
-    draggedNode = null,
-    path,
-    treeIndex,
-    isSearchMatch = false,
-    isSearchFocus = false,
-    icons = [],
-    buttons = [],
-    className = '',
-    style = {},
-    didDrop,
-    lowerSiblingCounts,
-    listIndex,
-    swapFrom = null,
-    swapLength = null,
-    swapDepth = null,
-    treeId, // Not needed, but preserved for other renderers
-    isOver, // Not needed, but preserved for other renderers
-    parentNode = null, // Needed for dndManager
-    ...otherProps
-  } = props;
+const FileThemeNodeContentRenderer: React.FC<IFileThemeNodeContentRendererProps> = ({
+  scaffoldBlockPxWidth,
+  toggleChildrenVisibility = null,
+  connectDragPreview,
+  connectDragSource,
+  isDragging,
+  canDrop = false,
+  canDrag = false,
+  node,
+  title = null,
+  draggedNode = null,
+  path,
+  treeIndex,
+  isSearchMatch = false,
+  isSearchFocus = false,
+  icons = [],
+  buttons = [],
+  className = '',
+  style = {},
+  didDrop,
+  lowerSiblingCounts = [],
+  listIndex,
+  swapFrom = null,
+  swapLength = null,
+  swapDepth = null
+}) => {
+  const dragSourceRef = React.useCallback(
+    (element: HTMLDivElement | null) => {
+      connectDragSource(element, { dropEffect: 'copy' });
+    },
+    [connectDragSource]
+  );
 
   const nodeTitle = title || node.title;
   const nodeSubtitle = node.subtitle ? ' ' + node.subtitle : '';
@@ -88,9 +88,9 @@ const FileThemeNodeContentRenderer: React.SFC<IFileThemeNodeContentRendererProps
   const isLandingPadActive = !didDrop && isDragging;
 
   // Construct the scaffold representing the structure of the tree
-  const scaffold: any = [];
+  const scaffold: React.ReactNode[] = [];
 
-  lowerSiblingCounts.forEach((lowerSiblingCount: any, i: number) => {
+  lowerSiblingCounts.forEach((lowerSiblingCount, i) => {
     scaffold.push(
       <div
         key={`pre_${1 + i}`}
@@ -129,16 +129,18 @@ const FileThemeNodeContentRenderer: React.SFC<IFileThemeNodeContentRendererProps
     }
   });
 
-  const nodeContent = (
-    <div style={{ height: '100%' }} {...otherProps}>
+  const children = Array.isArray(node.children) ? node.children : [];
+
+  return (
+    <div style={{ height: '100%' }} ref={canDrag ? dragSourceRef : undefined}>
       {node.selected && (
         <div style={{ position: 'absolute', left: '10px', zIndex: 100 }}>
-          {buttons.map((btn: any, index: number) => (
+          {buttons.map((btn, index) => (
             <div key={index}>{btn}</div>
           ))}
         </div>
       )}
-      {toggleChildrenVisibility && node.children && node.children.length > 0 && (
+      {toggleChildrenVisibility && children.length > 0 && (
         <button
           type="button"
           aria-label={node.expanded ? 'Collapse' : 'Expand'}
@@ -163,62 +165,56 @@ const FileThemeNodeContentRenderer: React.SFC<IFileThemeNodeContentRendererProps
         }
       >
         {/* Set the row preview to be used during drag and drop */}
-        {connectDragPreview(
-          <div style={{ display: 'flex' }}>
-            {scaffold}
+        <div style={{ display: 'flex' }} ref={connectDragPreview}>
+          {scaffold}
+          <div
+            className={
+              'tree-row' +
+              (isLandingPadActive ? ' tree-rowLandingPad' : '') +
+              (isLandingPadActive && !canDrop ? ' tree-rowCancelPad' : '') +
+              (isSearchMatch ? ' tree-rowSearchMatch' : '') +
+              (isSearchFocus ? ' tree-rowSearchFocus' : '') +
+              (className ? ` ${className}` : '')
+            }
+            style={{
+              opacity: isDraggedDescendant ? 0.5 : 1,
+              ...style
+            }}
+          >
             <div
               className={
-                'tree-row' +
-                (isLandingPadActive ? ' tree-rowLandingPad' : '') +
-                (isLandingPadActive && !canDrop ? ' tree-rowCancelPad' : '') +
-                (isSearchMatch ? ' tree-rowSearchMatch' : '') +
-                (isSearchFocus ? ' tree-rowSearchFocus' : '') +
-                (className ? ` ${className}` : '')
+                'tree-rowContents' +
+                (!canDrag ? ' tree-rowContentsDragDisabled' : '')
               }
-              style={{
-                opacity: isDraggedDescendant ? 0.5 : 1,
-                ...style
-              }}
             >
-              <div
-                className={
-                  'tree-rowContents' +
-                  (!canDrag ? ' tree-rowContentsDragDisabled' : '')
-                }
-              >
-                <div className="tree-rowToolbar">
-                  {icons.map((icon: any, index: number) => (
-                    <div key={index} className="tree-toolbarButton">
-                      {icon}
-                    </div>
-                  ))}
-                </div>
-                <div className="tree-rowLabel">
-                  <span
-                    className="tree-rowTitle"
-                    style={{ color: node.logic ? '#FC6' : '#FFF' }}
-                  >
-                    {typeof nodeTitle === 'function'
-                      ? nodeTitle({
-                          node,
-                          path,
-                          treeIndex
-                        })
-                      : nodeTitle}
-                  </span>
-                  <span className="tree-rowSubtitle">{nodeSubtitle}</span>
-                </div>
+              <div className="tree-rowToolbar">
+                {icons.map((icon, index) => (
+                  <div key={index} className="tree-toolbarButton">
+                    {icon}
+                  </div>
+                ))}
+              </div>
+              <div className="tree-rowLabel">
+                <span
+                  className="tree-rowTitle"
+                  style={{ color: node.logic ? '#FC6' : '#FFF' }}
+                >
+                  {typeof nodeTitle === 'function'
+                    ? nodeTitle({
+                        node,
+                        path,
+                        treeIndex
+                      })
+                    : nodeTitle}
+                </span>
+                <span className="tree-rowSubtitle">{nodeSubtitle}</span>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
-
-  return canDrag
-    ? connectDragSource(nodeContent, { dropEffect: 'copy' })
-    : nodeContent;
 };
 
 export default FileThemeNodeContentRenderer;

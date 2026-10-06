@@ -13,6 +13,7 @@ import Error from './Error';
 import Timeout from './Timeout';
 import NotFound from './NotFound';
 import DocumentTitle from 'components/DocumentTitle';
+import { isPageLinkState } from 'components/Routing/PageLink';
 
 export interface IPageProps {
   section: string;
@@ -30,7 +31,7 @@ const StyledPage = themed.article`
     margin-left:20px;
 `;
 
-const Page: React.SFC<IPageProps> = (props) => {
+const Page: React.FC<React.PropsWithChildren<IPageProps>> = (props) => {
   if (props.value.error) {
     switch (props.value.error) {
       case 'E_HEAVYPAGE':
@@ -42,11 +43,11 @@ const Page: React.SFC<IPageProps> = (props) => {
     }
   } else {
     const staticPage = STATIC_PAGES[props.value.name];
+    const locationState = props.value.location && props.value.location.state;
     const title =
-      props.value.location &&
-      props.value.location.state &&
-      (props.value.location.state as any).from &&
-      (props.value.location.state as any).from.title;
+      isPageLinkState(locationState) &&
+      locationState.from &&
+      locationState.from.title;
 
     return (
       <DocumentTitle title={title}>
