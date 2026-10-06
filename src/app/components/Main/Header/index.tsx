@@ -40,6 +40,25 @@ const StyledHeader = themed.header`
     .header__filler {
         flex: 1;
     }
+    /* Only the section breadcrumb gives way, so the menus on the right stay reachable */
+    > * {
+        flex-shrink: 0;
+    }
+    > .header__sections {
+        display: flex;
+        align-items: center;
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    @media (max-width: 575.98px) {
+        padding-left: 8px;
+        .header-logo,
+        .header-logo + em {
+            display: none;
+        }
+    }
     .header-logo{
       width:40px;
       height:30px;
@@ -50,9 +69,11 @@ const StyledHeader = themed.header`
 
 const Header: React.FC<Props> = (props) => (
   <StyledHeader>
-    <div className="header-logo" />
-    <HeaderSpacer />
-    <Selector section={props.app === 'browse' ? props.page : null} />
+    <div className="header__sections">
+      <div className="header-logo" />
+      <HeaderSpacer />
+      <Selector section={props.app === 'browse' ? props.page : null} />
+    </div>
     <HeaderSpacer />
     <HeaderLink to="/editor" active={'editor' === props.app}>
       <FormattedMessage id="editor" defaultMessage="Editor" />

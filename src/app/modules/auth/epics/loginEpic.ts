@@ -11,13 +11,14 @@ import { login, acquireSession } from '../actions';
 import { decryptPrivateKey } from 'lib/keyring';
 import { authenticate } from 'services/auth';
 import { navigate } from 'modules/router/actions';
-import { UnsupportedCryptoSuiteError } from 'lib/crypto/suites';
+import { authFailureCode } from '../util/authErrors';
 
 const loginEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(login.started),
     mergeMap(action => {
         const wallet = state$.value.auth.wallet;
         const networkEndpoint = state$.value.engine.guestSession.network;
+        const network = state$.value.storage.networks.find(l => l.uuid === networkEndpoint.uuid);
         const client = api({ apiHost: networkEndpoint.apiHost });
 
         return defer(() => decryptPrivateKey(wallet.wallet.encKey, action.payload.password)).pipe(
@@ -32,7 +33,8 @@ const loginEpic: Epic = (action$, state$, { api }) => action$.pipe(
                 return from(authenticate(client, privateKey, {
                     ecosystem: wallet.access.ecosystem,
                     expire: 60 * 60 * 24 * 90,
-                    role: wallet.role ? Number(wallet.role.id) : undefined
+                    role: wallet.role ? Number(wallet.role.id) : undefined,
+                    networkID: network && network.id
                 })).pipe(
                     mergeMap(({ result, cryptoSuite, publicKey }) => {
                         const session = {
@@ -58,7 +60,7 @@ const loginEpic: Epic = (action$, state$, { api }) => action$.pipe(
             }),
             catchError(e => of(login.failed({
                 params: action.payload,
-                error: e instanceof UnsupportedCryptoSuiteError ? 'E_UNSUPPORTED_CRYPTO' : (e && e.error) || 'E_SERVER'
+                error: authFailureCode(e)
             })))
         );
     })

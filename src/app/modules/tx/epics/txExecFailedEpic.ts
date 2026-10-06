@@ -12,7 +12,7 @@ import { navigate } from 'modules/router/actions';
 
 export const txExecFailedEpic: Epic = (action$, state$, { routerService }) => action$.pipe(
     ofAction(txExec.failed),
-    filter(l => !l.payload.params.silent),
+    filter(l => !l.payload.params.silent && 'E_AUTH_CANCELLED' !== l.payload.error.type),
     map(action => {
         if (action.payload.params.section && action.payload.error.id && action.payload.params.errorRedirects) {
             const errorRedirect = action.payload.params.errorRedirects[action.payload.error.id];

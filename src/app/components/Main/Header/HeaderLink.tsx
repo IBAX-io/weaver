@@ -48,6 +48,7 @@ interface Props {
 const HeaderLink: React.FC<React.PropsWithChildren<Props>> = (props) => (
   <StyledHeaderLink
     className={classNames({ active: props.active })}
+    aria-current={props.active ? 'page' : undefined}
     to={props.to}
   >
     {props.children}

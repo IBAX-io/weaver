@@ -10,6 +10,7 @@ import themed from 'components/Theme/themed';
 import Header from 'containers/Modal/Header';
 
 export interface IModalProps<P, R> {
+    id: string;
     intl: IntlShape;
     params: P;
     onResult: (data: R) => void;

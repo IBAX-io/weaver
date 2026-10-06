@@ -6,6 +6,7 @@
 // IPC channels between the preload bridge and the main process
 export const CHANNELS = {
     getArgs: 'weaver:get-args',
+    takeLaunchKey: 'weaver:take-launch-key',
     getState: 'weaver:get-state',
     setState: 'weaver:set-state',
     getWindowState: 'weaver:get-window-state',

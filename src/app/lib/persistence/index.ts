@@ -17,7 +17,8 @@ export type TPersistedState = { [slice: string]: { [key: string]: unknown } };
 
 export interface IPersistenceBackend {
     load(): TPersistedState | null;
-    save(state: TPersistedState): void;
+    // now: write at once instead of with the next batch of changes
+    save(state: TPersistedState, options?: { now?: boolean }): void;
 }
 
 export const selectPersistedState = (state: { [slice: string]: any }): TPersistedState => {
@@ -42,6 +43,14 @@ export const selectPersistedState = (state: { [slice: string]: any }): TPersiste
 
 // Reducers return new references for changed values, so reference equality per persisted key
 // (or per slice when the whole slice is persisted) is enough to detect a change.
+// The stored wallets hold the only copy of a key the user may have just created: such a change is
+// written at once, not with the next batch (a crash in between would lose the wallet)
+export const storedWalletsChanged = (previous: TPersistedState, next: TPersistedState) => {
+    const before = previous.storage || {};
+    const after = next.storage || {};
+    return before.wallets !== after.wallets || before.legacyWallets !== after.legacyWallets;
+};
+
 export const persistedStateChanged = (previous: TPersistedState, next: TPersistedState) =>
     Object.entries(PERSISTED_STATE).some(([slice, keys]) => {
         const before = previous[slice];

@@ -6,6 +6,7 @@
 import { reducerWithInitialState } from 'typescript-fsa-reducers';
 import * as actions from './actions';
 import { IWallet, INetwork } from 'ibax/auth';
+import { isLegacyWallet } from 'lib/crypto/legacyWallet';
 import saveLocaleHandler from './reducers/saveLocaleHandler';
 import saveWalletHandler from './reducers/saveWalletHandler';
 import removeWalletHandler from './reducers/removeWalletHandler';
@@ -19,6 +20,9 @@ import setMenuFoldedHandler from './reducers/setMenuFoldedHandler';
 export type State = {
   readonly locale: string;
   readonly wallets: IWallet[];
+  // Stored by an earlier version and not usable as is: kept untouched until upgraded
+  // (lib/crypto/legacyWallet), never dropped
+  readonly legacyWallets: unknown[];
   readonly networks: INetwork[];
   readonly securityWarningClosed: boolean;
   readonly menuFolded: boolean;
@@ -27,6 +31,7 @@ export type State = {
 export const initialState: State = {
   locale: null,
   wallets: [],
+  legacyWallets: [],
   networks: [],
   securityWarningClosed: false,
   menuFolded: false
@@ -35,7 +40,11 @@ export const initialState: State = {
 export default reducerWithInitialState<State>(initialState)
   .case(actions.saveLocale, saveLocaleHandler)
   .case(actions.saveWallet, saveWalletHandler)
-  .case(actions.removeWallet, removeWalletHandler)
+  .case(actions.removeStoredWallet, removeWalletHandler)
+  .case(actions.removeLegacyWallet, (state, encKey) => ({
+    ...state,
+    legacyWallets: state.legacyWallets.filter(wallet => !isLegacyWallet(wallet) || wallet.encKey !== encKey)
+  }))
   .case(actions.mergeHonorNodes, mergeHonorNodesHandler)
   .case(actions.closeSecurityWarning, closeSecurityWarningHandler)
   .case(actions.saveNetwork, saveNetworkHandler)

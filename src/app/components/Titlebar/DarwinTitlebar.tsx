@@ -3,11 +3,13 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useIntl } from 'react-intl';
 import classNames from 'classnames';
 import styled from 'styled-components';
 import imgControls from './wndControls.svg';
 import { IDesktopTitlebarProps } from './';
+import { useWindowState } from './useWindowState';
 
 import SystemMenu from 'containers/Titlebar/SystemMenu';
 
@@ -76,68 +78,41 @@ const StyledControls = styled.div`
     }
 `;
 
-interface ITitlebarState {
-    isAltDown: boolean;
-    isFocused: boolean;
-}
+// macOS: traffic lights on the left (alt turns the green one into zoom), system menu on the right
+const DarwinTitlebar: React.FC<IDesktopTitlebarProps> = props => {
+    const intl = useIntl();
+    const { focused } = useWindowState(props.bridge);
+    const [isAltDown, setAltDown] = useState(false);
+    const label = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
 
-class DarwinTitlebar extends React.Component<IDesktopTitlebarProps, ITitlebarState> {
-    private _keyListener = this.onKeyEvent.bind(this);
-    private _unsubscribe: () => void = null;
-
-    constructor(props: IDesktopTitlebarProps) {
-        super(props);
-        this.state = {
-            isAltDown: false,
-            isFocused: props.bridge.getWindowState().focused
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => setAltDown(e.altKey);
+        window.addEventListener('keydown', onKey);
+        window.addEventListener('keyup', onKey);
+        return () => {
+            window.removeEventListener('keydown', onKey);
+            window.removeEventListener('keyup', onKey);
         };
-    }
+    }, []);
 
-    componentDidMount() {
-        window.addEventListener('keydown', this._keyListener);
-        window.addEventListener('keyup', this._keyListener);
-        this._unsubscribe = this.props.bridge.onWindowState(state => this.setState({ isFocused: state.focused }));
-    }
-
-    componentWillUnmount() {
-        window.removeEventListener('keydown', this._keyListener);
-        window.removeEventListener('keyup', this._keyListener);
-        this._unsubscribe();
-    }
-
-    onKeyEvent(e: KeyboardEvent) {
-        this.setState({
-            isAltDown: e.altKey
-        });
-    }
-
-    onClose = () => this.props.bridge.closeWindow();
-
-    onMinimize = () => this.props.bridge.minimizeWindow();
-
-    onFullscreen = () => this.props.bridge.toggleFullScreen();
-
-    onZoom = () => this.props.bridge.toggleMaximizeWindow();
-
-    render() {
-        const controlClasses = classNames('drag', {
-            'window-alt': this.state.isAltDown,
-            'window-blur': !this.state.isFocused
-        });
-
-        return (
-            <StyledControls className={controlClasses}>
-                <div className="window-systemmenu">
-                    <SystemMenu align="right" />
-                </div>
-                <div className="window-controls no-drag">
-                    <button className="quit" onClick={this.onClose} />
-                    <button className="minimize" onClick={this.onMinimize} />
-                    <button className="zoom" disabled={false === this.props.maximizable} onClick={this.state.isAltDown ? this.onZoom : this.onFullscreen} />
-                </div>
-            </StyledControls>
-        );
-    }
-}
+    return (
+        <StyledControls className={classNames('drag', { 'window-alt': isAltDown, 'window-blur': !focused })}>
+            <div className="window-systemmenu">
+                <SystemMenu align="right" />
+            </div>
+            <div className="window-controls no-drag">
+                <button type="button" className="quit" aria-label={label('window.close', 'Close')} onClick={props.bridge.closeWindow} />
+                <button type="button" className="minimize" aria-label={label('window.minimize', 'Minimize')} onClick={props.bridge.minimizeWindow} />
+                <button
+                    type="button"
+                    className="zoom"
+                    aria-label={isAltDown ? label('window.maximize', 'Maximize') : label('window.fullscreen', 'Full screen')}
+                    disabled={false === props.maximizable}
+                    onClick={isAltDown ? props.bridge.toggleMaximizeWindow : props.bridge.toggleFullScreen}
+                />
+            </div>
+        </StyledControls>
+    );
+};
 
 export default DarwinTitlebar;

@@ -11,7 +11,11 @@ import Money from '../contract/field/money';
 import String from '../contract/field/string';
 import File from '../contract/field/file';
 import StringCollection from '../contract/field/stringCollection';
+import Address from '../contract/field/address';
 
+// Every contract parameter type a form can fill in. The node also has `bytes` and `map`, which
+// have no text form in Weaver's protocol: calling a contract with them fails with
+// E_UNSUPPORTED_PARAM instead of guessing an encoding.
 const defaultSchema: ISchema = {
     fields: {
         'bool': Boolean,
@@ -21,6 +25,7 @@ const defaultSchema: ISchema = {
         'string': String,
         'file': File,
         'array': StringCollection,
+        'address': Address
     }
 };
 

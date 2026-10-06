@@ -16,6 +16,12 @@ export interface IRouteMatch {
   };
 }
 
+// Page params are single strings: a repeated parameter keeps its first value and a bare flag is
+// empty (query-string returns arrays and null for those)
+const singleValues = (query: querystring.ParsedQuery) => Object.fromEntries(Object.entries(query).map(([name, value]) =>
+  [name, (Array.isArray(value) ? value[0] : value) ?? '']
+));
+
 export const matchRoute = (path: string, match: string): IRouteMatch | undefined => {
   const route = new Route(path).match(match);
   if (!route) {
@@ -24,7 +30,7 @@ export const matchRoute = (path: string, match: string): IRouteMatch | undefined
 
   return {
     parts: route,
-    query: querystring.parseUrl(match).query
+    query: singleValues(querystring.parseUrl(match).query)
   };
 };
 

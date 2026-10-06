@@ -12,9 +12,11 @@ import { CHANNELS } from './channels';
 const bridge: IDesktopBridge = {
     platform: process.platform,
     args: ipcRenderer.sendSync(CHANNELS.getArgs) || {},
+    takeLaunchKey: () => ipcRenderer.sendSync(CHANNELS.takeLaunchKey),
     loadState: () => ipcRenderer.sendSync(CHANNELS.getState),
-    saveState: state => ipcRenderer.send(CHANNELS.setState, state),
-    getWindowState: () => ipcRenderer.sendSync(CHANNELS.getWindowState),
+    // Synchronous, so a save made while the page closes (quitting) is on disk before it goes
+    saveState: state => ipcRenderer.sendSync(CHANNELS.setState, state),
+    getWindowState: () => ipcRenderer.invoke(CHANNELS.getWindowState),
     onWindowState: listener => {
         const handler = (_event: IpcRendererEvent, state: IDesktopWindowState) => listener(state);
         ipcRenderer.on(CHANNELS.windowState, handler);

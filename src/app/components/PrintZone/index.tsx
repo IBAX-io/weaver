@@ -7,6 +7,7 @@ import React from 'react';
 import Button from 'components/Button';
 import { sendAttachment } from 'lib/fs';
 import { FormattedMessage } from 'react-intl';
+import { scopeChainStylesheet } from 'lib/css/chainCss';
 
 export interface IPrintZoneProps {
     stylesheet: string;
@@ -35,7 +36,8 @@ class PrintZone extends React.Component<IPrintZoneProps> {
             output.style.height = '0px';
             output.contentDocument.body.innerHTML = this._container.current.innerHTML;
             const style = output.contentDocument.createElement('style');
-            style.innerText = this.props.stylesheet;
+            // The ecosystem's print stylesheet comes from the chain: it may style the copy, not load anything
+            style.textContent = scopeChainStylesheet(this.props.stylesheet, 'body');
             output.contentDocument.body.appendChild(style);
             output.style.height = output.contentDocument.body.scrollHeight + 'px';
         });
@@ -56,8 +58,10 @@ class PrintZone extends React.Component<IPrintZoneProps> {
                 <div ref={this._container} style={{ position: 'absolute', top: -50000, left: -50000 }}>
                     {this.props.children}
                 </div>
+                {/* Same origin so it can be filled and printed; no scripts run in it */}
                 <iframe
                     ref={this._output}
+                    sandbox="allow-same-origin allow-modals"
                     scrolling="no"
                     style={{
                         background: '#fff',

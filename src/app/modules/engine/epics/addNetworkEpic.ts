@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { Epic } from 'modules';
 import { from, of } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';

@@ -5,7 +5,8 @@
 
 import { connect, ResolveThunks } from 'react-redux';
 import { IRootState } from 'modules';
-import { login, selectWallet, removeWallet, loginGuest } from 'modules/auth/actions';
+import { login, selectWallet, removeWallet, loginGuest, upgradeLegacyWallet } from 'modules/auth/actions';
+import { isLegacyWallet } from 'lib/crypto/legacyWallet';
 import { navigate } from 'modules/router/actions';
 import { IAccount } from 'ibax/api';
 import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
@@ -33,16 +34,35 @@ const selectDemoEnabled = (state: IRootState) => {
     return network ? network.demoEnabled : false;
 };
 
+// The last result for the same inputs (compared by reference), so the list re-renders only when
+// they change, not on every store update
+const memoized = <A extends unknown[], R>(compute: (...inputs: A) => R) => {
+    let last: { inputs: A; result: R } | null = null;
+    return (...inputs: A) => {
+        if (!last || inputs.length !== last.inputs.length || inputs.some((input, i) => input !== last.inputs[i])) {
+            last = { inputs, result: compute(...inputs) };
+        }
+        return last.result;
+    };
+};
+
 // Stored wallets as accounts of the current network (its crypto suite decides the identity);
 // details loaded from the node replace the placeholders once available
-const selectWalletAccounts = (state: IRootState): IAccount[] => {
-    const suite = state.engine.guestSession ? state.engine.guestSession.cryptoSuite : DEFAULT_CRYPTO_SUITE;
-    return [...state.storage.wallets]
+const walletAccounts = memoized((wallets: IRootState['storage']['wallets'], accounts: IAccount[], suite: typeof DEFAULT_CRYPTO_SUITE): IAccount[] =>
+    [...wallets]
         .sort((a, b) => a.id > b.id ? 1 : -1)
         .filter(wallet => !!wallet.identities[cryptoSuiteKey(suite)])
-        .map(wallet => (state.auth.wallets || []).find(l => l.walletID === wallet.id)
-            || walletAccount(wallet, suite, { account: '', ecosystems: [] }));
-};
+        .map(wallet => (accounts || []).find(l => l.walletID === wallet.id)
+            || walletAccount(wallet, suite, { account: '', ecosystems: [] }))
+);
+
+const selectWalletAccounts = (state: IRootState): IAccount[] =>
+    walletAccounts(state.storage.wallets, state.auth.wallets, state.engine.guestSession ? state.engine.guestSession.cryptoSuite : DEFAULT_CRYPTO_SUITE);
+
+const legacyEntries = memoized((entries: unknown[]) => ({
+    legacy: entries.filter(isLegacyWallet),
+    damaged: entries.filter(wallet => !isLegacyWallet(wallet)).length
+}));
 
 const mapStateToProps = (state: IRootState) => ({
     isOffline: !state.engine.guestSession,
@@ -50,7 +70,9 @@ const mapStateToProps = (state: IRootState) => ({
     wallets: selectWalletAccounts(state),
     notifications: state.socket.notifications,
     activationEmail: selectActivationMail(state),
-    demoModeEnabled: selectDemoEnabled(state)
+    demoModeEnabled: selectDemoEnabled(state),
+    legacyWallets: legacyEntries(state.storage.legacyWallets).legacy,
+    damagedWallets: legacyEntries(state.storage.legacyWallets).damaged
 });
 
 const mapDispatchToProps = {
@@ -73,7 +95,8 @@ const mapDispatchToProps = {
         }
     }),
     onCreate: () => navigate({ to: '/account' }),
-    onGuestLogin: () => loginGuest.started(undefined)
+    onGuestLogin: () => loginGuest.started(undefined),
+    onUpgrade: upgradeLegacyWallet.started
 };
 
 export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: ResolveThunks<typeof mapDispatchToProps>, props) => ({
@@ -90,6 +113,9 @@ export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: Re
     onCopy: dispatch.onCopy,
     onRegister: (wallet: IAccount) => dispatch.onRegister(wallet, state.activationEmail),
     onCreate: dispatch.onCreate,
-    onGuestLogin: dispatch.onGuestLogin
+    onGuestLogin: dispatch.onGuestLogin,
+    legacyWallets: state.legacyWallets,
+    damagedWallets: state.damagedWallets,
+    onUpgrade: dispatch.onUpgrade
 
 }))(WalletList);

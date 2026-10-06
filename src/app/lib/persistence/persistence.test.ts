@@ -4,8 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { mergePersistedState, parsePersistedState, persistedStateChanged, PERSISTENCE_KEY, selectPersistedState, toPersistedState } from '.';
+import { mergePersistedState, parsePersistedState, persistedStateChanged, PERSISTENCE_KEY, selectPersistedState, storedWalletsChanged, toPersistedState } from '.';
 import createLocalStorageBackend from './localStorageBackend';
+import createDebouncedBackend from './debouncedBackend';
 
 const initial = {
     auth: { isAuthenticated: false, session: null as any, id: null as any, privateKey: '', isLoggingIn: false },
@@ -78,5 +79,45 @@ describe('persistence', () => {
         }
         expect(JSON.parse(storage.getItem(PERSISTENCE_KEY)).storage.n).toBeGreaterThanOrEqual(15);
         expect(backend.load()).toEqual(JSON.parse(storage.getItem(PERSISTENCE_KEY)));
+    });
+
+    it('writes the last change at once when the page is hidden or closed', () => {
+        vi.useFakeTimers();
+        const write = vi.fn();
+        const backend = createDebouncedBackend(() => null, write);
+
+        backend.save({ storage: { n: 1 } });
+        window.dispatchEvent(new Event('pagehide'));
+        expect(write).toHaveBeenCalledTimes(1);
+        expect(write).toHaveBeenLastCalledWith({ storage: { n: 1 } });
+
+        backend.save({ storage: { n: 2 } });
+        const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+        document.dispatchEvent(new Event('visibilitychange'));
+        visibility.mockRestore();
+        expect(write).toHaveBeenCalledTimes(2);
+        expect(write).toHaveBeenLastCalledWith({ storage: { n: 2 } });
+
+        // Nothing pending: nothing more to write, and the debounce timer is gone
+        window.dispatchEvent(new Event('pagehide'));
+        vi.runAllTimers();
+        expect(write).toHaveBeenCalledTimes(2);
+    });
+
+    it('writes a change of the stored wallets at once', () => {
+        vi.useFakeTimers();
+        const write = vi.fn();
+        const backend = createDebouncedBackend(() => null, write);
+        backend.save({ storage: { n: 1 } });
+        backend.save({ storage: { n: 2, wallets: [] } }, { now: true });
+        expect(write).toHaveBeenCalledTimes(1);
+        expect(write).toHaveBeenLastCalledWith({ storage: { n: 2, wallets: [] } });
+        vi.runAllTimers();
+        expect(write).toHaveBeenCalledTimes(1);
+
+        const wallets: unknown[] = [];
+        expect(storedWalletsChanged({ storage: { wallets } }, { storage: { wallets } })).toBe(false);
+        expect(storedWalletsChanged({ storage: { wallets } }, { storage: { wallets: [...wallets] } })).toBe(true);
+        expect(storedWalletsChanged({ storage: { wallets, locale: 'a' } }, { storage: { wallets, locale: 'b' } })).toBe(false);
     });
 });

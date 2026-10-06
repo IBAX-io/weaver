@@ -7,7 +7,7 @@ import React from 'react';
 import { IntlShape } from 'react-intl';
 import { IModal, TModalResultReason } from 'ibax/modal';
 import { INotification } from 'ibax/notifications';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 
 import Wrapper from 'components/Modal/Wrapper';
 import DebugContractModal from 'components/Modal/Editor/DebugContractModal';

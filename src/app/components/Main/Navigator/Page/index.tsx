@@ -15,6 +15,9 @@ import NotFound from './NotFound';
 import DocumentTitle from 'components/DocumentTitle';
 import { isPageLinkState } from 'components/Routing/PageLink';
 
+// Ecosystem stylesheets apply inside this class only (lib/css/chainCss)
+export const ECOSYSTEM_PAGE_CLASS = 'ecosystem-page';
+
 export interface IPageProps {
   section: string;
   value: IPage;
@@ -51,7 +54,7 @@ const Page: React.FC<React.PropsWithChildren<IPageProps>> = (props) => {
 
     return (
       <DocumentTitle title={title}>
-        <StyledPage>
+        <StyledPage className={ECOSYSTEM_PAGE_CLASS}>
           {props.value.static &&
             staticPage.render(props.section, {
               ...props.value.params,

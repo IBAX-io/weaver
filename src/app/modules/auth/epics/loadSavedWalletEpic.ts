@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { EMPTY, from } from 'rxjs';
+import { defer, EMPTY } from 'rxjs';
 import { catchError, map, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
@@ -17,7 +17,9 @@ const loadSavedWalletEpic: Epic = (action$, state$, { api }) => action$.pipe(
         const { network, cryptoSuite } = state$.value.engine.guestSession;
         const client = api({ apiHost: network.apiHost });
 
-        return from(client.keyinfo({ id: walletIdentity(action.payload, cryptoSuite).keyID })).pipe(
+        // walletIdentity throws for a wallet without an identity on this network: inside defer,
+        // so that is handled like a failed request
+        return defer(() => client.keyinfo({ id: walletIdentity(action.payload, cryptoSuite).keyID })).pipe(
             map(keyInfo => loadWallet(walletAccount(action.payload, cryptoSuite, keyInfo))),
             catchError(() => EMPTY)
         );

@@ -51,9 +51,11 @@ const SystemMenu: React.FC<ISystemMenuProps> = props => {
                         <Item onClick={props.onAbout} icon="icon-question text-primary">
                             <FormattedMessage id="general.about" defaultMessage="About" />
                         </Item>
-                        <Item onClick={() => desktop?.openDevTools()} icon="icon-calculator text-danger">
-                            <FormattedMessage id="general.developer.tools" defaultMessage="Developer tools" />
-                        </Item>
+                        {desktop?.args.devTools && (
+                            <Item onClick={() => desktop.openDevTools()} icon="icon-calculator text-danger">
+                                <FormattedMessage id="general.developer.tools" defaultMessage="Developer tools" />
+                            </Item>
+                        )}
                     </div>
                 }
             >

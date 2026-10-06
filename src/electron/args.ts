@@ -4,7 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { parseArgs } from 'node:util';
-import { IInferredArguments } from 'ibax/gui';
+import { IInferredArguments, ILaunchArguments } from 'ibax/gui';
+import { hasProtocol, isHttpUrl } from './util/navigation';
 
 const toInteger = (value: string | undefined) => {
     if (undefined === value || !/^-?\d+$/.test(value.trim())) {
@@ -14,10 +15,11 @@ const toInteger = (value: string | undefined) => {
 };
 
 // Launch arguments after the executable. Positionals (the app path when started through the
-// electron CLI) and unknown switches (Chromium/Electron, debugger) are ignored.
-export const parseLaunchArgs = (argv: string[]): IInferredArguments => {
+// electron CLI), unknown switches (Chromium/Electron, debugger) and the process serial number
+// macOS adds when an app is opened from Finder (-psn_0_123) are ignored.
+export const parseLaunchArgs = (argv: string[]): ILaunchArguments => {
     const { values } = parseArgs({
-        args: argv,
+        args: argv.filter(arg => !arg.startsWith('-psn_')),
         strict: false,
         allowPositionals: true,
         options: {
@@ -38,22 +40,37 @@ export const parseLaunchArgs = (argv: string[]): IInferredArguments => {
     const text = (name: string) => typeof values[name] === 'string' ? values[name] as string : undefined;
     const flag = (name: string) => values[name] === true ? true : undefined;
     const fullNodes = values['full-node'];
+    const dry = flag('dry');
+    const socketUrl = text('socket-url');
 
     return {
-        privateKey: text('private-key'),
-        fullNode: Array.isArray(fullNodes) ? fullNodes.filter((node): node is string => typeof node === 'string') : undefined,
-        dry: flag('dry'),
+        // A key on the command line ends up stored with the default password: throwaway profiles only
+        privateKey: dry ? text('private-key') : undefined,
+        fullNode: Array.isArray(fullNodes) ? fullNodes.filter((node): node is string => 'string' === typeof node && isHttpUrl(node)) : undefined,
+        dry,
         offsetX: toInteger(text('offset-x')),
         offsetY: toInteger(text('offset-y')),
         networkID: toInteger(text('network-id')),
         networkName: text('network-name'),
-        socketUrl: text('socket-url'),
+        socketUrl: hasProtocol(socketUrl, ['ws:', 'wss:', 'http:', 'https:']) ? socketUrl : undefined,
         disableHonorNodesSync: flag('disable-full-nodes-sync'),
         activationEmail: text('activation-email'),
         guestMode: flag('guest-mode'),
         devServer: text('dev-server')
     };
 };
+
+// What the page may know about the launch: no key, no window placement, no dev server
+export const pageArguments = (launch: ILaunchArguments): IInferredArguments => ({
+    fullNode: launch.fullNode,
+    networkID: launch.networkID,
+    networkName: launch.networkName,
+    dry: launch.dry,
+    socketUrl: launch.socketUrl,
+    disableHonorNodesSync: launch.disableHonorNodesSync,
+    activationEmail: launch.activationEmail,
+    guestMode: launch.guestMode
+});
 
 const args = parseLaunchArgs(process.argv.slice(1));
 

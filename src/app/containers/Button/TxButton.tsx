@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { ITransactionCollection } from 'ibax/tx';
 import { OrderedMap } from 'immutable';
 import { IRootState } from 'modules';

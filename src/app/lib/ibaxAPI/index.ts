@@ -9,6 +9,8 @@ import { cryptoSuiteFromNode } from 'lib/crypto/suites';
 import urlTemplate from 'url-template';
 import { IUIDResponse, ILoginRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo, IBalanceRequest, IBalanceResponse } from 'ibax/api';
 
+import { UntrustedNodeError } from './errors';
+
 export type TRequestMethod =
   'get' |
   'post';
@@ -195,12 +197,18 @@ class IbaxAPI {
   // Authorization
   public getUid = this.setEndpoint<IUIDResponse>('get', 'getuid', {
     requestTransformer: request => null,
-    responseTransformer: response => ({
-      token: response.token,
-      networkID: parseInt(response.network_id, 10),
-      uid: 'LOGIN' + response.network_id + response.uid,
-      cryptoSuite: cryptoSuiteFromNode(response.cryptoer, response.hasher)
-    })
+    responseTransformer: response => {
+      // The login signature covers "LOGIN" + network_id + uid: only numbers may go into it
+      if (!/^\d+$/.test(String(response.network_id)) || !/^\d+$/.test(String(response.uid))) {
+        throw new UntrustedNodeError('challenge');
+      }
+      return {
+        token: response.token,
+        networkID: parseInt(response.network_id, 10),
+        uid: 'LOGIN' + response.network_id + response.uid,
+        cryptoSuite: cryptoSuiteFromNode(response.cryptoer, response.hasher)
+      };
+    }
   });
   public login = this.setSecuredEndpoint<ILoginRequest, ILoginResponse>('post', 'login', {
     requestTransformer: request => ({

@@ -4,10 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import path from 'node:path';
-import { BrowserWindow, BrowserWindowConstructorOptions, shell } from 'electron';
+import { app, BrowserWindow, BrowserWindowConstructorOptions } from 'electron';
 import config from '../config';
 import calcScreenOffset from '../util/calcScreenOffset';
-import { isAppNavigation, isExternalUrlAllowed } from '../util/navigation';
+import { isAppNavigation } from '../util/navigation';
+import { openExternalIfAllowed } from '../util/openExternal';
 import { reportWindowState } from '../util/windowState';
 
 export default (appUrl: string) => {
@@ -25,7 +26,9 @@ export default (appUrl: string) => {
             contextIsolation: true,
             sandbox: true,
             nodeIntegration: false,
-            webviewTag: false
+            webviewTag: false,
+            // Not in a release: a console that can read the stored wallets invites "paste this here" scams
+            devTools: !app.isPackaged
         }
     };
 
@@ -45,18 +48,23 @@ export default (appUrl: string) => {
     });
 
     window.webContents.setWindowOpenHandler(({ url }) => {
-        if (isExternalUrlAllowed(url)) {
-            shell.openExternal(url);
-        }
+        openExternalIfAllowed(url);
         return { action: 'deny' };
     });
 
-    window.webContents.on('will-navigate', (event, url) => {
+    // The window stays on the app page: links go to the OS browser, redirects and subframe
+    // navigations away from it are stopped
+    const keepOnApp = (event: { preventDefault: () => void }, url: string) => {
         if (!isAppNavigation(url, appUrl)) {
             event.preventDefault();
-            if (isExternalUrlAllowed(url)) {
-                shell.openExternal(url);
-            }
+            openExternalIfAllowed(url);
+        }
+    };
+    window.webContents.on('will-navigate', (event, url) => keepOnApp(event, url));
+    window.webContents.on('will-redirect', (event, url) => keepOnApp(event, url));
+    window.webContents.on('will-frame-navigate', event => {
+        if (!event.isMainFrame && !isAppNavigation(event.url, appUrl) && !/^(about:blank|data:|blob:)/.test(event.url)) {
+            event.preventDefault();
         }
     });
 

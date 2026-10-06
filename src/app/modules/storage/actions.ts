@@ -14,7 +14,9 @@ export const savePreconfiguredNetworks = actionCreator<INetwork[]>('SAVE_PRECONF
 export const removeNetwork = actionCreator<string>('REMOVE_NETWORK');
 export const saveWallet = actionCreator<IWallet>('SAVE_WALLET');
 // Payload: the stored wallet's id
-export const removeWallet = actionCreator<string>('REMOVE_WALLET');
+export const removeStoredWallet = actionCreator<string>('REMOVE_STORED_WALLET');
+// Payload: the encKey of a wallet stored by an earlier version (unique to it)
+export const removeLegacyWallet = actionCreator<string>('REMOVE_LEGACY_WALLET');
 export const mergeHonorNodes = actionCreator<{ uuid: string, honorNodes: string[] }>('MERGE_HONOR_NODES');
 export const closeSecurityWarning = actionCreator<string>('CLOSE_SECURITY_WARNING');
 export const setMenuFolded = actionCreator<boolean>('SET_MENU_FOLDED');

@@ -26,7 +26,7 @@ const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.
             apiHost: state.engine.guestSession.network.apiHost
         });
 
-        return from(authenticate(client, defaultKey)).pipe(
+        return from(authenticate(client, defaultKey, { networkID: network.id })).pipe(
             map(({ result }) => result),
             mergeMap(loginResult =>
                 from(client.authorize(loginResult.token).getConfig({
@@ -40,7 +40,7 @@ const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.
                     userID: loginResult.key_id
                 })))
             ),
-            catchError((e: any) => EMPTY)
+            catchError(() => EMPTY)
         );
     })
 );

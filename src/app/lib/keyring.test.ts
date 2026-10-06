@@ -67,6 +67,20 @@ describe('keyring', () => {
         await expect(decryptPrivateKey('U2FsdGVkX1+legacyCryptoJS', 'pw')).rejects.toThrow(InvalidEncryptedKeyError);
     });
 
+    it('refuses work factors and fields a stored key cannot have', async () => {
+        const [version, , salt, iv, ciphertext] = (await encryptPrivateKey(TEST_MNEMONIC_KEY, 'pw')).split('.');
+        for (const encKey of [
+            // A tampered work factor would make unlocking trivial or hang the app
+            [version, 99999, salt, iv, ciphertext],
+            [version, 10000001, salt, iv, ciphertext],
+            [version, 600000, salt + '*', iv, ciphertext],
+            [version, 600000, salt, iv.slice(2), ciphertext],
+            [version, 600000, salt, iv, ciphertext + 'AA']
+        ]) {
+            await expect(decryptPrivateKey(encKey.join('.'), 'pw')).rejects.toThrow(InvalidEncryptedKeyError);
+        }
+    }, 20000);
+
     it('stores wallets under their default-suite account id', async () => {
         const wallet = await createWallet(TEST_MNEMONIC_KEY, 'pw');
         expect(wallet.id).toBe(wallet.identities[cryptoSuiteKey(DEFAULT_CRYPTO_SUITE)].keyID);

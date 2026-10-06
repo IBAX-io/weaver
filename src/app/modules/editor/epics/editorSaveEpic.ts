@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as actions from '../actions';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { filter, map } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';

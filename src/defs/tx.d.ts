@@ -11,7 +11,15 @@ declare module 'ibax/tx' {
         'warning' |
         'panic' |
         'E_GUEST_VIOLATION' |
+        // The user cancelled the password prompt or typed a wrong password: nothing to show
+        'E_AUTH_CANCELLED' |
         'E_INVALID_TRANSFER' |
+        'E_INVALID_PARAM' |
+        'E_UNSUPPORTED_PARAM' |
+        'E_INSUFFICIENT_BALANCE' |
+        'E_TX_TIMEOUT' |
+        'E_PENALTY' |
+        'E_DUPLICATE_TX' |
         'E_CONTRACT' |
         'E_SERVER';
 
@@ -58,8 +66,9 @@ declare module 'ibax/tx' {
 
     // Value transfers that are not contract calls (go-ibax transaction types 5 and 6).
     // Amounts are integers in the ecosystem's smallest unit.
+    // toID: signed int64 account id of the recipient (lib/crypto/address parseAddress)
     type TTransferCall =
-        { type: 'utxo'; recipient: string; amount: string; comment: string } |
+        { type: 'utxo'; toID: string; amount: string } |
         { type: 'transferSelf'; amount: string; direction: TTransferSelfDirection };
 
     interface ITransactionCall {
@@ -81,11 +90,11 @@ declare module 'ibax/tx' {
     // msgpack payload of a client transaction (go-ibax types.SmartTransaction)
     interface ITransactionBody {
         Header: {
-            ID: number;
-            Time: number;
-            EcosystemID: number;
+            ID: bigint;
+            Time: bigint;
+            EcosystemID: bigint;
             KeyID: bigint;
-            NetworkID: number;
+            NetworkID: bigint;
             PublicKey: Uint8Array;
         };
         Params?: {

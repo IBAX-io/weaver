@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { map } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';

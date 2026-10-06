@@ -14,9 +14,6 @@ import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE, resolveCryptoSuite, SUPPORTED_CRYPTO_SUITES } from 'lib/crypto/suites';
 import { IWallet, IWalletIdentities } from 'ibax/auth';
 
-export const KEY_LENGTH = 64;
-export const MAX_KEY_SIZE = 1024 * 10; // 10 KiB
-
 // Same derivation as the official IBAX wallets, so a mnemonic restores the same account
 export const HD_PATH = "m/44'/60'/0'/0/0";
 const MNEMONIC_STRENGTH = 128; // 12 words
@@ -48,9 +45,12 @@ export const privateKeyFromMnemonic = (mnemonic: string) => {
 // private key is at hand, so wallets can be listed for any network without the password.
 export const deriveIdentities = (privateKey: string): IWalletIdentities => {
     const identities: IWalletIdentities = {};
+    // The public key depends on the curve only
+    const publicKeys = new Map<string, string>();
     for (const suiteId of SUPPORTED_CRYPTO_SUITES) {
         const suite = resolveCryptoSuite(suiteId);
-        const publicKey = suite.publicKey(privateKey);
+        const publicKey = publicKeys.get(suiteId.cryptoer) ?? suite.publicKey(privateKey);
+        publicKeys.set(suiteId.cryptoer, publicKey);
         identities[cryptoSuiteKey(suiteId)] = { publicKey, keyID: suite.keyID(publicKey) };
     }
     return identities;
@@ -61,8 +61,13 @@ export const deriveIdentities = (privateKey: string): IWalletIdentities => {
 
 const ENCRYPTION_VERSION = 'v1';
 const PBKDF2_ITERATIONS = 600000;
+// Accepted from stored data: fewer would weaken the key, more would make decryption hang
+const MIN_ITERATIONS = 100000;
+const MAX_ITERATIONS = 10000000;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
+// AES-GCM appends a 16 byte tag to the 32 byte key
+const CIPHERTEXT_BYTES = 32 + 16;
 
 export class InvalidEncryptedKeyError extends Error {
     constructor() {
@@ -81,8 +86,16 @@ const subtle = () => {
 
 const toBase64Url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const fromBase64Url = (value: string) => {
+    if (!/^[A-Za-z0-9_-]*$/.test(value)) {
+        throw new InvalidEncryptedKeyError();
+    }
     const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
-    return Uint8Array.from(atob(base64 + '='.repeat((4 - base64.length % 4) % 4)), c => c.charCodeAt(0));
+    try {
+        return Uint8Array.from(atob(base64 + '='.repeat((4 - base64.length % 4) % 4)), c => c.charCodeAt(0));
+    }
+    catch {
+        throw new InvalidEncryptedKeyError();
+    }
 };
 
 const deriveAesKey = async (password: string, salt: Uint8Array, iterations: number) => {
@@ -106,16 +119,21 @@ export const encryptPrivateKey = async (privateKey: string, password: string) =>
     return [ENCRYPTION_VERSION, PBKDF2_ITERATIONS, toBase64Url(salt), toBase64Url(iv), toBase64Url(ciphertext)].join('.');
 };
 
-// Resolves with the private key, or null when the password is wrong (AES-GCM authentication fails)
+// Resolves with the private key, or null when the password is wrong (AES-GCM authentication
+// fails); throws InvalidEncryptedKeyError for anything that is not a key this module encrypted
 export const decryptPrivateKey = async (encKey: string, password: string): Promise<string | null> => {
     const parts = (encKey || '').split('.');
-    if (parts.length !== 5 || parts[0] !== ENCRYPTION_VERSION || !/^\d+$/.test(parts[1])) {
+    if (parts.length !== 5 || parts[0] !== ENCRYPTION_VERSION || !/^\d{1,9}$/.test(parts[1])) {
         throw new InvalidEncryptedKeyError();
     }
-    const [, iterations, salt, iv, ciphertext] = parts;
-    const key = await deriveAesKey(password, fromBase64Url(salt), Number(iterations));
+    const iterations = Number(parts[1]);
+    const [salt, iv, ciphertext] = parts.slice(2).map(fromBase64Url);
+    if (iterations < MIN_ITERATIONS || iterations > MAX_ITERATIONS || salt.length !== SALT_BYTES || iv.length !== IV_BYTES || ciphertext.length !== CIPHERTEXT_BYTES) {
+        throw new InvalidEncryptedKeyError();
+    }
+    const key = await deriveAesKey(password, salt, iterations);
     try {
-        const plain = await subtle().subtle.decrypt({ name: 'AES-GCM', iv: fromBase64Url(iv) }, key, fromBase64Url(ciphertext));
+        const plain = await subtle().subtle.decrypt({ name: 'AES-GCM', iv: iv as Uint8Array<ArrayBuffer> }, key, ciphertext as Uint8Array<ArrayBuffer>);
         const privateKey = bytesToHex(new Uint8Array(plain));
         return isValidPrivateKey(privateKey) ? privateKey : null;
     }

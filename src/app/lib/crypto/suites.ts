@@ -67,8 +67,6 @@ export const cryptoSuiteFromNode = (cryptoer: string | undefined, hasher: string
         ? { cryptoer: cryptoer as TCryptoer, hasher: hasher as THasher }
         : LEGACY_CRYPTO_SUITE;
 
-export const isSupportedCryptoSuite = (suite: ICryptoSuiteId) => !!CURVES[suite.cryptoer] && !!HASHES[suite.hasher];
-
 export const SUPPORTED_CRYPTO_SUITES: ICryptoSuiteId[] = Object.keys(CURVES)
     .flatMap(cryptoer => Object.keys(HASHES).map(hasher => ({ cryptoer, hasher } as ICryptoSuiteId)));
 

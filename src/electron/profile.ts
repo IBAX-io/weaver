@@ -7,35 +7,31 @@
 // (config with the stored wallets, window bounds, browser storage). Must run before anything
 // opens the config, so index.ts imports it first.
 import { app } from 'electron';
-import { mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import args from './args';
+import { removeAbandonedProfiles, PROFILE_MARKER, PROFILE_PREFIX } from './util/dryProfiles';
 
-const PREFIX = 'weaver-dry-';
-const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
-
-// Chromium's network service writes a little cache metadata after the main process is gone, so
-// the exit cleanup can leave a near-empty folder behind; clear out old ones on the next dry run
-const removeStaleProfiles = (dir: string) => {
-    for (const name of readdirSync(dir)) {
-        const profile = path.join(dir, name);
-        try {
-            if (name.startsWith(PREFIX) && Date.now() - statSync(profile).mtimeMs > STALE_AFTER_MS) {
-                rmSync(profile, { recursive: true, force: true });
-            }
-        }
-        catch {
-            // Another dry run removed it first
-        }
-    }
-};
+// The real profile is used by one process at a time: two would each write their whole state over
+// the other's (a wallet created in one lost to the other). A second start hands over to the first
+// (index.ts focuses its window) and exits before anything reads or writes the profile.
+if (!args.dry && !app.requestSingleInstanceLock()) {
+    app.exit(0);
+}
 
 if (args.dry) {
-    removeStaleProfiles(tmpdir());
-    const profile = mkdtempSync(path.join(tmpdir(), PREFIX));
+    removeAbandonedProfiles(tmpdir());
+    const profile = mkdtempSync(path.join(tmpdir(), PROFILE_PREFIX));
+    writeFileSync(path.join(profile, PROFILE_MARKER), String(process.pid));
     app.setPath('userData', profile);
+    // Everything but the marker goes at exit; whatever Chromium still writes afterwards is
+    // removed by the next dry run, which finds the marker and no running process
     process.on('exit', () => {
-        rmSync(profile, { recursive: true, force: true });
+        for (const name of readdirSync(profile)) {
+            if (name !== PROFILE_MARKER) {
+                rmSync(path.join(profile, name), { recursive: true, force: true });
+            }
+        }
     });
 }

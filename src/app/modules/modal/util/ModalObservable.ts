@@ -5,7 +5,7 @@
 
 import { Action } from 'redux';
 import { EMPTY, merge, Observable, of } from 'rxjs';
-import { mergeMap, take } from 'rxjs/operators';
+import { filter, mergeMap, take } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
 import { modalShow, modalClose } from '../actions';
 import { IModalCall, TModalResultReason } from 'ibax/modal';
@@ -14,6 +14,7 @@ const ModalObservable = <T>(action$: Observable<Action>, params: { modal: IModal
     merge(
         action$.pipe(
             ofAction(modalClose),
+            filter(result => result.payload.id === params.modal.id),
             take(1),
             mergeMap((result): Observable<Action> => {
                 if ('RESULT' === result.payload.reason) {

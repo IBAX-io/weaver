@@ -62,6 +62,5 @@ declare module 'ibax/auth' {
   interface IImportWalletCall {
     backup: string;
     password: string;
-    isDefault?: boolean
   }
 }

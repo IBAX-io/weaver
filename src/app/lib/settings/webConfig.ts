@@ -18,7 +18,10 @@ const webConfig = yup.object().shape({
     enableDemoMode: yup.bool(),
     disableSync: yup.bool(),
 
-  })).test('ValidationError', params => `${params.path}[x].key must be unique`, function (value: any[]) {
+  })).test('ValidationError', params => `${params.path}[x].key must be unique`, function (value: { key: string }[] | undefined) {
+    if (!value) {
+      return true;
+    }
     const unique = value.filter((element, index, self) => {
       return self.findIndex(subElement => subElement.key === element.key) === index;
     });

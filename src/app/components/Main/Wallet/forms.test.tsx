@@ -8,14 +8,15 @@ import { createRoot, Root } from 'react-dom/client';
 import { IntlProvider } from 'react-intl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IBalanceResponse } from 'ibax/api';
-import { ISendTransferCall } from 'modules/wallet/actions';
+import { ISendTransferCall, IWalletBalance } from 'modules/wallet/actions';
+import { setInputValue } from 'test/dom';
 import UtxoTransferForm from './UtxoTransferForm';
 import TransferSelfForm from './TransferSelfForm';
 import messages from '../../../../../public/locales/en-US.json';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const BALANCE: IBalanceResponse = {
+const VALUE: IBalanceResponse = {
     amount: '5000000000000',
     utxo: '2000000000000',
     total: '7000000000000',
@@ -23,12 +24,7 @@ const BALANCE: IBalanceResponse = {
     token_symbol: 'IBXC',
     token_name: 'IBAX Coin'
 };
-
-const setInputValue = (input: HTMLInputElement | HTMLSelectElement, value: string) => {
-    const prototype = input instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
-    Object.getOwnPropertyDescriptor(prototype, 'value').set.call(input, value);
-    input.dispatchEvent(new Event(input instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
-};
+const BALANCE: IWalletBalance = { value: VALUE, fee: VALUE };
 
 describe('wallet forms', () => {
     let container: HTMLDivElement;
@@ -41,10 +37,11 @@ describe('wallet forms', () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     });
     const type = (id: string, value: string) => act(() => setInputValue(field(id), value));
-
     const render = (element: React.ReactElement) => act(() => {
         root.render(<IntlProvider locale="en-US" messages={messages} textComponent="span">{element}</IntlProvider>);
     });
+    const utxoForm = (props: Partial<React.ComponentProps<typeof UtxoTransferForm>> = {}) =>
+        render(<UtxoTransferForm balance={BALANCE} ecosystem="1" disabled={false} pending={false} onSubmit={onSubmit} {...props} />);
 
     beforeEach(() => {
         container = document.createElement('div');
@@ -59,7 +56,7 @@ describe('wallet forms', () => {
     });
 
     it('does not submit an invalid transfer and says why', async () => {
-        await render(<UtxoTransferForm balance={BALANCE} disabled={false} onSubmit={onSubmit} />);
+        await utxoForm();
         await submit();
         expect(feedback()).toEqual(['Required', 'Required']);
 
@@ -71,6 +68,9 @@ describe('wallet forms', () => {
         await type('wallet-utxo-amount', '0.0000000000001');
         expect(feedback()).toContain('At most 12 decimal places');
 
+        await type('wallet-utxo-amount', '1,5');
+        expect(feedback()).toContain('Use a dot as the decimal separator, without thousands separators');
+
         // Each check blocks on its own: a valid amount does not let a mistyped address through
         await type('wallet-utxo-amount', '1');
         await submit();
@@ -78,25 +78,60 @@ describe('wallet forms', () => {
         expect(onSubmit).not.toHaveBeenCalled();
     });
 
+    it('ties each error to its field for screen readers', async () => {
+        await utxoForm();
+        await submit();
+        const amount = field('wallet-utxo-amount');
+        expect(amount.getAttribute('aria-invalid')).toBe('true');
+        const described = amount.getAttribute('aria-describedby').split(' ').map(id => container.querySelector(`#${id}`).textContent);
+        expect(described).toEqual(['Required', 'UTXO balance: 2 IBXC']);
+        expect(field('wallet-utxo-recipient').getAttribute('aria-describedby')).toContain('wallet-utxo-recipient-error');
+    });
+
     it('submits a UTXO transfer in base units to the parsed account', async () => {
-        await render(<UtxoTransferForm balance={BALANCE} disabled={false} onSubmit={onSubmit} />);
+        await utxoForm();
         await type('wallet-utxo-recipient', ' 0059-7920-1508-6419-2934 ');
         await type('wallet-utxo-amount', '1.25');
-        await type('wallet-utxo-comment', '  rent  ');
         await submit();
 
         expect(feedback()).toEqual([]);
         expect(onSubmit).toHaveBeenCalledTimes(1);
         const call = onSubmit.mock.calls[0][0];
-        expect(call.transfer).toEqual({ type: 'utxo', recipient: '597920150864192934', amount: '1250000000000', comment: 'rent' });
-        expect(call.confirm.description).toBe('1.25 IBXC will be sent to 0059-7920-1508-6419-2934. Network fees are paid from your UTXO balance. A transfer cannot be reversed.');
+        expect(call.transfer).toEqual({ type: 'utxo', toID: '597920150864192934', amount: '1250000000000' });
+        expect(call.confirm.description).toBe('1.25 IBXC will be sent to 0059-7920-1508-6419-2934. The network fee is paid from your UTXO balance on top of it. A transfer cannot be reversed.');
+        expect(call.unknownRecipientWarning).toMatch(/no account on this network/);
+    });
+
+    it('leaves room for the network fee', async () => {
+        await utxoForm();
+        await type('wallet-utxo-recipient', '0059-7920-1508-6419-2934');
+        await type('wallet-utxo-amount', '2');
+        await submit();
+        expect(feedback()).toEqual(['Leave some of the UTXO balance for the network fee']);
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('cannot send from another ecosystem without UTXO in ecosystem 1 to pay the fee', async () => {
+        await utxoForm({ ecosystem: '2', balance: { value: VALUE, fee: { ...VALUE, utxo: '0' } } });
+        expect(container.textContent).toContain('The network fee is paid from your UTXO balance in ecosystem 1, which is empty.');
+        expect(field('wallet-utxo-amount').disabled).toBe(true);
+        expect(container.querySelector<HTMLButtonElement>('button[type=submit]').disabled).toBe(true);
+    });
+
+    it('explains where the fee comes from in another ecosystem', async () => {
+        await utxoForm({ ecosystem: '2', balance: { value: { ...VALUE, token_symbol: 'ABC' }, fee: { ...VALUE, utxo: '3000000000000' } } });
+        expect(container.textContent).toContain('ecosystem 1 (3 IBXC)');
+        await type('wallet-utxo-recipient', '0059-7920-1508-6419-2934');
+        await type('wallet-utxo-amount', '1');
+        await submit();
+        expect(onSubmit.mock.calls[0][0].confirm.description).toContain('paid from your UTXO balance in ecosystem 1');
     });
 
     it('checks a move against the balance it comes from', async () => {
-        await render(<TransferSelfForm balance={BALANCE} disabled={false} onSubmit={onSubmit} />);
-        await type('wallet-move-amount', '4');
+        await render(<TransferSelfForm balance={VALUE} disabled={false} pending={false} onSubmit={onSubmit} />);
+        await type('wallet-move-amount', '5');
         await submit();
-        expect(onSubmit.mock.calls[0][0].transfer).toEqual({ type: 'transferSelf', amount: '4000000000000', direction: 'toUTXO' });
+        expect(onSubmit.mock.calls[0][0].transfer).toEqual({ type: 'transferSelf', amount: '5000000000000', direction: 'toUTXO' });
 
         await type('wallet-move-direction', 'toAccount');
         expect(feedback()).toEqual(['More than the available balance']);
@@ -104,9 +139,12 @@ describe('wallet forms', () => {
         expect(onSubmit).toHaveBeenCalledTimes(1);
     });
 
-    it('cannot be used while disabled', async () => {
-        await render(<UtxoTransferForm balance={BALANCE} disabled onSubmit={onSubmit} />);
+    it('shows that a transfer is being sent and cannot be used meanwhile', async () => {
+        await utxoForm({ disabled: true, pending: true });
+        const button = container.querySelector<HTMLButtonElement>('button[type=submit]');
         expect(field('wallet-utxo-recipient').disabled).toBe(true);
-        expect(container.querySelector<HTMLButtonElement>('button[type=submit]').disabled).toBe(true);
+        expect(button.disabled).toBe(true);
+        expect(button.getAttribute('aria-busy')).toBe('true');
+        expect(button.textContent).toBe('Sending…');
     });
 });

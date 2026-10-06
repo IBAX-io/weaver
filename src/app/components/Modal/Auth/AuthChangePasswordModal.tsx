@@ -38,8 +38,9 @@ class AuthChangePasswordModal extends Modal<IAuthChangePasswordModalProps, {}, I
             this.props.notify('INVALID_PASSWORD', {});
         }
         else {
+            // The key is decrypted once here; re-encrypting it is all that is left to do
             this.props.onResult({
-                oldPassword: values.password_old,
+                privateKey,
                 newPassword: values.password_new
             });
         }

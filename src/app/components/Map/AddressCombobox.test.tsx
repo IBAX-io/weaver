@@ -9,6 +9,7 @@ import { IntlProvider } from 'react-intl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AddressCombobox, { IAddressSuggestion } from './AddressCombobox';
+import { setInputValue } from 'test/dom';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -40,11 +41,6 @@ const Harness: React.FC<IHarnessProps> = props => {
     );
 };
 
-const setInputValue = (input: HTMLInputElement, value: string) => {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-    setter.call(input, value);
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-};
 
 const key = (input: HTMLInputElement, name: string) => {
     input.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true }));

@@ -10,7 +10,12 @@ import { FormattedMessage } from 'react-intl';
 import Modal from '../';
 import Validation from 'components/Validation';
 
-class AuthorizeModal extends Modal<void, string> {
+export interface IAuthorizeModalProps {
+    // 'upgrade': the password of a wallet saved by an earlier version
+    purpose?: 'upgrade';
+}
+
+class AuthorizeModal extends Modal<IAuthorizeModalProps, string> {
     onSuccess = (values: { [key: string]: any }) => {
         this.props.onResult(values.password);
     }
@@ -23,12 +28,21 @@ class AuthorizeModal extends Modal<void, string> {
                 </Modal.Header>
                 <Modal.Body>
                     <div className="pb">
-                        <FormattedMessage id="modal.authorization.password" defaultMessage="Please enter your password to perform this action" />
+                        {this.props.params && 'upgrade' === this.props.params.purpose ? (
+                            <FormattedMessage
+                                id="modal.authorization.upgrade"
+                                defaultMessage="Enter the password this account had in the earlier version of Weaver. The account keeps this password."
+                            />
+                        ) : (
+                            <FormattedMessage id="modal.authorization.password" defaultMessage="Please enter your password to perform this action" />
+                        )}
                     </div>
                     <Validation.components.ValidatedFormGroup for="password">
                         <Validation.components.ValidatedControl
                             type="password"
                             name="password"
+                            autoComplete="current-password"
+                            aria-label={this.props.intl.formatMessage({ id: 'general.password', defaultMessage: 'Password' })}
                             validators={[Validation.validators.required]}
                         />
                     </Validation.components.ValidatedFormGroup>

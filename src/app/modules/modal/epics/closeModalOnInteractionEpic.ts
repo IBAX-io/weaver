@@ -19,6 +19,7 @@ const closeModalOnInteractionEpic: Epic = (action$, state$) => action$.pipe(
         return iif(
             () => !!(state.modal.type && !state.modal.result),
             of(modalClose({
+                id: state.modal.id,
                 reason: 'CANCEL',
                 data: null
             })),

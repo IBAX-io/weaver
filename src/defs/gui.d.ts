@@ -4,25 +4,32 @@
  *--------------------------------------------------------------------------------------------*/
 
 declare module 'ibax/gui' {
+  // Launch arguments the page sees (src/electron/args.ts)
   interface IInferredArguments {
-    readonly privateKey?: string;
     readonly fullNode?: string[];
     readonly networkID?: number;
     readonly networkName?: string;
     readonly dry?: boolean;
-    readonly offsetX?: number;
-    readonly offsetY?: number;
     readonly socketUrl?: string;
     readonly disableHonorNodesSync?: boolean;
     readonly activationEmail?: string;
     readonly guestMode?: boolean;
-    // Desktop shell only: load the page from this Vite dev server instead of the built files
+    // Developer tools can be opened (not in a release build); set by the main process
+    readonly devTools?: boolean;
+  }
+
+  // All launch arguments; the rest stay in the main process
+  interface ILaunchArguments extends IInferredArguments {
+    // --private-key, honoured with --dry only; handed to the page once (takeLaunchKey)
+    readonly privateKey?: string;
+    readonly offsetX?: number;
+    readonly offsetY?: number;
+    // Development only: load the page from this local Vite dev server instead of the built files
     readonly devServer?: string;
   }
 
   interface IDesktopWindowState {
     readonly maximized: boolean;
-    readonly fullScreen: boolean;
     readonly focused: boolean;
   }
 
@@ -34,7 +41,9 @@ declare module 'ibax/gui' {
     readonly args: IInferredArguments;
     loadState(): unknown;
     saveState(state: unknown): void;
-    getWindowState(): IDesktopWindowState;
+    // The --private-key of a --dry run, once; null afterwards and in normal runs
+    takeLaunchKey(): string | null;
+    getWindowState(): Promise<IDesktopWindowState>;
     // Returns the unsubscribe function
     onWindowState(listener: (state: IDesktopWindowState) => void): () => void;
     minimizeWindow(): void;

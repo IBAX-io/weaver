@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { useState } from 'react';
-import { Button, Card, Form } from 'react-bootstrap';
+import { Button, Card, Form, Spinner } from 'react-bootstrap';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { IBalanceResponse } from 'ibax/api';
 import { TTransferSelfDirection } from 'ibax/tx';
-import { fromBaseUnits } from 'lib/tx/amount';
+import { formatAmount } from 'lib/tx/amount';
 import { ISendTransferCall } from 'modules/wallet/actions';
 import { checkAmount } from './validation';
 import AmountField from './AmountField';
@@ -16,10 +16,12 @@ import AmountField from './AmountField';
 interface Props {
     balance: IBalanceResponse;
     disabled: boolean;
+    pending: boolean;
     onSubmit: (call: ISendTransferCall) => void;
 }
 
-// Moves the signer's own tokens between the account and UTXO balances (go-ibax transaction type 6)
+// Moves the signer's own tokens between the account and UTXO balances (go-ibax transaction type 6;
+// smart.TransferSelf charges no fee)
 const TransferSelfForm: React.FC<Props> = props => {
     const intl = useIntl();
     const [direction, setDirection] = useState<TTransferSelfDirection>('toUTXO');
@@ -32,10 +34,10 @@ const TransferSelfForm: React.FC<Props> = props => {
     const onSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setTouched(true);
-        if (!('units' in amountCheck)) {
+        if (props.disabled || !('units' in amountCheck)) {
             return;
         }
-        const values = { amount: fromBaseUnits(amountCheck.units, props.balance.digits), symbol: props.balance.token_symbol };
+        const values = { amount: formatAmount(amountCheck.units, props.balance.digits), symbol: props.balance.token_symbol };
         props.onSubmit({
             transfer: { type: 'transferSelf', amount: amountCheck.units, direction },
             confirm: {
@@ -54,7 +56,7 @@ const TransferSelfForm: React.FC<Props> = props => {
                 <Card.Title as="h2" className="h5">
                     <FormattedMessage id="wallet.move.title" defaultMessage="Move between balances" />
                 </Card.Title>
-                <Card.Text className="text-muted small">
+                <Card.Text className="wallet__hint small">
                     <FormattedMessage id="wallet.move.desc" defaultMessage="Moves your tokens between your account balance and your UTXO balance." />
                 </Card.Text>
                 <Form noValidate onSubmit={onSubmit}>
@@ -79,14 +81,20 @@ const TransferSelfForm: React.FC<Props> = props => {
                         digits={props.balance.digits}
                         available={available}
                         symbol={props.balance.token_symbol}
+                        availableLabel={direction === 'toUTXO'
+                            ? <FormattedMessage id="wallet.balance.account" defaultMessage="Account balance" />
+                            : <FormattedMessage id="wallet.balance.utxo" defaultMessage="UTXO balance" />}
                         disabled={props.disabled}
-                        onChange={value => {
-                            setAmount(value);
+                        onChange={next => {
+                            setAmount(next);
                             setTouched(true);
                         }}
                     />
-                    <Button type="submit" variant="primary" disabled={props.disabled}>
-                        <FormattedMessage id="wallet.move.submit" defaultMessage="Move" />
+                    <Button type="submit" variant="primary" disabled={props.disabled} aria-busy={props.pending}>
+                        {props.pending && <Spinner as="span" animation="border" size="sm" className="me-2" aria-hidden="true" />}
+                        {props.pending
+                            ? <FormattedMessage id="wallet.sending" defaultMessage="Sending…" />
+                            : <FormattedMessage id="wallet.move.submit" defaultMessage="Move" />}
                     </Button>
                 </Form>
             </Card.Body>

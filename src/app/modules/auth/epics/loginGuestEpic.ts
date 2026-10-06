@@ -3,15 +3,14 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { from, of } from 'rxjs';
+import { defer, of } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { acquireSession, loginGuest } from '../actions';
 import { navigate } from 'modules/router/actions';
-import { encryptPrivateKey } from 'lib/keyring';
 import { authenticate } from 'services/auth';
-import { UnsupportedCryptoSuiteError } from 'lib/crypto/suites';
+import { authFailureCode } from '../util/authErrors';
 
 const GUEST_ECOSYSTEM = {
     ecosystem: '1',
@@ -20,17 +19,15 @@ const GUEST_ECOSYSTEM = {
     notifications: [] as never[]
 };
 
-const loginGuestEpic: Epic = (action$, state$, { api, defaultKey, defaultPassword }) => action$.pipe(
+const loginGuestEpic: Epic = (action$, state$, { api, defaultKey }) => action$.pipe(
     ofAction(loginGuest.started),
     mergeMap(action => {
         const network = state$.value.engine.guestSession.network;
+        const stored = state$.value.storage.networks.find(l => l.uuid === network.uuid);
         const client = api({ apiHost: network.apiHost });
 
-        return from(Promise.all([
-            authenticate(client, defaultKey, { ecosystem: '1', expire: 60 * 60 * 24 * 90 }),
-            encryptPrivateKey(defaultKey, defaultPassword)
-        ])).pipe(
-            mergeMap(([{ result, cryptoSuite, publicKey, keyID }, encKey]) => {
+        return defer(() => authenticate(client, defaultKey, { ecosystem: '1', expire: 60 * 60 * 24 * 90, networkID: stored && stored.id })).pipe(
+            mergeMap(({ result, cryptoSuite, publicKey, keyID }) => {
                 const session = {
                     sessionToken: result.token,
                     network,
@@ -48,7 +45,9 @@ const loginGuestEpic: Epic = (action$, state$, { api, defaultKey, defaultPasswor
                                     id: keyID,
                                     walletID: keyID,
                                     address: result.account,
-                                    encKey,
+                                    // The demo key is public and never stored or unlocked: guests cannot
+                                    // sign transactions (txCallEpic) nor change a password (UserMenu)
+                                    encKey: '',
                                     publicKey,
                                     access: [GUEST_ECOSYSTEM]
                                 },
@@ -65,7 +64,7 @@ const loginGuestEpic: Epic = (action$, state$, { api, defaultKey, defaultPasswor
             }),
             catchError(e => of(loginGuest.failed({
                 params: action.payload,
-                error: e instanceof UnsupportedCryptoSuiteError ? 'E_UNSUPPORTED_CRYPTO' : (e && e.error) || 'E_SERVER'
+                error: authFailureCode(e)
             })))
         );
     })

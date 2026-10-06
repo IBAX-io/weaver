@@ -29,7 +29,7 @@ const ModalProviderContainer: React.FC<ConnectedProps<typeof connector>> = props
     return (
         <ModalProvider
             modal={props.modal}
-            onResult={props.modalClose}
+            onResult={result => props.modalClose({ ...result, id: props.modal.id })}
             enqueueNotification={props.enqueueNotification}
             intl={intl}
         />

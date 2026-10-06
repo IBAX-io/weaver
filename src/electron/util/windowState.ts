@@ -9,7 +9,6 @@ import { CHANNELS } from '../channels';
 
 export const windowState = (window: BrowserWindow): IDesktopWindowState => ({
     maximized: window.isMaximized(),
-    fullScreen: window.isFullScreen(),
     focused: window.isFocused()
 });
 
@@ -20,7 +19,11 @@ export const reportWindowState = (window: BrowserWindow) => {
             window.webContents.send(CHANNELS.windowState, windowState(window));
         }
     };
-    for (const event of ['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen', 'focus', 'blur'] as const) {
-        window.on(event as 'maximize', report);
-    }
+    window.on('maximize', report);
+    window.on('unmaximize', report);
+    // Leaving full screen can restore a maximized window without a maximize event (macOS)
+    window.on('enter-full-screen', report);
+    window.on('leave-full-screen', report);
+    window.on('focus', report);
+    window.on('blur', report);
 };

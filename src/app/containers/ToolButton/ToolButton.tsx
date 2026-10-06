@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { connect, ConnectedProps } from 'react-redux';
 import { buttonInteraction } from 'modules/content/actions';
 

@@ -11,7 +11,8 @@ import { ofAction } from 'lib/rx/ofAction';
 import { buttonInteraction } from 'modules/content/actions';
 import { isType } from 'typescript-fsa';
 import { txCall, txExec } from 'modules/tx/actions';
-import { modalShow, modalClose } from 'modules/modal/actions';
+import { modalShow } from 'modules/modal/actions';
+import ModalObservable from 'modules/modal/util/ModalObservable';
 import { navigate } from 'modules/router/actions';
 import { renderPage } from 'modules/sections/actions';
 import { createEditorTab, loadEditorTab } from 'modules/editor/actions';
@@ -21,22 +22,14 @@ const buttonInteractionEpic: Epic = (action$, state$, { routerService }) => acti
     // Show confirmation window if there is any
     mergeMap(rootAction => iif(
         () => !!rootAction.payload.confirm,
-        merge(
-            of(modalShow({
+        ModalObservable(action$, {
+            modal: {
                 id: rootAction.payload.uuid,
                 type: 'TX_CONFIRM',
                 params: rootAction.payload.confirm
-            })),
-            action$.pipe(
-                ofAction(modalClose),
-                take(1),
-                mergeMap(modalPayload => iif(
-                    () => 'RESULT' === modalPayload.payload.reason,
-                    of(rootAction),
-                    EMPTY
-                ))
-            )
-        ),
+            },
+            success: () => of(rootAction)
+        }),
         of(rootAction)
 
     ).pipe(

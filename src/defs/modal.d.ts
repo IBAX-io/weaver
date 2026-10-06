@@ -25,12 +25,16 @@ declare module 'ibax/modal' {
   interface IModalCall {
     id: string;
     type: string;
+    // The result is a secret (e.g. a password): delivered with modalClose, never kept in state
+    secret?: boolean;
     params: {
       [key: string]: any;
     }
   }
 
+  // id: the modal being closed. Whoever waits for a modal's result must filter on it.
   interface IModalCloseCall {
+    id: string;
     reason: TModalResultReason;
     data: any;
   }
@@ -38,6 +42,7 @@ declare module 'ibax/modal' {
   interface IModal {
     id: string;
     type: string;
+    secret?: boolean;
     result: IModalResult;
     params: {
       [key: string]: any;

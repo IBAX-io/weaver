@@ -25,13 +25,12 @@
     "centrifuge": "^2.8.5",
     "chart.js": "^4.5.1",
     "classnames": "2.3.2",
-    "electron-store": "^11.0.2",
     "font-awesome": "^4.7.0",
-    "immutable": "^3.8.2",
-    "lodash": "^4.17.21",
+    "immutable": "^3.8.4",
+    "lodash": "^4.18.1",
     "monaco-editor": "^0.57.0",
     "qrcode.react": "^4.2.0",
-    "query-string": "^5.1.1",
+    "query-string": "^9.5.1",
     "react": "^19.3.0",
     "react-bootstrap": "^2.10.10",
     "react-chartjs-2": "^5.3.1",
@@ -47,16 +46,17 @@
     "redux-observable": "3.0.0-rc.3",
     "route-parser": "^0.0.5",
     "rxjs": "7.8.2",
-    "sass": "^1.72.0",
+    "sass": "^1.105.1",
     "simple-line-icons": "^2.5.5",
     "styled-components": "^6.5.3",
+    "stylis": "4.3.6",
     "typescript-fsa": "^3.0.0",
     "typescript-fsa-reducers": "^1.2.2",
     "url-join": "^4.0.1",
     "url-template": "^2.0.8",
-    "uuid": "^3.4.0",
+    "uuid": "^14.0.2",
     "whatwg-fetch": "^3.6.20",
-    "yup": "^0.32.11"
+    "yup": "^1.7.1"
   },
   "scripts": {
     "dev": "vite",
@@ -79,6 +79,7 @@
     "@types/react-dom": "^19.3.0",
     "@types/react-transition-group": "^4.4.12",
     "@types/route-parser": "^0.1.7",
+    "@types/stylis": "^4.2.7",
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
@@ -91,7 +92,13 @@
   "resolutions": {
     "**/event-stream": "^4.0.1",
     "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0"
+    "@types/react-dom": "^19.3.0",
+    "**/lodash": "^4.18.1",
+    "**/lodash-es": "^4.18.1",
+    "monaco-editor/dompurify": "^3.4.16",
+    "**/source-map-js": "^1.2.2",
+    "**/@parcel/watcher/picomatch": "^4.0.7",
+    "centrifuge/protobufjs": "^7.6.6"
   },
   "engines": {
     "node": ">=22.22.0"

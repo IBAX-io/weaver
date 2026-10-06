@@ -14,6 +14,15 @@
   outline: 0 !important;
 }
 
+// Keyboard focus stays visible (the rules here hide every mouse focus ring). Two tones, so the
+// ring shows on the dark header and on light content alike. Form controls have Bootstrap's own
+// focus shadow; the code editor draws its own cursor.
+:root :not(.form-control, .form-select, .monaco-editor *):focus-visible {
+  outline: 2px solid var(--bs-primary) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #fff !important;
+}
+
 a {
   outline: none !important;
 

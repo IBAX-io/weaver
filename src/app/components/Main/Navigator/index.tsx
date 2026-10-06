@@ -10,6 +10,8 @@ import themed from 'components/Theme/themed';
 import Sections from 'containers/Main/Navigator/Sections';
 import Breadcrumbs from './Sections/Breadcrumbs';
 import NotFound from './Page/NotFound';
+import { ECOSYSTEM_PAGE_CLASS } from './Page';
+import { scopeChainStylesheet } from 'lib/css/chainCss';
 
 const StyledWrapper = themed.div`
     background-color: #f6f8fa;
@@ -34,10 +36,12 @@ const StyledContent = themed.section`
 
 const Navigator: React.FC<Props> = (props) => {
   const section = props.sections[props.section];
+  // The ecosystem's stylesheet comes from the chain: it styles its pages, nothing else
+  const stylesheet = React.useMemo(() => scopeChainStylesheet(props.stylesheet, `.${ECOSYSTEM_PAGE_CLASS}`), [props.stylesheet]);
 
   return (
     <StyledWrapper className="wrapper">
-      <style type="text/css">{props.stylesheet}</style>
+      <style type="text/css">{stylesheet}</style>
       <StyledContent>
         {section ? (
           <>

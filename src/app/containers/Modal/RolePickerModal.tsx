@@ -36,6 +36,7 @@ export default connect(mapStateToProps, {
     ...state,
     onSwitchWallet: (role: string) => {
         dispatch.modalClose({
+            id: props.id,
             reason: 'CLOSE',
             data: null
         });

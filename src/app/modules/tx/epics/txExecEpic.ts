@@ -8,18 +8,22 @@ import { catchError, concatMap, delay, filter, map, mergeMap, retry, toArray } f
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { txExec } from '../actions';
-import uuid from 'uuid';
-import Contract, { IContractParam } from 'lib/tx/contract';
+import * as uuid from 'uuid';
+import Contract, { ContractParamError, IContractParam } from 'lib/tx/contract';
 import defaultSchema from 'lib/tx/schema/defaultSchema';
 import { ISignedTransaction, ITxContext, signTransaction, TTxPayload } from 'lib/tx/transaction';
+import { isBaseUnits } from 'lib/tx/amount';
 import { parseAddress } from 'lib/crypto/address';
 import IbaxAPI from 'lib/ibaxAPI';
+import { apiErrorCode, isApiError } from 'lib/ibaxAPI/errors';
 import fileObservable from 'modules/io/util/fileObservable';
 import { enqueueNotification } from 'modules/notifications/actions';
-import { ITransaction, ITransactionBody, ITransactionCall, ITxError, TTransferCall } from 'ibax/tx';
+import { ITransaction, ITransactionBody, ITransactionCall, ITxError, TTransferCall, TTransferSelfDirection } from 'ibax/tx';
 import { IContractResponse } from 'ibax/api';
 
 const TX_STATUS_INTERVAL = 2000;
+// A transaction not in a block after 3 minutes is reported instead of being polled forever
+const TX_STATUS_MAX_POLLS = 90;
 
 type TContractCall = ITransactionCall['contracts'][number];
 type TContractParams = TContractCall['params'][number];
@@ -31,26 +35,37 @@ interface ITxJob {
   body: ITransactionBody;
 }
 
-// Same shape as an API error, so it is reported like one
-const invalidTransfer = (reason: string) => ({ error: 'E_INVALID_TRANSFER', msg: reason, params: [] as string[] });
+// A transfer that would not be accepted: refused before anything is signed or sent
+class InvalidTransferError extends Error {
+  constructor(readonly reason: 'amount' | 'recipient' | 'direction' | 'type') {
+    super(`Invalid transfer: ${reason}`);
+    this.name = 'InvalidTransferError';
+  }
+}
 
-const isBaseUnits = (amount: string) => /^\d+$/.test(amount) && BigInt(amount) > 0n;
+const DIRECTIONS: TTransferSelfDirection[] = ['toAccount', 'toUTXO'];
 
 // Re-checks at the boundary what the node would reject, so a bad transfer is never signed
-export const transferPayload = (transfer: TTransferCall): TTxPayload => {
+const transferPayload = (transfer: TTransferCall): TTxPayload => {
   if (!isBaseUnits(transfer.amount)) {
-    throw invalidTransfer(`amount "${transfer.amount}"`);
+    throw new InvalidTransferError('amount');
   }
   switch (transfer.type) {
     case 'utxo': {
-      const toID = parseAddress(transfer.recipient);
+      const toID = parseAddress(transfer.toID);
       if (toID === null) {
-        throw invalidTransfer(`recipient "${transfer.recipient}"`);
+        throw new InvalidTransferError('recipient');
       }
-      return { type: 'utxo', toID, value: transfer.amount, comment: transfer.comment };
+      // The node ignores the comment of a UTXO transfer (go-ibax smart.UtxoToken)
+      return { type: 'utxo', toID, value: transfer.amount, comment: '' };
     }
     case 'transferSelf':
+      if (!DIRECTIONS.includes(transfer.direction)) {
+        throw new InvalidTransferError('direction');
+      }
       return { type: 'transferSelf', value: transfer.amount, direction: transfer.direction };
+    default:
+      throw new InvalidTransferError('type');
   }
 };
 
@@ -106,7 +121,7 @@ const signContract = (client: IbaxAPI, context: ITxContext, privateKey: string, 
     ))
   );
 
-// The node executed the transaction and reported an error (/txstatus errmsg)
+// The node executed the transaction and reported an error (/txstatus errmsg, or a penalty)
 class TxExecutionError {
   constructor(readonly txError: ITxError) { }
 }
@@ -115,24 +130,39 @@ class TxPending {
   constructor(readonly count: number) { }
 }
 
+const POLL_RETRY_ERRORS = ['E_HASHNOTFOUND', 'E_OFFLINE'];
+
 // Sends a batch and polls until every transaction is in a block; an execution error stops polling
-const sendBatch = (client: IbaxAPI, jobs: ITxJob[]): Observable<ITransaction[]> => {
+const sendBatch = (client: IbaxAPI, jobs: ITxJob[]): Observable<ITransaction[]> => defer(() => {
   const request: { [hash: string]: Blob } = {};
   jobs.forEach(job => {
+    // The same payload signed twice in the same second has one hash: the node would see one
+    if (request[job.signed.hash]) {
+      throw new TxExecutionError({ type: 'E_DUPLICATE_TX', error: job.signed.hash, params: [job.name] });
+    }
     request[job.signed.hash] = new Blob([job.signed.data.slice()]);
   });
 
   return from(client.txSend(request)).pipe(
     delay(TX_STATUS_INTERVAL),
     mergeMap(() => defer(() => client.txStatus(jobs.map(job => job.signed.hash))).pipe(
+      // Right after sending, the node may not know a hash yet; a dropped connection says nothing
+      // about transactions already sent: keep asking (within the same limit)
+      catchError(error => throwError(() => POLL_RETRY_ERRORS.includes(apiErrorCode(error)) ? new TxPending(jobs.length) : error)),
       map(status => {
         let pending = jobs.length;
         jobs.forEach(job => {
           const tx = status[job.signed.hash];
+          if (!tx) {
+            return;
+          }
           if (tx.errmsg) {
             throw new TxExecutionError({ id: tx.errmsg.id, type: tx.errmsg.type, error: tx.errmsg.error });
           }
-          else if (tx.blockid && tx.penalty === 0) {
+          if (tx.blockid && tx.penalty !== 0) {
+            throw new TxExecutionError({ type: 'E_PENALTY', error: tx.result, params: [job.name] });
+          }
+          if (tx.blockid) {
             pending--;
           }
         });
@@ -150,21 +180,45 @@ const sendBatch = (client: IbaxAPI, jobs: ITxJob[]): Observable<ITransaction[]> 
         }
       }),
       retry({
-        delay: error => error instanceof TxPending ? timer(TX_STATUS_INTERVAL) : throwError(() => error)
+        delay: (error, attempt) => {
+          if (!(error instanceof TxPending)) {
+            return throwError(() => error);
+          }
+          if (attempt >= TX_STATUS_MAX_POLLS) {
+            return throwError(() => new TxExecutionError({
+              type: 'E_TX_TIMEOUT',
+              error: '',
+              params: [String(Math.round(TX_STATUS_MAX_POLLS * TX_STATUS_INTERVAL / 60000))]
+            }));
+          }
+          return timer(TX_STATUS_INTERVAL);
+        }
       })
     ))
   );
-};
+});
 
-// API failures are { error, msg, params } (lib/ibaxAPI)
-const isApiFailure = (error: unknown): error is { error: string; msg?: string; params?: string[] } =>
-  !!error && typeof error === 'object' && typeof (error as { error?: unknown }).error === 'string';
+// go-ibax smart eEcoCurrentBalance: "account %s current balance is not enough in ecosystem %d"
+const INSUFFICIENT_BALANCE = /^account (\S+) current balance is not enough in ecosystem (\d+)$/;
 
 const toTxError = (error: unknown): ITxError => {
   if (error instanceof TxExecutionError) {
-    return error.txError;
+    const balance = INSUFFICIENT_BALANCE.exec(error.txError.error || '');
+    return balance
+      ? { ...error.txError, type: 'E_INSUFFICIENT_BALANCE', params: [balance[1], balance[2]] }
+      : error.txError;
   }
-  if (isApiFailure(error)) {
+  if (error instanceof InvalidTransferError) {
+    return { type: 'E_INVALID_TRANSFER', error: error.reason, params: [error.reason] };
+  }
+  if (error instanceof ContractParamError) {
+    return {
+      type: 'unsupported' === error.reason ? 'E_UNSUPPORTED_PARAM' : 'E_INVALID_PARAM',
+      error: error.param,
+      params: [error.param, error.paramType]
+    };
+  }
+  if (isApiError(error)) {
     return { type: error.error, error: error.msg, params: error.params || [] };
   }
   return { type: 'E_SERVER', error: error instanceof Error ? error.message : String(error), params: [] };
@@ -172,7 +226,8 @@ const toTxError = (error: unknown): ITxError => {
 
 export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
   ofAction(txExec.started),
-  mergeMap(action => {
+  // Everything, the session and network lookup included, ends in txExec.done or txExec.failed
+  mergeMap(action => defer(() => {
     const state = state$.value;
     const client = api({
       apiHost: state.auth.session.network.apiHost,
@@ -186,21 +241,25 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
       cryptoSuite: state.auth.session.cryptoSuite
     };
 
-    // One batch per contract (all of its parameter sets), then one for the value transfers
-    const batches$: Observable<ITxJob[]> = concat(
-      from(action.payload.contracts).pipe(
-        concatMap(contract => signContract(client, context, privateKey, contract))
-      ),
-      defer(() => {
-        const transfers = action.payload.transfers || [];
-        return transfers.length ? of(transfers.map(transfer => {
-          const signed = signTransaction(context, transferPayload(transfer), privateKey);
+    // One batch per contract (all of its parameter sets), then one for the value transfers. Every
+    // batch is signed (parameters and transfers checked) before the first is sent, so a bad one
+    // cannot leave the call half done.
+    const batches$: Observable<ITxJob[]> = defer(() => {
+      const transfers = (action.payload.transfers || []).map(transfer => ({ transfer, payload: transferPayload(transfer) }));
+      return concat(
+        from(action.payload.contracts).pipe(
+          concatMap(contract => signContract(client, context, privateKey, contract))
+        ),
+        transfers.length ? defer(() => of(transfers.map(({ transfer, payload }) => {
+          const signed = signTransaction(context, payload, privateKey);
           return { name: TRANSFER_NAMES[transfer.type], signed, body: signed.body };
-        })) : of<ITxJob[]>();
-      })
-    );
+        }))) : of<ITxJob[]>()
+      );
+    });
 
     return batches$.pipe(
+      toArray(),
+      concatMap(signed => from(signed)),
       concatMap(jobs => sendBatch(client, jobs)),
       toArray(),
       mergeMap(results => of(
@@ -213,13 +272,14 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
           type: 'TX_BATCH',
           params: {}
         })
-      )),
-      catchError(error => of(txExec.failed({
-        params: action.payload,
-        error: toTxError(error)
-      })))
+      ))
     );
-  })
+  }).pipe(
+    catchError(error => of(txExec.failed({
+      params: action.payload,
+      error: toTxError(error)
+    })))
+  ))
 );
 
 export default txExecEpic;

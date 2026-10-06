@@ -9,8 +9,7 @@ import platform from 'lib/platform';
 import desktop from 'lib/desktop';
 import { IDesktopBridge } from 'ibax/gui';
 import DarwinTitlebar from './DarwinTitlebar';
-import LinuxTitlebar from './LinuxTitlebar';
-import WinTitlebar from './WinTitlebar';
+import ButtonsTitlebar from './ButtonsTitlebar';
 
 export interface ITitlebarProps {
     maximizable?: boolean;
@@ -39,11 +38,11 @@ const Titlebar: React.FC<React.PropsWithChildren<ITitlebarProps>> = props => des
     <StyledControls>
         {platform.select({
             darwin: (<DarwinTitlebar {...props} bridge={desktop} />),
-            linux: (<LinuxTitlebar {...props} bridge={desktop} />),
-            win32: (<WinTitlebar {...props} bridge={desktop} />),
+            linux: (<ButtonsTitlebar {...props} bridge={desktop} variant="linux" />),
+            win32: (<ButtonsTitlebar {...props} bridge={desktop} variant="win32" />),
 
             // Fallback for unsupported platforms
-            desktop: (<LinuxTitlebar {...props} bridge={desktop} />)
+            desktop: (<ButtonsTitlebar {...props} bridge={desktop} variant="linux" />)
         })}
         <div className="window-title">{props.children}</div>
     </StyledControls>

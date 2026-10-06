@@ -8,6 +8,7 @@ import IbaxAPI from 'lib/ibaxAPI';
 import { UnsupportedCryptoSuiteError } from 'lib/crypto/suites';
 import { authenticate } from 'services/auth';
 import NetworkError from './errors';
+import { UntrustedNodeError } from 'lib/ibaxAPI/errors';
 
 // Connects to a node with the guest key: checks the network id, learns the network's crypto
 // suite and its current honor nodes
@@ -20,8 +21,8 @@ export const discover = async (network: INetworkEndpoint, key: string, networkID
   try {
     uid = await client.getUid();
   }
-  catch {
-    throw NetworkError.Offline;
+  catch (e) {
+    throw e instanceof UntrustedNodeError ? NetworkError.ServerMisconfiguration : NetworkError.Offline;
   }
 
   if ('number' === typeof networkID && uid.networkID !== networkID) {
@@ -30,7 +31,8 @@ export const discover = async (network: INetworkEndpoint, key: string, networkID
 
   let login;
   try {
-    login = await authenticate(client, key);
+    // The network this node said it belongs to, unless the caller knows which one it wants
+    login = await authenticate(client, key, { networkID: 'number' === typeof networkID ? networkID : uid.networkID });
   }
   catch (e) {
     throw e instanceof UnsupportedCryptoSuiteError ? NetworkError.UnsupportedCrypto : NetworkError.ServerMisconfiguration;

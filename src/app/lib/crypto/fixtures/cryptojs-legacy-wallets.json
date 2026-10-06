@@ -1,0 +1,61 @@
+{
+ "source": "crypto-js@3.1.9-1 and crypto-js@4.2.0 AES.encrypt(privateKeyHex, password).toString(), as Weaver up to 1.4 stored wallets; openssl enc -d -aes-256-cbc -md md5 decrypts the same data. publicKey: secp256r1 uncompressed, as the old keyring stored it. Test keys only.",
+ "vectors": [
+  {
+   "lib": "crypto-js@3",
+   "privateKey": "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727",
+   "password": "correct horse",
+   "encKey": "U2FsdGVkX188dXzGyHwhFz/SxWBnTIlQ+ZHdhr2664T9cJyKpErXDOSloYuFds+cZxQvgZbojRCFU0FTC68SsjaiKyDRFLJJzHHO1SolMHyo9E7KatQc6ZFFQWSU6XtL",
+   "publicKey": "04b043f5336e0f915ae742c3c4e76415800866a349a36231136223f9403fdf1865266e15a08ed1d4c40978ccbdf21b0ae0dc76ffb77171127ee5bcab24abf2fea0"
+  },
+  {
+   "lib": "crypto-js@3",
+   "privateKey": "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727",
+   "password": "пароль ü 密码",
+   "encKey": "U2FsdGVkX1+RD9ZVkP30yptd2kxkwKYv+C1GC1kA4RItaC1mgrV0fH6CwcqQhrES3WMYGIlVrFlvMnPqVLd9NQoEvYdRQ4YKTlymmwu/xgJD9lZwOIERezRw2hYz+pyY",
+   "publicKey": "04b043f5336e0f915ae742c3c4e76415800866a349a36231136223f9403fdf1865266e15a08ed1d4c40978ccbdf21b0ae0dc76ffb77171127ee5bcab24abf2fea0"
+  },
+  {
+   "lib": "crypto-js@3",
+   "privateKey": "e5a87a96a445cb55a214edaad3661018061ef2936e63a0a93bdb76eb28251c1f",
+   "password": "correct horse",
+   "encKey": "U2FsdGVkX19ELibJsk4OTSSj0sDGBNecY5j055j91IEIEyTIWrqyJKfztKRGSSnCN8tORuRHfqT903u1robLoLL4KrvWyXadun+Wg5ZVo9TRqohLkqeH/LRf6JCPDNMJ",
+   "publicKey": "04489347a1205c818d9a02f285faaedd0122a56138e3d985f5e1b4f6a9470f90f692a00a3453771dd7feea388ceb7aefeaf183e299c70ad1aecb7f870bfada3b86"
+  },
+  {
+   "lib": "crypto-js@3",
+   "privateKey": "e5a87a96a445cb55a214edaad3661018061ef2936e63a0a93bdb76eb28251c1f",
+   "password": "пароль ü 密码",
+   "encKey": "U2FsdGVkX1/B8bKGUT4W9vYaKgjuyJjfbnmvirt121Q0icvIxz0S9EI1ZzppP3145pKY779QcAGGPtv3hBlUoxc5qoXKjKvtYCwH87zB6BCKNYrodCpjipLvQyIJT+9V",
+   "publicKey": "04489347a1205c818d9a02f285faaedd0122a56138e3d985f5e1b4f6a9470f90f692a00a3453771dd7feea388ceb7aefeaf183e299c70ad1aecb7f870bfada3b86"
+  },
+  {
+   "lib": "crypto-js@4",
+   "privateKey": "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727",
+   "password": "correct horse",
+   "encKey": "U2FsdGVkX1+Mp3WpTYnA9lFgAL266NHQYbefH+ASEqyvpqK0LKVDQRTcMHhP8FXYHfEX2gGw4iQrk783iOePWczA+0u+Fcb1faZZRb6HSyUM52BXNyw4+wR0zrg0yEpm",
+   "publicKey": "04b043f5336e0f915ae742c3c4e76415800866a349a36231136223f9403fdf1865266e15a08ed1d4c40978ccbdf21b0ae0dc76ffb77171127ee5bcab24abf2fea0"
+  },
+  {
+   "lib": "crypto-js@4",
+   "privateKey": "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727",
+   "password": "пароль ü 密码",
+   "encKey": "U2FsdGVkX1+Iy9nMIY9VtPl1qcfohcWwfEIqX64RkR1BWgmi/W6lAhPR3WsZ24iK9zoPEtD6qSLmTBOImqS7ej03D7XFuBX2FtlUW3xViuhGvep5MXB1k4/0XHCG6qR/",
+   "publicKey": "04b043f5336e0f915ae742c3c4e76415800866a349a36231136223f9403fdf1865266e15a08ed1d4c40978ccbdf21b0ae0dc76ffb77171127ee5bcab24abf2fea0"
+  },
+  {
+   "lib": "crypto-js@4",
+   "privateKey": "e5a87a96a445cb55a214edaad3661018061ef2936e63a0a93bdb76eb28251c1f",
+   "password": "correct horse",
+   "encKey": "U2FsdGVkX192f4h8lKxUqDHLn+puSHBjYX90IfJ5anpSGdizzg9N0QECDXIGCxkZNl061+MIKAEEQxG2kdlW74Ut9dUETKMc833/xPJfLuvGICLSisy4CSE6wa95brgU",
+   "publicKey": "04489347a1205c818d9a02f285faaedd0122a56138e3d985f5e1b4f6a9470f90f692a00a3453771dd7feea388ceb7aefeaf183e299c70ad1aecb7f870bfada3b86"
+  },
+  {
+   "lib": "crypto-js@4",
+   "privateKey": "e5a87a96a445cb55a214edaad3661018061ef2936e63a0a93bdb76eb28251c1f",
+   "password": "пароль ü 密码",
+   "encKey": "U2FsdGVkX1/wqrAExE0zdWRptQlMItpfWvrGmWafqJDZjUkhLCNTDPJKb9QYWdE89yvdlazlUHn3zDirFyhz+hyd4dMPrcxBAAU7YLr6HbPsusyTSrfZ/TQAyJ0KkWJT",
+   "publicKey": "04489347a1205c818d9a02f285faaedd0122a56138e3d985f5e1b4f6a9470f90f692a00a3453771dd7feea388ceb7aefeaf183e299c70ad1aecb7f870bfada3b86"
+  }
+ ]
+}

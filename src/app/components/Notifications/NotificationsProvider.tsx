@@ -11,12 +11,14 @@ import Notification from './Notification';
 import TxSuccessNotification from './Types/TxSuccessNotification';
 import InvalidPasswordNotification from './Types/InvalidPasswordNotification';
 import TxBatchNotification from './Types/TxBatchNotification';
+import TxInterruptedNotification from './Types/TxInterruptedNotification';
 import EcosystemInvitedNotification from './Types/EcosystemInvitedNotification';
 
 const definitions: { [key: string]: INotificationProto<any> } = {
     'TX_BATCH': TxBatchNotification,
     'TX_SUCCESS': TxSuccessNotification,
     'INVALID_PASSWORD': InvalidPasswordNotification,
+    'TX_INTERRUPTED': TxInterruptedNotification,
     'ECOSYSTEM_INVITED': EcosystemInvitedNotification
 };
 

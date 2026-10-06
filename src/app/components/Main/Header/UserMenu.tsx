@@ -53,6 +53,17 @@ const StyledUserMenu = themed.div`
         margin: 4px;
     }
 
+    /* Phone width: the avatar alone opens the menu; the account stays readable to screen readers */
+    @media (max-width: 575.98px) {
+        > .user-info {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+        }
+    }
+
     .user-dropdown {
         background: #fff;
         box-shadow: 0 0 25px rgba(0,0,0,.15);

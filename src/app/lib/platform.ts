@@ -32,11 +32,5 @@ export default {
         }
     },
 
-    on: (platformType: TPlatformType, callback: () => void) => {
-        if (platformType === platform) {
-            callback();
-        }
-    },
-
     args
 };

@@ -11,7 +11,8 @@ import { IRootState } from 'modules';
 import IbaxAPI from 'lib/ibaxAPI';
 import { DEFAULT_CRYPTO_SUITE, resolveCryptoSuite } from 'lib/crypto/suites';
 import { ITransactionBody, ITransactionCall } from 'ibax/tx';
-import { ITxStatus } from 'ibax/api';
+import { IContractResponse, ITxStatus } from 'ibax/api';
+import { IAPIError, isApiError } from 'lib/ibaxAPI/errors';
 import { txExec } from '../actions';
 import txExecEpic from './txExecEpic';
 
@@ -53,7 +54,10 @@ const decodeClientTx = (data: Uint8Array) => {
     return { payload, signature, body: decode(payload, { useBigInt64: true }) as ITransactionBody };
 };
 
-const createClient = (statuses: Array<{ [hash: string]: Partial<ITxStatus> } | 'sent'>) => {
+const createClient = (
+    statuses: Array<{ [hash: string]: Partial<ITxStatus> } | IAPIError>,
+    fields: IContractResponse['fields'] = [{ name: 'Value', type: 'string', optional: false }]
+) => {
     const client = new IbaxAPI({ apiHost: 'http://node' });
     const sent: { [hash: string]: Uint8Array }[] = [];
     vi.spyOn(client, 'txSend').mockImplementation(async (request: { [hash: string]: Blob }) => {
@@ -66,15 +70,20 @@ const createClient = (statuses: Array<{ [hash: string]: Partial<ITxStatus> } | '
     });
     vi.spyOn(client, 'txStatus').mockImplementation(async (hashes: string[]) => {
         const next = statuses.shift();
+        if (isApiError(next)) {
+            throw next;
+        }
         const result: { [hash: string]: ITxStatus } = {};
         for (const hash of hashes) {
-            result[hash] = { penalty: 0, blockid: '7', result: '', ...(next && next !== 'sent' ? next[hash] || next['*'] : {}) };
+            const override = next ? (hash in next ? next[hash] : next['*']) : {};
+            // null: the node returned no entry for this hash
+            if (override !== null) {
+                result[hash] = { penalty: 0, blockid: '7', result: '', ...override };
+            }
         }
         return result;
     });
-    vi.spyOn(client, 'getContract').mockResolvedValue({
-        id: 9, name: 'SetValue', active: true, tableid: 1, fields: [{ name: 'Value', type: 'string', optional: false }]
-    });
+    vi.spyOn(client, 'getContract').mockResolvedValue({ id: 9, name: 'SetValue', active: true, tableid: 1, fields });
     return { client, sent };
 };
 
@@ -95,7 +104,7 @@ describe('txExecEpic', () => {
         const { client, sent } = createClient([]);
         const output = await run(client, call({
             transfers: [
-                { type: 'utxo', recipient: RECIPIENT, amount: '1500000000000', comment: 'rent' },
+                { type: 'utxo', toID: RECIPIENT, amount: '1500000000000' },
                 { type: 'transferSelf', amount: '25', direction: 'toUTXO' }
             ]
         }));
@@ -109,10 +118,11 @@ describe('txExecEpic', () => {
         const publicKey = suite.publicKey(PRIVATE_KEY);
         const decoded = Object.values(sent[0]).map(decodeClientTx);
 
-        expect(decoded[0].body.UTXO).toEqual({ ToID: BigInt(RECIPIENT), Value: '1500000000000', Comment: 'rent' });
+        // The node ignores the comment of a UTXO transfer, so none is sent
+        expect(decoded[0].body.UTXO).toEqual({ ToID: BigInt(RECIPIENT), Value: '1500000000000', Comment: '' });
         expect(decoded[1].body.TransferSelf).toEqual({ Value: '25', Source: 'Account', Target: 'UTXO' });
         for (const tx of decoded) {
-            expect(tx.body.Header.NetworkID).toBe(5);
+            expect(tx.body.Header.NetworkID).toBe(5n);
             expect(tx.body.Header.KeyID).toBe(BigInt(suite.keyID(publicKey)));
             expect(suite.verify(suite.doubleHash(tx.payload), Array.from(tx.signature, b => b.toString(16).padStart(2, '0')).join(''), publicKey)).toBe(true);
         }
@@ -122,10 +132,10 @@ describe('txExecEpic', () => {
         const { client, sent } = createClient([]);
         const output = await run(client, call({
             contracts: [{ name: 'SetValue', params: [{ Value: 'a' }, { Value: 'b' }] }],
-            transfers: [{ type: 'utxo', recipient: RECIPIENT, amount: '1', comment: '' }]
+            transfers: [{ type: 'utxo', toID: RECIPIENT, amount: '1' }]
         }));
 
-        expect(sent.map(batch => Object.values(batch).map(data => decodeClientTx(data).body.Header.ID))).toEqual([[9, 9], [0]]);
+        expect(sent.map(batch => Object.values(batch).map(data => decodeClientTx(data).body.Header.ID))).toEqual([[9n, 9n], [0n]]);
         expect((output[0] as ReturnType<typeof txExec.done>).payload.result.map(tx => tx.name)).toEqual(['SetValue', 'SetValue', 'UTXO']);
     });
 
@@ -139,8 +149,8 @@ describe('txExecEpic', () => {
 
     it('never signs a transfer the node would reject', async () => {
         for (const transfer of [
-            { type: 'utxo' as const, recipient: '597920150864192935', amount: '1', comment: '' },
-            { type: 'utxo' as const, recipient: RECIPIENT, amount: '1.5', comment: '' },
+            { type: 'utxo' as const, toID: '597920150864192935', amount: '1' },
+            { type: 'utxo' as const, toID: RECIPIENT, amount: '1.5' },
             { type: 'transferSelf' as const, amount: '0', direction: 'toUTXO' as const }
         ]) {
             const { client, sent } = createClient([]);
@@ -156,11 +166,103 @@ describe('txExecEpic', () => {
 
     it('reports what the node says when a transfer fails', async () => {
         const { client } = createClient([{ '*': { blockid: '', errmsg: { type: 'error', error: 'Current balance is not enough' } } }]);
-        const output = await run(client, call({ transfers: [{ type: 'utxo', recipient: RECIPIENT, amount: '1', comment: '' }] }));
+        const output = await run(client, call({ transfers: [{ type: 'utxo', toID: RECIPIENT, amount: '1' }] }));
 
         expect(output).toEqual([txExec.failed({
-            params: call({ transfers: [{ type: 'utxo', recipient: RECIPIENT, amount: '1', comment: '' }] }),
+            params: call({ transfers: [{ type: 'utxo', toID: RECIPIENT, amount: '1' }] }),
             error: { id: undefined, type: 'error', error: 'Current balance is not enough' }
         })]);
+    });
+
+    it('names the node\'s insufficient balance error so it can be translated', async () => {
+        const error = 'account 0624-2890-6001-1238-3609 current balance is not enough in ecosystem 1';
+        const { client } = createClient([{ '*': { blockid: '', errmsg: { type: 'error', error } } }]);
+        const output = await run(client, call({ transfers: [{ type: 'utxo', toID: RECIPIENT, amount: '1' }] }));
+
+        expect((output[0] as ReturnType<typeof txExec.failed>).payload.error).toEqual({
+            id: undefined, type: 'E_INSUFFICIENT_BALANCE', error, params: ['0624-2890-6001-1238-3609', '1']
+        });
+    });
+
+    it('keeps waiting while the node does not know the hash yet', async () => {
+        const { client } = createClient([{ error: 'E_HASHNOTFOUND', msg: 'Hash has not been found' }, { '*': null }]);
+        const output = await run(client, call({ transfers: [{ type: 'transferSelf', amount: '5', direction: 'toAccount' }] }));
+
+        expect(client.txStatus).toHaveBeenCalledTimes(3);
+        expect(output[0].type).toBe(txExec.done.type);
+    });
+
+    it('stops waiting after a while', async () => {
+        const { client } = createClient(Array.from({ length: 200 }, () => ({ '*': { blockid: '' } })));
+        const output = await run(client, call({ transfers: [{ type: 'transferSelf', amount: '5', direction: 'toAccount' }] }));
+
+        expect((output[0] as ReturnType<typeof txExec.failed>).payload.error).toEqual(expect.objectContaining({ type: 'E_TX_TIMEOUT', params: ['3'] }));
+        expect(client.txStatus).toHaveBeenCalledTimes(90);
+    });
+
+    it('fails a transaction the block penalized', async () => {
+        const { client } = createClient([{ '*': { blockid: '9', penalty: 1, result: 'out of fuel' } }]);
+        const output = await run(client, call({ transfers: [{ type: 'transferSelf', amount: '5', direction: 'toAccount' }] }));
+
+        expect((output[0] as ReturnType<typeof txExec.failed>).payload.error).toEqual({ type: 'E_PENALTY', error: 'out of fuel', params: ['TransferSelf'] });
+    });
+
+    it('refuses to send the same transaction twice in one batch', async () => {
+        const { client, sent } = createClient([]);
+        const transfer = { type: 'transferSelf' as const, amount: '5', direction: 'toAccount' as const };
+        const output = await run(client, call({ transfers: [transfer, transfer] }));
+
+        expect(sent).toHaveLength(0);
+        expect((output[0] as ReturnType<typeof txExec.failed>).payload.error.type).toBe('E_DUPLICATE_TX');
+    });
+
+    it('sends nothing when one transfer of a call is invalid', async () => {
+        const { client, sent } = createClient([]);
+        const output = await run(client, call({
+            contracts: [{ name: 'SetValue', params: [{ Value: 'a' }] }],
+            transfers: [{ type: 'utxo', toID: RECIPIENT, amount: '0' }]
+        }));
+
+        expect(sent).toHaveLength(0);
+        expect((output[0] as ReturnType<typeof txExec.failed>).payload.error).toEqual({ type: 'E_INVALID_TRANSFER', error: 'amount', params: ['amount'] });
+    });
+
+    it('names the contract parameter that cannot be sent', async () => {
+        const invalid = createClient([], [{ name: 'Count', type: 'int', optional: false }]);
+        const invalidOut = await run(invalid.client, call({ contracts: [{ name: 'SetValue', params: [{ Count: '1.5' }] }] }));
+        expect((invalidOut[0] as ReturnType<typeof txExec.failed>).payload.error).toEqual({ type: 'E_INVALID_PARAM', error: 'Count', params: ['Count', 'int'] });
+
+        const unsupported = createClient([], [{ name: 'Blob', type: 'bytes' as IContractResponse['fields'][number]['type'], optional: false }]);
+        const unsupportedOut = await run(unsupported.client, call({ contracts: [{ name: 'SetValue', params: [{ Blob: 'aa' }] }] }));
+        expect((unsupportedOut[0] as ReturnType<typeof txExec.failed>).payload.error.type).toBe('E_UNSUPPORTED_PARAM');
+        expect(invalid.sent).toHaveLength(0);
+    });
+
+    it('sends nothing when a later contract of the call cannot be signed', async () => {
+        const { client, sent } = createClient([], [{ name: 'Count', type: 'int', optional: false }]);
+        const output = await run(client, call({
+            contracts: [{ name: 'First', params: [{ Count: '1' }] }, { name: 'Second', params: [{ Count: '1.5' }] }]
+        }));
+
+        // Signing the second contract fails: the first must not have gone out already
+        expect(sent).toHaveLength(0);
+        expect((output[0] as ReturnType<typeof txExec.failed>).payload.error.type).toBe('E_INVALID_PARAM');
+    });
+
+    it('keeps waiting for a sent transaction while the node cannot be reached', async () => {
+        const { client } = createClient([{ error: 'E_OFFLINE' }, { error: 'E_OFFLINE' }]);
+        const output = await run(client, call({ transfers: [{ type: 'transferSelf', amount: '5', direction: 'toAccount' }] }));
+
+        expect(client.txStatus).toHaveBeenCalledTimes(3);
+        expect(output[0].type).toBe(txExec.done.type);
+    });
+
+    it('ends in failed, not silence, when the session\'s network is gone', async () => {
+        const { client, sent } = createClient([]);
+        const output = await runEpic(txExecEpic, [txExec.started(call({ transfers: [{ type: 'utxo', toID: RECIPIENT, amount: '1' }] }))],
+            { ...state, storage: { ...state.storage, networks: [] } }, { api: () => client });
+
+        expect(sent).toHaveLength(0);
+        expect(output.map(action => action.type)).toEqual([txExec.failed.type]);
     });
 });

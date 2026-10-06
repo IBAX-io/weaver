@@ -26,6 +26,15 @@ export default class ValidatedControl extends React.Component<IValidatedControlP
     static contextType = ValidatedFormContext;
     declare context: React.ContextType<typeof ValidatedFormContext>;
 
+    // A controlled input mirrors what is typed into its value attribute, which CSS attribute
+    // selectors can read ([value^="a"]): password fields stay uncontrolled and are written through
+    // the DOM property only
+    private _input = React.createRef<HTMLInputElement>();
+
+    private get _secret() {
+        return 'password' === this.props.type;
+    }
+
     constructor(props: IValidatedControlProps) {
         super(props);
 
@@ -35,6 +44,9 @@ export default class ValidatedControl extends React.Component<IValidatedControlP
     }
 
     componentDidMount() {
+        if (this._secret && this._input.current) {
+            this._input.current.value = this.state.value;
+        }
         if (this.context.form) {
             this.context.form._registerElement(this);
         }
@@ -51,6 +63,9 @@ export default class ValidatedControl extends React.Component<IValidatedControlP
             this.setState({
                 value: this.props.value as string
             });
+            if (this._secret && this._input.current && this._input.current.value !== (this.props.value || '')) {
+                this._input.current.value = (this.props.value || '') as string;
+            }
             if (this.context.form) {
                 this.context.form.updateState(this.props.name, this.props.value);
             }
@@ -103,7 +118,8 @@ export default class ValidatedControl extends React.Component<IValidatedControlP
                         name={this.props.name}
                         type={this.props.type}
                         placeholder={this.props.placeholder}
-                        value={this.state.value}
+                        ref={this._input}
+                        value={this._secret ? undefined : this.state.value}
                     >
                         {this.props.children}
                     </Form.Control>

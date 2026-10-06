@@ -5,6 +5,9 @@
 
 import { describe, it, expect } from 'vitest';
 import { DISPLAYABLE_AUTH_ERRORS } from 'modules/auth/util/authErrors';
+import { AMOUNT_CHECK_PROBLEMS, RECIPIENT_PROBLEMS } from 'components/Main/Wallet/validation';
+import { BALANCE_ERRORS } from 'modules/wallet/actions';
+import { TTransferSelfDirection, TTxError } from 'ibax/tx';
 
 // Locale files are fetched at runtime by setLocaleEpic; an invalid file silently falls back to
 // no messages, so validate them here.
@@ -17,6 +20,25 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOCALES_DIR = path.resolve(__dirname, '../../../public/locales');
 const localeFiles: string[] = fs.readdirSync(LOCALES_DIR).filter((f: string) => f.endsWith('.json') && f !== 'index.json');
 const load = (file: string) => JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, file), 'utf8'));
+
+// Every value of these unions; the compiler fails this file when one is added and not listed here
+const TX_ERRORS = [
+    'error', 'info', 'warning', 'panic', 'E_GUEST_VIOLATION', 'E_AUTH_CANCELLED', 'E_INVALID_TRANSFER', 'E_INVALID_PARAM',
+    'E_UNSUPPORTED_PARAM', 'E_INSUFFICIENT_BALANCE', 'E_TX_TIMEOUT', 'E_PENALTY', 'E_DUPLICATE_TX', 'E_CONTRACT', 'E_SERVER'
+] as const satisfies readonly TTxError[];
+const TX_ERRORS_COMPLETE: [Exclude<TTxError, typeof TX_ERRORS[number]>] extends [never] ? true : false = true;
+const DIRECTIONS = ['toAccount', 'toUTXO'] as const satisfies readonly TTransferSelfDirection[];
+const DIRECTIONS_COMPLETE: [Exclude<TTransferSelfDirection, typeof DIRECTIONS[number]>] extends [never] ? true : false = true;
+
+// Messages the app looks up by a code it builds at runtime (ErrorModal, the wallet page)
+const BUILT_KEYS = [
+    // E_AUTH_CANCELLED is never shown
+    ...TX_ERRORS.filter(code => 'E_AUTH_CANCELLED' !== code).map(code => `tx.error.${code}`),
+    ...AMOUNT_CHECK_PROBLEMS.map(problem => `wallet.error.${problem}`),
+    ...RECIPIENT_PROBLEMS.map(problem => `wallet.error.recipient.${problem}`),
+    ...BALANCE_ERRORS.map(code => `wallet.balance.error.${code}`),
+    ...DIRECTIONS.map(direction => `wallet.done.${direction}`)
+];
 
 describe('locales', () => {
     it('rejects an unescaped ASCII quote (positive control)', () => {
@@ -39,6 +61,12 @@ describe('locales', () => {
     it.each(localeFiles)('%s has the same keys as en-US', file => {
         const reference = Object.keys(load('en-US.json')).sort();
         expect(Object.keys(load(file)).sort()).toEqual(reference);
+    });
+
+    it.each(localeFiles)('%s has every message the app looks up by a built key', file => {
+        expect(TX_ERRORS_COMPLETE && DIRECTIONS_COMPLETE).toBe(true);
+        const messages = load(file);
+        expect(BUILT_KEYS.filter(key => !(key in messages))).toEqual([]);
     });
 
     it.each(localeFiles)('%s translates every displayable auth error', file => {

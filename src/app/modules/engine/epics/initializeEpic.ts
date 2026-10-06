@@ -9,11 +9,12 @@ import { catchError, map, mergeMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
 import { initialize, setLocale } from '../actions';
 import platform from 'lib/platform';
+import desktop from 'lib/desktop';
 import { saveWallet, savePreconfiguredNetworks } from 'modules/storage/actions';
 import { createWallet, isValidPrivateKey } from 'lib/keyring';
 import { INetwork } from 'ibax/auth';
 import webConfig from 'lib/settings/webConfig';
-import localeConfig from 'lib/settings/localeConfig';
+import { validateLocaleConfig } from 'lib/settings/localeConfig';
 import ConfigObservable from '../util/ConfigObservable';
 import { acquireSession } from 'modules/auth/actions';
 
@@ -24,7 +25,7 @@ const initializeEpic: Epic = (action$, state$, { defaultPassword }) => action$.p
   mergeMap(action => {
     return zip(
       ConfigObservable('settings').pipe(mergeMap(result => webConfig.validate(result))),
-      ConfigObservable('locales/index').pipe(mergeMap(result => localeConfig.validate(result)))
+      ConfigObservable('locales/index').pipe(mergeMap(result => validateLocaleConfig(result)))
 
     ).pipe(mergeMap(([config, locales]) => {
       const state = state$.value;
@@ -45,9 +46,11 @@ const initializeEpic: Epic = (action$, state$, { defaultPassword }) => action$.p
         });
       }
 
-      // A key passed on the command line is stored as a wallet protected by the default password
-      const preconfiguredWallet = isValidPrivateKey(platform.args.privateKey)
-        ? defer(() => createWallet(platform.args.privateKey, defaultPassword)).pipe(map(wallet => saveWallet(wallet)))
+      // A key passed on the command line of a --dry run (throwaway profile) is stored as a wallet
+      // protected by the default password
+      const launchKey = desktop ? desktop.takeLaunchKey() : null;
+      const preconfiguredWallet = isValidPrivateKey(launchKey)
+        ? defer(() => createWallet(launchKey, defaultPassword)).pipe(map(wallet => saveWallet(wallet)))
         : EMPTY;
 
       config.networks.forEach(network => preconfiguredNetworks.push({

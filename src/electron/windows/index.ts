@@ -13,11 +13,6 @@ export let window: BrowserWindow | null = null;
 export const spawnWindow = () => {
     const wnd = mainWindow(appUrl);
 
-    if (window) {
-        window.close();
-        window.destroy();
-    }
-
     if (process.platform === 'darwin') {
         Menu.setApplicationMenu(menu);
     }

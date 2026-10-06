@@ -10,11 +10,11 @@
 // TransferSelf member makes it a UTXO (type 5) or TransferSelf (type 6) transaction, otherwise
 // Header.ID names the contract to call.
 import { encode } from '@msgpack/msgpack';
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
+import { bytesToHex, concatBytes, hexToBytes } from '@noble/hashes/utils.js';
 import { ITransactionBody, TTransferSelfDirection } from 'ibax/tx';
 import { ICryptoSuiteId } from 'ibax/crypto';
 import { resolveCryptoSuite } from 'lib/crypto/suites';
-import { concatBytes, encodeLengthPlusData } from './convert';
+import { encodeLengthPlusData } from './convert';
 
 export const CLIENT_TX_TYPE = 0x80;
 
@@ -51,6 +51,8 @@ const payloadMembers = (payload: TTxPayload): Omit<ITransactionBody, 'Header' | 
             return { UTXO: { ToID: BigInt(payload.toID), Value: payload.value, Comment: payload.comment } };
         case 'transferSelf':
             return { TransferSelf: { Value: payload.value, ...TRANSFER_SELF_ENDS[payload.direction] } };
+        default:
+            throw new TypeError(`Unknown transaction payload: ${JSON.stringify(payload)}`);
     }
 };
 
@@ -59,19 +61,21 @@ export const signTransaction = (context: ITxContext, payload: TTxPayload, privat
     const publicKey = suite.publicKey(privateKey);
     const body: ITransactionBody = {
         Header: {
-            ID: payload.type === 'contract' ? payload.id : 0,
-            Time: context.time ?? Math.floor(Date.now() / 1000),
-            EcosystemID: context.ecosystemID,
+            ID: BigInt(payload.type === 'contract' ? payload.id : 0),
+            Time: BigInt(context.time ?? Math.floor(Date.now() / 1000)),
+            EcosystemID: BigInt(context.ecosystemID),
             KeyID: BigInt(suite.keyID(publicKey)),
-            NetworkID: context.networkID,
+            NetworkID: BigInt(context.networkID),
             PublicKey: hexToBytes(publicKey)
         },
         ...payloadMembers(payload),
         Lang: 'en'
     };
 
-    // KeyID and ToID are int64 on the node: encode bigints as msgpack int64
-    const buffer = encode(body, { useBigInt64: true });
+    // Integers of the node (header, int / address parameters, ToID) are bigints and encode as
+    // 64-bit integers; every plain number is a float parameter and must encode as float64, which
+    // the node requires even for whole values
+    const buffer = encode(body, { useBigInt64: true, forceIntegerToFloat: true });
     const hash = suite.doubleHash(buffer);
     const signature = hexToBytes(suite.sign(hash, privateKey));
 

@@ -6,7 +6,7 @@
 import React from 'react';
 import { Form } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
-import { fromBaseUnits } from 'lib/tx/amount';
+import { formatAmount } from 'lib/tx/amount';
 import { TAmountCheck } from './validation';
 
 interface Props {
@@ -18,16 +18,20 @@ interface Props {
     digits: number;
     available: string;
     symbol: string;
+    // What "available" means here, e.g. "UTXO balance"
+    availableLabel: React.ReactNode;
     disabled?: boolean;
     onChange: (value: string) => void;
 }
 
 const AmountField: React.FC<Props> = props => {
     const problem = props.touched && 'problem' in props.check ? props.check.problem : null;
+    const hintID = `${props.id}-available`;
+    const errorID = `${props.id}-error`;
     return (
         <Form.Group className="mb-3" controlId={props.id}>
             <Form.Label>
-                <FormattedMessage id="wallet.amount" defaultMessage="Amount" />
+                <FormattedMessage id="wallet.amount" defaultMessage="Amount" /> <span className="wallet__unit">({props.symbol})</span>
             </Form.Label>
             <Form.Control
                 type="text"
@@ -36,10 +40,11 @@ const AmountField: React.FC<Props> = props => {
                 value={props.value}
                 disabled={props.disabled}
                 isInvalid={!!problem}
-                aria-describedby={`${props.id}-available`}
+                aria-invalid={!!problem}
+                aria-describedby={problem ? `${errorID} ${hintID}` : hintID}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.onChange(e.target.value)}
             />
-            <Form.Control.Feedback type="invalid">
+            <Form.Control.Feedback type="invalid" id={errorID}>
                 {problem && (
                     <FormattedMessage
                         id={`wallet.error.${problem}`}
@@ -48,12 +53,8 @@ const AmountField: React.FC<Props> = props => {
                     />
                 )}
             </Form.Control.Feedback>
-            <Form.Text id={`${props.id}-available`} muted>
-                <FormattedMessage
-                    id="wallet.amount.available"
-                    defaultMessage="Available: {amount} {symbol}"
-                    values={{ amount: fromBaseUnits(props.available, props.digits), symbol: props.symbol }}
-                />
+            <Form.Text id={hintID} className="wallet__hint">
+                {props.availableLabel}: {formatAmount(props.available, props.digits)} {props.symbol}
             </Form.Text>
         </Form.Group>
     );

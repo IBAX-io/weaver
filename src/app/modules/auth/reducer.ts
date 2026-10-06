@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as actions from './actions';
+import { saveWallet } from 'modules/storage/actions';
 import { reducerWithInitialState } from 'typescript-fsa-reducers';
 import { ISession, IAccountContext } from 'ibax/auth';
 import { IAccount } from 'ibax/api';
@@ -40,7 +41,6 @@ export type State = {
     readonly importWalletError: string;
     readonly id: string;
     readonly session: ISession;
-    readonly defaultWallet: string;
     readonly wallet: IAccountContext;
     readonly wallets: IAccount[];
     readonly privateKey: string;
@@ -57,7 +57,6 @@ export const initialState: State = {
     importWalletError: null,
     id: null,
     session: null,
-    defaultWallet: null,
     wallet: null,
     privateKey: null,
     wallets: []
@@ -84,4 +83,8 @@ export default reducerWithInitialState<State>(initialState)
     .case(actions.loadWallet, loadWalletHandler)
     .case(actions.acquireSession.started, acquireSessionHandler)
     .case(actions.acquireSession.done, acquireSessionDoneHandler)
-    .case(actions.acquireSession.failed, acquireSessionFailedHandler);
+    .case(actions.acquireSession.failed, acquireSessionFailedHandler)
+    // The signed-in wallet stored again (a new password): unlocking from now on uses the new key
+    .case(saveWallet, (state, wallet) => state.wallet && state.wallet.wallet.walletID === wallet.id
+        ? { ...state, wallet: { ...state.wallet, wallet: { ...state.wallet.wallet, encKey: wallet.encKey } } }
+        : state);

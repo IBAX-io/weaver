@@ -13,13 +13,26 @@ import { fileURLToPath } from 'node:url';
 
 const SRC_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-const FORBIDDEN = [
+// Matched on the source as written: module names are strings
+const IMPORTS = [
     /\brequire\s*\(/,
     /\bfrom\s+['"](?:electron|@electron\/[^'"]+)['"]/,
+    /\bimport\s+['"](?:electron|@electron\/[^'"]+)['"]/,
     /\bimport\s*\(\s*['"](?:electron|@electron\/[^'"]+)['"]\s*\)/,
-    /\bwindow\.require\b/,
-    /\bprocess\.(?:platform|versions|env)\b/
+    /\b(?:window|globalThis|self)\s*\[\s*['"]require['"]\s*\]/
 ];
+
+// Matched on the code only, with string literals and comments blanked out
+const ACCESS = [
+    /\b(?:window|globalThis|self)\s*\.\s*require\b/,
+    /\b(?:window|globalThis)\b(?:\s+as\s+\w+)?\s*\)?\s*\.\s*(?:electron|ipcRenderer)\b/,
+    /(?<![\w.$])process\s*(?:\.\s*\w|\[)/
+];
+
+// Blanks string literals (keeping their quotes) and comments, line by line
+const codeOnly = (line: string) => line
+    .replace(/\/\/.*$/, '')
+    .replace(/'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g, quote => quote[0] + quote[0]);
 
 const walk = (dir: string): string[] =>
     fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
@@ -31,7 +44,10 @@ const walk = (dir: string): string[] =>
     });
 
 export const findDesktopLeaks = (source: string) =>
-    source.split('\n').filter(line => !/^\s*(\/\/|\*)/.test(line) && FORBIDDEN.some(pattern => pattern.test(line)));
+    source.split('\n').filter(line => !/^\s*(\/\/|\*)/.test(line) && (
+        IMPORTS.some(pattern => pattern.test(line)) ||
+        ACCESS.some(pattern => pattern.test(codeOnly(line)))
+    ));
 
 describe('desktop boundary', () => {
     it('detects Node and Electron access (positive control)', () => {
@@ -40,12 +56,29 @@ describe('desktop boundary', () => {
         expect(findDesktopLeaks("import * as remote from '@electron/remote';")).toHaveLength(1);
         expect(findDesktopLeaks("const DarwinTitlebar = require('./DarwinTitlebar').default;")).toHaveLength(1);
         expect(findDesktopLeaks("    os = process.platform;")).toHaveLength(1);
+        // Forms that slipped through an earlier version of this check
+        for (const line of [
+            "import 'electron';",
+            "const r = window['require'];",
+            "const r = globalThis.require('fs');",
+            "const a = process.arch;",
+            "const p = process['platform'];",
+            "(window as any).electron.ipcRenderer.send('x');",
+            "window.ipcRenderer.send('x');"
+        ]) {
+            expect([line, findDesktopLeaks(line)]).toEqual([line, [line]]);
+        }
     });
 
     it('allows the bridge and comments (negative control)', () => {
         expect(findDesktopLeaks("import desktop from 'lib/desktop';\nif (desktop) { desktop.setBadgeCount(1); }")).toEqual([]);
         expect(findDesktopLeaks("// require('electron') is not available here")).toEqual([]);
         expect(findDesktopLeaks("const required = requireAll(list);")).toEqual([]);
+        expect(findDesktopLeaks("const processed = processItems(list);")).toEqual([]);
+        expect(findDesktopLeaks("this.process.start();")).toEqual([]);
+        expect(findDesktopLeaks("if (import.meta.env.DEV) {}")).toEqual([]);
+        expect(findDesktopLeaks('    defaultMessage="This process. Then window.require stays text"')).toEqual([]);
+        expect(findDesktopLeaks("    id=\"process.continue\"")).toEqual([]);
     });
 
     it('src/app reaches the desktop only through lib/desktop', () => {

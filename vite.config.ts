@@ -7,6 +7,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { copyFileSync, cpSync, createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 
@@ -61,10 +62,43 @@ const arcgisAssets = (): Plugin => {
     };
 };
 
+// What the built page may load and run. Pages and stylesheets come from the chain, so whatever slips
+// past the app's own checks still cannot run script, load fonts, post forms or embed plugins.
+// Images and connections stay open: templates show images from anywhere, and the app talks to any
+// node the user adds. The page's own inline script (the SPA redirect in index.html) is allowed by
+// its hash. Not applied to the dev server, whose module reloading injects inline scripts.
+const contentSecurityPolicy = (): Plugin => ({
+    name: 'weaver-csp',
+    apply: 'build',
+    transformIndexHtml: {
+        order: 'post',
+        handler(html) {
+            const inlineScripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)]
+                .map(match => `'sha256-${createHash('sha256').update(match[1]).digest('base64')}'`);
+            const policy = [
+                "default-src 'self'",
+                // wasm-unsafe-eval: ArcGIS compiles WebAssembly (not JavaScript eval)
+                `script-src 'self' 'wasm-unsafe-eval' ${inlineScripts.join(' ')}`,
+                "style-src 'self' 'unsafe-inline'",
+                "img-src 'self' data: blob: http: https:",
+                "media-src 'self' data: blob: http: https:",
+                "font-src 'self' data:",
+                "connect-src 'self' http: https: ws: wss:",
+                "worker-src 'self' blob:",
+                "frame-src 'self'",
+                "object-src 'none'",
+                "base-uri 'none'",
+                "form-action 'none'"
+            ].join('; ');
+            return html.replace('<meta charset="utf-8" />', `<meta charset="utf-8" />\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />`);
+        }
+    }
+});
+
 export default defineConfig(({ mode }) => ({
     // The desktop build is loaded from file://, so asset URLs must be relative
     base: mode === 'desktop' ? './' : '/',
-    plugins: [react(), seedSettings(), arcgisAssets()],
+    plugins: [react(), seedSettings(), arcgisAssets(), contentSecurityPolicy()],
     define: {
         __APP_VERSION__: JSON.stringify(version)
     },

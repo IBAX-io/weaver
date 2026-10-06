@@ -14,6 +14,8 @@ import LocalizedDocumentTitle from 'components/DocumentTitle/LocalizedDocumentTi
 import ContextButton from '../ContextButton';
 import WalletButton from './WalletButton';
 import Welcome from 'components/Auth/Welcome';
+import { ILegacyWallet } from 'lib/crypto/legacyWallet';
+import { formatAddress } from 'lib/crypto/address';
 import Offline from 'containers/Auth/Offline';
 import HeadingNetwork from 'containers/Auth/HeadingNetwork';
 
@@ -32,7 +34,15 @@ export interface IWalletListProps {
   onRegister: (wallet: IAccount) => any;
   onSelect: (params: IAccountContext) => any;
   onGuestLogin: () => any;
+  // Saved by an earlier version: shown so they can be upgraded, never hidden away
+  legacyWallets: ILegacyWallet[];
+  // Stored entries that are not wallets of any known format; kept untouched
+  damagedWallets: number;
+  onUpgrade: (wallet: ILegacyWallet) => any;
 }
+
+const legacyAddress = (wallet: ILegacyWallet) =>
+  /^-?\d+$/.test(wallet.id) ? formatAddress(wallet.id) : wallet.id;
 
 const WalletList: React.FC<IWalletListProps> = (props) => (
   <LocalizedDocumentTitle title="auth.login" defaultTitle="Login">
@@ -75,6 +85,40 @@ const WalletList: React.FC<IWalletListProps> = (props) => (
               ))
             )}
           </div>
+          {(props.legacyWallets.length > 0 || props.damagedWallets > 0) && (
+            <section className="text-start mb-3" aria-labelledby="legacy-wallets-title">
+              <h2 id="legacy-wallets-title" className="h6 mb-1">
+                <FormattedMessage id="auth.legacy.title" defaultMessage="Accounts saved by an earlier version" />
+              </h2>
+              {props.legacyWallets.length > 0 && (
+                <p className="small mb-2">
+                  <FormattedMessage
+                    id="auth.legacy.desc"
+                    defaultMessage="Upgrade each one once with its password before using it."
+                  />
+                </p>
+              )}
+              {props.legacyWallets.map(wallet => (
+                <ContextButton
+                  key={wallet.encKey}
+                  icon="icon-refresh"
+                  onClick={() => props.onUpgrade(wallet)}
+                  description={<span className="font-monospace">{legacyAddress(wallet)}</span>}
+                >
+                  <FormattedMessage id="auth.legacy.upgrade" defaultMessage="Upgrade account" />
+                </ContextButton>
+              ))}
+              {props.damagedWallets > 0 && (
+                <p className="small mb-0">
+                  <FormattedMessage
+                    id="auth.legacy.damaged"
+                    defaultMessage="{count, plural, one {# stored account entry is} other {# stored account entries are}} damaged and cannot be used; they are kept unchanged in the app's data."
+                    values={{ count: props.damagedWallets }}
+                  />
+                </p>
+              )}
+            </section>
+          )}
           <div className="text-start">
             <ContextButton
               icon="icon-plus"

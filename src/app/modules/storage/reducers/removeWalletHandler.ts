@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { State } from '../reducer';
-import { removeWallet } from '../actions';
+import { removeStoredWallet } from '../actions';
 import { Reducer } from 'modules';
 
-const removeWalletHandler: Reducer<typeof removeWallet, State> = (state, payload) => ({
+const removeWalletHandler: Reducer<typeof removeStoredWallet, State> = (state, payload) => ({
     ...state,
     wallets: state.wallets.filter(l => l.id !== payload)
 });
