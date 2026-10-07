@@ -7,7 +7,8 @@ import { describe, it, expect } from 'vitest';
 import { combineReducers } from 'redux';
 import rootReducer from 'modules';
 import { createWallet } from 'lib/keyring';
-import { logout, selectWallet } from 'modules/auth/actions';
+import { authorize, deauthorize, login, loginGuest, logout, selectWallet } from 'modules/auth/actions';
+import { DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
 import { saveWallet } from './actions';
 
 // The whole store, the way the app runs it: every slice sees every action
@@ -28,13 +29,44 @@ describe('stored wallets across sign-in and sign-out', () => {
             wallet: { id: '1', walletID: a.id, address: '', encKey: a.encKey, publicKey: '', access: [] },
             access: { ecosystem: '1', name: '', roles: [], notifications: [] }
         }));
-        // Signed out: the context stays, its wallet is gone
         state = reducer(state, logout.done({ params: null, result: null }));
-        expect(state.auth.wallet.wallet).toBeNull();
+        expect(state.auth.wallet).toBeNull();
 
         state = reducer(state, saveWallet(b));
         expect(state.storage.wallets.map(wallet => wallet.id)).toEqual([a.id, b.id]);
     }, 20000);
+
+    // Code everywhere reads `auth.wallet && auth.wallet.wallet.address`: a context without its account
+    // passes that check and crashes (twice: saving a wallet after signing out, a transfer confirmed
+    // after it). The open account is all there or not there, whatever the session goes through.
+    it('never leaves half an account open: the context is complete or null', () => {
+        const session = { network: { uuid: 'testnet', apiHost: 'http://node' }, sessionToken: 'token', cryptoSuite: DEFAULT_CRYPTO_SUITE };
+        const context = (id: string, ecosystem: string) => ({
+            wallet: { id, walletID: id, address: `000${id}`, encKey: 'enc', publicKey: 'pub', access: [] },
+            access: { ecosystem, name: '', roles: [], notifications: [] }
+        });
+        const steps = [
+            loginGuest.done({ params: null, result: { privateKey: 'k', publicKey: 'p', wallet: context('guest', '1'), session } }),
+            logout.done({ params: null, result: null }),
+            selectWallet(context('a', '1')),
+            login.done({ params: { password: 'x' }, result: { session, privateKey: 'k', publicKey: 'p' } }),
+            authorize('k'),
+            deauthorize(null),
+            selectWallet(context('a', '2')),
+            logout.done({ params: null, result: null }),
+            saveWallet({ id: 'a', encKey: 'new', identities: {} }),
+            logout.done({ params: null, result: null }),
+            selectWallet(context('b', '1'))
+        ];
+        let state = reducer(undefined, { type: '@@weaver/INIT' });
+        for (const step of steps) {
+            state = reducer(state, step);
+            const open = state.auth.wallet;
+            expect([step.type, null === open || Boolean(open.wallet && open.access)]).toEqual([step.type, true]);
+        }
+        // Positive control: the run ends with an account open, so the check saw both shapes
+        expect(state.auth.wallet.wallet.id).toBe('b');
+    });
 
     it('signs out cleanly when no wallet was ever chosen', () => {
         const state = reducer(reducer(undefined, { type: '@@weaver/INIT' }), logout.done({ params: null, result: null }));
