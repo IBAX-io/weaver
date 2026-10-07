@@ -5,15 +5,19 @@
 
 import React, { useEffect } from 'react';
 import { Alert, Button, Card, Col, Row, Spinner } from 'react-bootstrap';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
+import CopyToClipboard from 'react-copy-to-clipboard';
 import { useAppDispatch, useAppSelector } from 'lib/hooks';
-import { BALANCE_ERRORS, fetchBalance, ISendTransferCall, sendTransfer } from 'modules/wallet/actions';
+import { fetchBalance, fetchHistory, ISendTransferCall, sendTransfer, walletErrorCode } from 'modules/wallet/actions';
+import { DEFAULT_HISTORY_FILTER, THistoryFilter } from 'modules/wallet/history';
+import { sameOwner } from 'modules/wallet/reducer';
 import { formatAddress } from 'lib/crypto/address';
 import { formatAmount } from 'lib/tx/amount';
 import themed from 'components/Theme/themed';
 import UtxoTransferForm from './UtxoTransferForm';
 import TransferSelfForm from './TransferSelfForm';
 import BalanceAmount from './BalanceAmount';
+import History from './History';
 
 const StyledWallet = themed.section`
     flex: 1;
@@ -50,6 +54,46 @@ const StyledWallet = themed.section`
         white-space: nowrap;
     }
 
+    /* History: what happened on the left, the amount on the right (below it on a narrow card) */
+    .wallet__history-entry {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 4px 16px;
+        padding: 10px 0;
+        border-top: 1px solid var(--bs-border-color);
+    }
+
+    .wallet__history-main {
+        flex: 1 1 260px;
+        min-width: 0;
+    }
+
+    /* Pushed right also when it wraps under the text */
+    .wallet__history-amount {
+        margin-left: auto;
+        text-align: end;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* An icon button with room enough to hit (24px) */
+    .wallet__history-copy {
+        min-width: 24px;
+        min-height: 24px;
+        padding: 0 4px;
+    }
+
+    .wallet__history-penalty {
+        white-space: normal;
+        text-align: start;
+    }
+
+    /* The theme's .btn has no border, which left the outline buttons as bare words */
+    .wallet__history-filter .btn-outline-primary {
+        border: 1px solid var(--bs-btn-border-color);
+    }
+
     /* Secondary text that still has to be read: the theme's body color, not the faint muted grey */
     .wallet__hint,
     .wallet__unit {
@@ -74,6 +118,7 @@ const BALANCES = [
 
 const Wallet: React.FC = () => {
     const dispatch = useAppDispatch();
+    const intl = useIntl();
     const account = useAppSelector(state => state.auth.wallet);
     const isDemo = useAppSelector(state => state.auth.isDefaultWallet);
     const wallet = useAppSelector(state => state.wallet);
@@ -81,9 +126,17 @@ const Wallet: React.FC = () => {
     const address = account && account.wallet && account.wallet.address;
     const ecosystem = account && account.access && account.access.ecosystem;
 
+    // Shown only while it is this account's and ecosystem's, like the balance
+    const history = address && ecosystem && sameOwner(wallet.history, { account: address, ecosystem }) ? wallet.history : null;
+    const historyFilter: THistoryFilter = history ? history.filter : DEFAULT_HISTORY_FILTER;
+    // From the newest row, or the rows older than the oldest shown
+    const loadHistory = (filter: THistoryFilter, before: string | null = null) =>
+        dispatch(fetchHistory.started({ account: address, ecosystem, filter, before }));
+
     useEffect(() => {
         if (address && ecosystem) {
             dispatch(fetchBalance.started({ account: address, ecosystem }));
+            dispatch(fetchHistory.started({ account: address, ecosystem, filter: DEFAULT_HISTORY_FILTER, before: null }));
         }
     }, [dispatch, address, ecosystem]);
 
@@ -98,12 +151,9 @@ const Wallet: React.FC = () => {
     }
 
     // Never show the balance of an account or ecosystem the user has switched away from
-    const balance = wallet.balance && wallet.balance.account === address && wallet.balance.ecosystem === ecosystem
-        ? wallet.balance
-        : null;
+    const balance = sameOwner(wallet.balance, { account: address, ecosystem }) ? wallet.balance : null;
     const onSubmit = (call: ISendTransferCall) => dispatch(sendTransfer.started(call));
     const formsDisabled = isDemo || null !== wallet.transferPending;
-    const errorCode = wallet.balanceError && BALANCE_ERRORS.includes(wallet.balanceError) ? wallet.balanceError : 'E_SERVER';
     const last = wallet.lastTransfer;
 
     return (
@@ -130,7 +180,10 @@ const Wallet: React.FC = () => {
                         size="sm"
                         disabled={wallet.balancePending}
                         aria-busy={wallet.balancePending}
-                        onClick={() => dispatch(fetchBalance.started({ account: address, ecosystem }))}
+                        onClick={() => {
+                            dispatch(fetchBalance.started({ account: address, ecosystem }));
+                            loadHistory(historyFilter);
+                        }}
                     >
                         {wallet.balancePending && <Spinner as="span" animation="border" size="sm" className="me-2" aria-hidden="true" />}
                         <FormattedMessage id="wallet.balance.refresh" defaultMessage="Refresh" />
@@ -141,13 +194,13 @@ const Wallet: React.FC = () => {
                 <div role="status" aria-live="polite">
                     {!balance && !wallet.balanceError && (
                         <p>
-                            <Spinner animation="border" size="sm" className="me-2" aria-hidden="true" />
+                            <Spinner as="span" animation="border" size="sm" className="me-2" aria-hidden="true" />
                             <FormattedMessage id="wallet.balance.loading" defaultMessage="Loading balance…" />
                         </p>
                     )}
                     {wallet.balanceError && (
                         <Alert variant={balance ? 'warning' : 'danger'}>
-                            <FormattedMessage id={`wallet.balance.error.${errorCode}`} defaultMessage="Could not load the balance." />
+                            <FormattedMessage id={`wallet.balance.error.${walletErrorCode(wallet.balanceError)}`} defaultMessage="Could not load the balance." />
                             {balance && (
                                 <>
                                     {' '}
@@ -179,9 +232,29 @@ const Wallet: React.FC = () => {
                                 />
                             )}
                             {last.result.hash && (
-                                <div className="small font-monospace text-break">
-                                    <FormattedMessage id="wallet.done.hash" defaultMessage="Transaction {hash}" values={{ hash: last.result.hash }} />
-                                </div>
+                                <>
+                                    <div className="small font-monospace text-break">
+                                        <FormattedMessage id="wallet.done.hash" defaultMessage="Transaction {hash}" values={{ hash: last.result.hash }} />
+                                        <CopyToClipboard text={last.result.hash}>
+                                            <Button
+                                                variant="link"
+                                                size="sm"
+                                                className="wallet__history-copy align-baseline icon-docs"
+                                                aria-label={intl.formatMessage({ id: 'wallet.history.copyHash', defaultMessage: 'Copy the transaction hash' })}
+                                                title={intl.formatMessage({ id: 'wallet.history.copyHash', defaultMessage: 'Copy the transaction hash' })}
+                                            />
+                                        </CopyToClipboard>
+                                    </div>
+                                    {/* Said where the transfer happens: the history below never shows it */}
+                                    {'utxo' === last.call.transfer.type && (
+                                        <div className="small mt-1">
+                                            <FormattedMessage
+                                                id="wallet.done.utxo.history"
+                                                defaultMessage="It will not appear in the history below, because the node keeps no history of UTXO transfers. Keep the transaction hash."
+                                            />
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </Alert>
                     )}
@@ -191,7 +264,7 @@ const Wallet: React.FC = () => {
                     <Alert variant="info">
                         <FormattedMessage
                             id="wallet.demo"
-                            defaultMessage="The demo account's key is public, so it can only view balances. Sign in with your own account to send tokens."
+                            defaultMessage="The demo account's key is public, so it can only view balances and history. Sign in with your own account to send tokens."
                         />
                     </Alert>
                 )}
@@ -234,6 +307,23 @@ const Wallet: React.FC = () => {
                                 />
                             </Col>
                         </Row>
+
+                        <History
+                            filter={historyFilter}
+                            entries={history ? history.entries : null}
+                            more={history ? history.more : 0}
+                            pending={wallet.historyPending}
+                            error={wallet.historyError}
+                            digits={balance.value.digits}
+                            symbol={balance.value.token_symbol}
+                            onFilter={filter => loadHistory(filter)}
+                            onMore={() => {
+                                const shown = history && history.entries;
+                                if (shown && shown.length > 0) {
+                                    loadHistory(historyFilter, shown[shown.length - 1].id);
+                                }
+                            }}
+                        />
                     </>
                 )}
             </div>

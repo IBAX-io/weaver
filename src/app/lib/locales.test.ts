@@ -6,7 +6,8 @@
 import { describe, it, expect } from 'vitest';
 import { DISPLAYABLE_AUTH_ERRORS } from 'modules/auth/util/authErrors';
 import { AMOUNT_CHECK_PROBLEMS, RECIPIENT_PROBLEMS } from 'components/Main/Wallet/validation';
-import { BALANCE_ERRORS } from 'modules/wallet/actions';
+import { WALLET_ERRORS } from 'modules/wallet/actions';
+import { THistoryFilter } from 'modules/wallet/history';
 import { TTransferSelfDirection, TTxError } from 'ibax/tx';
 
 // Locale files are fetched at runtime by setLocaleEpic; an invalid file silently falls back to
@@ -36,7 +37,9 @@ const BUILT_KEYS = [
     ...TX_ERRORS.filter(code => 'E_AUTH_CANCELLED' !== code).map(code => `tx.error.${code}`),
     ...AMOUNT_CHECK_PROBLEMS.map(problem => `wallet.error.${problem}`),
     ...RECIPIENT_PROBLEMS.map(problem => `wallet.error.recipient.${problem}`),
-    ...BALANCE_ERRORS.map(code => `wallet.balance.error.${code}`),
+    ...WALLET_ERRORS.map(code => `wallet.balance.error.${code}`),
+    ...WALLET_ERRORS.map(code => `wallet.history.error.${code}`),
+    ...(['transfers', 'fees', 'all'] as const satisfies readonly THistoryFilter[]).map(filter => `wallet.history.empty.${filter}`),
     ...DIRECTIONS.map(direction => `wallet.done.${direction}`)
 ];
 

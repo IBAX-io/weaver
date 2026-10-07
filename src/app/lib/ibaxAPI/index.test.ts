@@ -438,3 +438,25 @@ test('ContentTest', () => {
         });
     });
 });
+test('ListWhere', () => {
+    return paramTestingAPIMock().listWhere({
+        name: 'history',
+        where: { ecosystem: '1', $or: [{ sender_id: '-12' }, { recipient_id: '-12' }] },
+        order: { id: -1 },
+        columns: ['amount', 'type'],
+        limit: 25,
+        offset: 50
+    }).then((response: any) => {
+        // A form, as go-ibax listWhereForm reads it: where and order as JSON text
+        expect(response).toEqual({
+            __requestUrl: `${paramTestingAPIHost}/${paramTestingAPIEndpoint}/listWhere/history`,
+            body: mockFormData({
+                where: '{"ecosystem":"1","$or":[{"sender_id":"-12"},{"recipient_id":"-12"}]}',
+                order: '{"id":-1}',
+                columns: 'amount,type',
+                limit: 25,
+                offset: 50
+            })
+        });
+    });
+});

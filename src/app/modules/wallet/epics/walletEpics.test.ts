@@ -14,7 +14,9 @@ import { IBalanceResponse, IKeyInfo } from 'ibax/api';
 import { modalClose, modalShow } from 'modules/modal/actions';
 import { txCall, txExec } from 'modules/tx/actions';
 import { logout } from 'modules/auth/actions';
-import { fetchBalance, ISendTransferCall, sendTransfer } from '../actions';
+import { fetchBalance, fetchHistory, IHistoryPageRequest, ISendTransferCall, sendTransfer } from '../actions';
+import { parseAddress } from 'lib/crypto/address';
+import { fetchHistoryEpic, reloadHistoryEpic } from './fetchHistoryEpic';
 import reducer, { initialState } from '../reducer';
 import fetchBalanceEpic from './fetchBalanceEpic';
 import sendTransferEpic from './sendTransferEpic';
@@ -186,6 +188,98 @@ describe('fetchBalanceEpic', () => {
     });
 });
 
+describe('fetchHistoryEpic', () => {
+    const KEY_ID = parseAddress(OWNER.account);
+    const REQUEST = { ...OWNER, filter: 'transfers' as const, before: '30' };
+    const ROW = {
+        id: '7', sender_id: KEY_ID, recipient_id: KEY_ID, amount: '5000', comment: 'Account', type: '24', status: '0',
+        block_id: '10', txhash: '', created_at: '1791298425080'
+    };
+    const historyClient = (...responses: unknown[]) => {
+        const client = new IbaxAPI({ apiHost: 'http://node' });
+        const spy = vi.spyOn(client, 'listWhere');
+        for (const response of responses) {
+            spy.mockImplementationOnce(() => (response instanceof Promise ? response : Promise.resolve(response)) as never);
+        }
+        return client;
+    };
+
+    it('asks the node for the page of the account\'s rows in the ecosystem older than the last shown', async () => {
+        const client = historyClient({ count: 26, list: [ROW] });
+        const output = await runEpic(fetchHistoryEpic, [fetchHistory.started(REQUEST)], signedIn(false), { api: () => client });
+        expect(client.listWhere).toHaveBeenCalledWith({
+            name: 'history',
+            where: { ecosystem: OWNER.ecosystem, $or: [{ sender_id: KEY_ID }, { recipient_id: KEY_ID }], type: { $nin: ['1', '2', '15', '16'] }, id: { $lt: '30' } },
+            order: { id: -1 },
+            columns: ['sender_id', 'recipient_id', 'amount', 'comment', 'type', 'status', 'block_id', 'txhash', 'created_at'],
+            // One more than shown: whether older rows remain
+            limit: 26
+        });
+        expect(output).toEqual([fetchHistory.done({
+            params: REQUEST,
+            result: { more: 0, entries: [{ id: '7', time: 1791298425080, blockID: '10', hash: '', amount: '5000', comment: 'Account', kind: 'move', to: 'utxo' }] }
+        })]);
+    });
+
+    it('refuses a page it cannot show whole, and an address it cannot read', async () => {
+        const broken = await runEpic(fetchHistoryEpic, [fetchHistory.started(REQUEST)], signedIn(false), { api: () => historyClient({ count: 2, list: [ROW, { ...ROW, id: '6', amount: '1.5' }] }) });
+        expect(broken).toEqual([fetchHistory.failed({ params: REQUEST, error: 'E_INVALID_RESPONSE' })]);
+
+        const client = historyClient();
+        const bad = { ...REQUEST, account: '0000-0000-0000-0000-0001' };
+        expect(await runEpic(fetchHistoryEpic, [fetchHistory.started(bad)], signedIn(false), { api: () => client })).toEqual([fetchHistory.failed({ params: bad, error: 'E_INVALIDWALLET' })]);
+        expect(client.listWhere).not.toHaveBeenCalled();
+    });
+
+    it('answers only the newest request when an older one comes back later', async () => {
+        let answerOlder: (value: unknown) => void;
+        const older = new Promise(resolve => {
+            answerOlder = resolve;
+        });
+        const client = historyClient(older, { count: 1, list: [ROW] });
+        const first = { ...REQUEST, before: null };
+        const respond = (action: Action) => {
+            // The newer request goes out while the older one is in flight, then the older one answers
+            if (fetchHistory.done.match(action)) {
+                answerOlder({ count: 1, list: [{ ...ROW, id: '9' }] });
+            }
+            return [];
+        };
+        const out = await runEpicLoop(fetchHistoryEpic, [fetchHistory.started(REQUEST), fetchHistory.started(first)], { respond, state: signedIn(false), dependencies: { api: () => client } });
+        expect(out.filter(action => fetchHistory.done.match(action))).toEqual([
+            fetchHistory.done({ params: first, result: { more: 0, entries: [expect.objectContaining({ id: '7' })] } })
+        ]);
+    });
+
+    it('drops the answer of a request made before signing out', async () => {
+        let answer: (value: unknown) => void;
+        const client = historyClient(new Promise(resolve => {
+            answer = resolve;
+        }));
+        const respond = (action: Action) => {
+            if (logout.started.match(action)) {
+                answer({ count: 1, list: [ROW] });
+            }
+            return [];
+        };
+        const out = await runEpicLoop(fetchHistoryEpic, [fetchHistory.started(REQUEST), logout.started(null)], { respond, state: signedIn(false), dependencies: { api: () => client } });
+        expect(types(out)).toEqual([fetchHistory.started.type, logout.started.type]);
+    });
+
+    it('starts the open wallet\'s history over once a transfer went through, keeping its filter', async () => {
+        const state = signedIn(false);
+        state.wallet = { ...state.wallet, history: { ...OWNER, filter: 'fees', entries: [], more: 0 } };
+        const done = sendTransfer.done({ params: CALL, result: { hash: 'ab' } });
+        expect(await runEpic(reloadHistoryEpic, [done], state)).toEqual([fetchHistory.started({ ...OWNER, filter: 'fees', before: null })]);
+        // Nothing shown yet: nothing to start over
+        expect(await runEpic(reloadHistoryEpic, [done], signedIn(false))).toEqual([]);
+        // The history shown is another wallet's than the one open now
+        const other = signedIn(false, '5');
+        other.wallet = { ...other.wallet, history: { ...OWNER, filter: 'fees', entries: [], more: 0 } };
+        expect(await runEpic(reloadHistoryEpic, [done], other)).toEqual([]);
+    });
+});
+
 describe('wallet reducer', () => {
     const loaded = reducer(initialState, fetchBalance.done({ params: OWNER, result: { value: BALANCE, fee: FEE } }));
 
@@ -206,6 +300,60 @@ describe('wallet reducer', () => {
         const done = reducer(loaded, sendTransfer.done({ params: CALL, result: { hash: 'ab' } }));
         expect(reducer(done, fetchBalance.started(OWNER)).lastTransfer).toEqual({ call: CALL, result: { hash: 'ab' } });
         expect(reducer(done, fetchBalance.started({ ...OWNER, ecosystem: '3' })).lastTransfer).toBeNull();
+    });
+
+    describe('history', () => {
+        const entry = (id: string) => ({ id, time: 1, blockID: '1', hash: '', amount: '1', comment: '', kind: 'created' as const });
+        const first: IHistoryPageRequest = { ...OWNER, filter: 'transfers', before: null };
+        const page = (request: IHistoryPageRequest, ids: string[], more: number) =>
+            fetchHistory.done({ params: request, result: { entries: ids.map(entry), more } });
+        const loadedHistory = reducer(reducer(initialState, fetchHistory.started(first)), page(first, ['5', '4'], 2));
+
+        it('adds the rows older than the last one shown, until there are none', () => {
+            const next = { ...first, before: '4' };
+            const more = reducer(reducer(loadedHistory, fetchHistory.started(next)), page(next, ['3', '2'], 0));
+            expect(more.history.entries.map(e => e.id)).toEqual(['5', '4', '3', '2']);
+            expect(more.history.more).toBe(0);
+        });
+
+        // Regression: paging by offset stuck at "N - 1 of N" once a row arrived on top meanwhile
+        it('pages to the end while new rows arrive on top', () => {
+            // The node's rows, newest first; a new one (6) is written after the first page
+            const rows = ['6', '5', '4', '3', '2', '1'];
+            const answer = (before: string | null) => {
+                const older = rows.filter(id => null === before || Number(id) < Number(before));
+                return { entries: older.slice(0, 2).map(entry), more: older.length - Math.min(2, older.length) };
+            };
+            let state = reducer(initialState, fetchHistory.started(first));
+            state = reducer(state, fetchHistory.done({ params: first, result: answer(null) }));
+            for (let guard = 0; state.history.more > 0 && guard < 10; guard++) {
+                const shown = state.history.entries;
+                const next = { ...first, before: shown[shown.length - 1].id };
+                state = reducer(reducer(state, fetchHistory.started(next)), fetchHistory.done({ params: next, result: answer(next.before) }));
+            }
+            expect(state.history.entries.map(e => e.id)).toEqual(['6', '5', '4', '3', '2', '1']);
+            expect(state.history.more).toBe(0);
+        });
+
+        it('shows the filter asked for while it loads, and never mixes in another filter\'s rows', () => {
+            const fees: IHistoryPageRequest = { ...first, filter: 'fees' };
+            const switching = reducer(loadedHistory, fetchHistory.started(fees));
+            expect(switching.history).toEqual({ ...OWNER, filter: 'fees', entries: null, more: 0 });
+            // The transfers answer arriving late is dropped
+            const late = reducer(switching, page(first, ['9'], 0));
+            expect(late.history.entries).toBeNull();
+            expect(reducer(switching, fetchHistory.failed({ params: first, error: 'E_OFFLINE' })).historyError).toBeNull();
+            // So is a next page that no longer follows the rows shown
+            expect(reducer(switching, page({ ...fees, before: '4' }, ['3'], 0)).history.entries).toBeNull();
+            expect(reducer(loadedHistory, page({ ...first, before: '9' }, ['3'], 0)).history.entries.map(e => e.id)).toEqual(['5', '4']);
+        });
+
+        it('keeps the rows shown when loading more fails, and forgets them on signing out', () => {
+            const failed = reducer(loadedHistory, fetchHistory.failed({ params: { ...first, before: '4' }, error: 'E_OFFLINE' }));
+            expect(failed.history.entries.map(e => e.id)).toEqual(['5', '4']);
+            expect(failed.historyError).toBe('E_OFFLINE');
+            expect(reducer(failed, logout.started(null))).toEqual(initialState);
+        });
     });
 
     it('resets only the form of the kind of transfer that went through', () => {

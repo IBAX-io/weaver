@@ -279,6 +279,24 @@ declare module 'ibax/api' {
     columns?: string[];
   }
 
+  // POST /listWhere/{name}: rows matching a go-ibax queryBuilder where (every value a string)
+  interface IListWhereRequest {
+    name: string;
+    where: object;
+    // {"column": -1} for descending
+    order?: object;
+    columns?: string[];
+    // At most 1000 (go-ibax paginatorForm)
+    limit?: number;
+    offset?: number;
+  }
+
+  interface IListWhereResponse {
+    count: number;
+    // Every value a string; NULL as "NULL", bytea as lower-case hex; no rows as null
+    list: { [column: string]: string }[] | null;
+  }
+
   interface IDataResponse {
     count: string;
     list: {

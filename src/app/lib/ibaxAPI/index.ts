@@ -7,7 +7,7 @@ import queryString from 'query-string';
 import urlJoin from 'url-join';
 import { cryptoSuiteFromNode } from 'lib/crypto/suites';
 import urlTemplate from 'url-template';
-import { IUIDResponse, ILoginRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo, IBalanceRequest, IBalanceResponse } from 'ibax/api';
+import { IUIDResponse, ILoginRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, IListWhereRequest, IListWhereResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo, IBalanceRequest, IBalanceResponse } from 'ibax/api';
 
 import { UntrustedNodeError } from './errors';
 
@@ -266,6 +266,16 @@ class IbaxAPI {
   public getData = this.setSecuredEndpoint<IDataRequest, IDataResponse>('get', 'list/{name}', {
     requestTransformer: request => ({
       columns: (request.columns || []).join(',')
+    })
+  });
+
+  public listWhere = this.setSecuredEndpoint<IListWhereRequest, IListWhereResponse>('post', 'listWhere/{name}', {
+    requestTransformer: request => ({
+      where: JSON.stringify(request.where),
+      order: request.order ? JSON.stringify(request.order) : undefined,
+      columns: request.columns ? request.columns.join(',') : undefined,
+      limit: request.limit,
+      offset: request.offset
     })
   });
 

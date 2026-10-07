@@ -7,12 +7,16 @@ import { actionCreatorFactory } from 'typescript-fsa';
 import { IBalanceResponse } from 'ibax/api';
 import { ITxError, TTransferCall } from 'ibax/tx';
 import { IConfirmModalProps } from 'components/Modal/ConfirmModal';
+import { THistoryEntry, THistoryFilter } from './history';
 
 // The ecosystem whose UTXO pays the fees of UTXO transfers (go-ibax consts.DefaultTokenEcosystem)
 export const FEE_ECOSYSTEM = '1';
 
-// Balance errors with their own explanation (wallet.balance.error.<code>); others show E_SERVER's
-export const BALANCE_ERRORS = ['E_OFFLINE', 'E_INVALIDWALLET', 'E_INVALID_RESPONSE', 'E_SERVER'];
+// Errors loading the balance or the history with their own explanation (wallet.balance.error.<code>,
+// wallet.history.error.<code>); others show E_SERVER's
+export const WALLET_ERRORS = ['E_OFFLINE', 'E_INVALIDWALLET', 'E_INVALID_RESPONSE', 'E_SERVER'];
+
+export const walletErrorCode = (error: string) => WALLET_ERRORS.includes(error) ? error : 'E_SERVER';
 
 export interface IBalanceOwner {
     // Account address as the node formats it
@@ -39,6 +43,20 @@ export interface ITransferResult {
     hash: string;
 }
 
+// A page of the account's history in one ecosystem
+export interface IHistoryPageRequest extends IBalanceOwner {
+    filter: THistoryFilter;
+    // The oldest row shown, to load the rows older than it; null starts over from the newest
+    before: string | null;
+}
+
+export interface IHistoryPage {
+    entries: THistoryEntry[];
+    // Rows older than this page's
+    more: number;
+}
+
 const actionCreator = actionCreatorFactory('wallet');
 export const fetchBalance = actionCreator.async<IBalanceOwner, IWalletBalance, string>('FETCH_BALANCE');
 export const sendTransfer = actionCreator.async<ISendTransferCall, ITransferResult, ITxError | null>('SEND_TRANSFER');
+export const fetchHistory = actionCreator.async<IHistoryPageRequest, IHistoryPage, string>('FETCH_HISTORY');
