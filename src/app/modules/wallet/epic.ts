@@ -7,10 +7,13 @@ import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
 import fetchBalanceEpic from './epics/fetchBalanceEpic';
 import sendTransferEpic from './epics/sendTransferEpic';
 import { fetchHistoryEpic, reloadHistoryEpic } from './epics/fetchHistoryEpic';
+import { fetchUtxoHistoryEpic, reloadUtxoHistoryEpic } from './epics/fetchUtxoHistoryEpic';
 
 export default combineIsolatedEpics({
     fetchBalanceEpic,
     sendTransferEpic,
     fetchHistoryEpic,
-    reloadHistoryEpic
+    reloadHistoryEpic,
+    fetchUtxoHistoryEpic,
+    reloadUtxoHistoryEpic
 });

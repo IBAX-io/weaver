@@ -9,7 +9,7 @@ import { cryptoSuiteFromNode } from 'lib/crypto/suites';
 import urlTemplate from 'url-template';
 import { IUIDResponse, ILoginRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, IListWhereRequest, IListWhereResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo, IBalanceRequest, IBalanceResponse } from 'ibax/api';
 
-import { UntrustedNodeError } from './errors';
+import { isApiError, UntrustedNodeError } from './errors';
 
 export type TRequestMethod =
   'get' |
@@ -146,6 +146,10 @@ class IbaxAPI {
       if (!e) {
         json = { error: 'E_OFFLINE' };
       }
+      // Already an API error (the transport's own E_OFFLINE): passed on as it is, not wrapped again
+      else if (isApiError(e)) {
+        json = e;
+      }
       else if (e && e.message && ('Failed to fetch' === e.message || -1 !== e.message.indexOf('ECONNREFUSED'))) {
         json = { error: 'E_OFFLINE' };
       }
@@ -267,6 +271,13 @@ class IbaxAPI {
     requestTransformer: request => ({
       columns: (request.columns || []).join(',')
     })
+  });
+
+  // A transaction as the node recorded it, with the response text as it came: the node writes a
+  // UTXO transfer's ToID as a bare JSON number, an int64 that JSON.parse rounds
+  public txInfo = this.setEndpoint<{ hash: string }, { json: unknown, text: string }>('get', 'txinfo/{hash}', {
+    requestTransformer: () => ({ contractinfo: 'true' }),
+    responseTransformer: (json, text) => ({ json, text })
   });
 
   public listWhere = this.setSecuredEndpoint<IListWhereRequest, IListWhereResponse>('post', 'listWhere/{name}', {

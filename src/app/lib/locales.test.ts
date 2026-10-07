@@ -39,6 +39,7 @@ const BUILT_KEYS = [
     ...RECIPIENT_PROBLEMS.map(problem => `wallet.error.recipient.${problem}`),
     ...WALLET_ERRORS.map(code => `wallet.balance.error.${code}`),
     ...WALLET_ERRORS.map(code => `wallet.history.error.${code}`),
+    ...WALLET_ERRORS.map(code => `wallet.utxoHistory.error.${code}`),
     ...(['transfers', 'fees', 'all'] as const satisfies readonly THistoryFilter[]).map(filter => `wallet.history.empty.${filter}`),
     ...DIRECTIONS.map(direction => `wallet.done.${direction}`)
 ];

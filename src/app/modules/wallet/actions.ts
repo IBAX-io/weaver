@@ -8,12 +8,14 @@ import { IBalanceResponse } from 'ibax/api';
 import { ITxError, TTransferCall } from 'ibax/tx';
 import { IConfirmModalProps } from 'components/Modal/ConfirmModal';
 import { THistoryEntry, THistoryFilter } from './history';
+import { IExplorerCursor, IIncompleteBlock, TUtxoHistoryEntry } from './utxoHistory';
 
 // The ecosystem whose UTXO pays the fees of UTXO transfers (go-ibax consts.DefaultTokenEcosystem)
 export const FEE_ECOSYSTEM = '1';
 
-// Errors loading the balance or the history with their own explanation (wallet.balance.error.<code>,
-// wallet.history.error.<code>); others show E_SERVER's
+// Errors loading the balance, the history or the UTXO transfers with their own explanation
+// (wallet.balance.error.<code>, wallet.history.error.<code>, wallet.utxoHistory.error.<code>);
+// others show E_SERVER's
 export const WALLET_ERRORS = ['E_OFFLINE', 'E_INVALIDWALLET', 'E_INVALID_RESPONSE', 'E_SERVER'];
 
 export const walletErrorCode = (error: string) => WALLET_ERRORS.includes(error) ? error : 'E_SERVER';
@@ -60,3 +62,26 @@ const actionCreator = actionCreatorFactory('wallet');
 export const fetchBalance = actionCreator.async<IBalanceOwner, IWalletBalance, string>('FETCH_BALANCE');
 export const sendTransfer = actionCreator.async<ISendTransferCall, ITransferResult, ITxError | null>('SEND_TRANSFER');
 export const fetchHistory = actionCreator.async<IHistoryPageRequest, IHistoryPage, string>('FETCH_HISTORY');
+
+// A page of the account's UTXO transfers in one ecosystem
+export interface IUtxoHistoryRequest extends IBalanceOwner {
+    // Where to go on in the explorer's list; null starts over from its newest transaction
+    cursor: IExplorerCursor | null;
+}
+
+export interface IUtxoHistoryPage {
+    entries: TUtxoHistoryEntry[];
+    // Where the next page goes on; null when the explorer's list is gone through
+    next: IExplorerCursor | null;
+    // The account's transactions of every kind gone through in the explorer for this page, and in
+    // all (as the explorer counts them)
+    checked: number;
+    total: number;
+    // Blocks too large to be read whole: transfers in them may be missing
+    incomplete: IIncompleteBlock[];
+}
+
+// No block explorer is configured for the network: its UTXO transfers cannot be listed
+export const E_NO_EXPLORER = 'E_NO_EXPLORER';
+
+export const fetchUtxoHistory = actionCreator.async<IUtxoHistoryRequest, IUtxoHistoryPage, string>('FETCH_UTXO_HISTORY');

@@ -20,6 +20,9 @@ declare module 'ibax/auth' {
     socketUrl?: string;
     activationEmail?: string;
     demoEnabled?: boolean;
+    // The network's block explorer API (scan.ibax.network's /api/v2), which indexes every account's
+    // transactions; the node keeps no list of an account's UTXO transfers
+    explorer?: string;
   }
 
   interface IWalletIdentity {

@@ -13,7 +13,7 @@ import desktop from 'lib/desktop';
 import { saveWallet, savePreconfiguredNetworks } from 'modules/storage/actions';
 import { createWallet, isValidPrivateKey } from 'lib/keyring';
 import { INetwork } from 'ibax/auth';
-import webConfig from 'lib/settings/webConfig';
+import webConfig, { networkFromSettings } from 'lib/settings/webConfig';
 import { validateLocaleConfig } from 'lib/settings/localeConfig';
 import ConfigObservable from '../util/ConfigObservable';
 import { acquireSession } from 'modules/auth/actions';
@@ -53,16 +53,7 @@ const initializeEpic: Epic = (action$, state$, { defaultPassword }) => action$.p
         ? defer(() => createWallet(launchKey, defaultPassword)).pipe(map(wallet => saveWallet(wallet)))
         : EMPTY;
 
-      config.networks.forEach(network => preconfiguredNetworks.push({
-        uuid: network.key,
-        id: network.networkID,
-        name: network.name,
-        honorNodes: network.honorNodes,
-        socketUrl: network.socketUrl,
-        activationEmail: network.activationEmail,
-        disableSync: network.disableSync,
-        demoEnabled: network.enableDemoMode
-      }));
+      config.networks.forEach(network => preconfiguredNetworks.push(networkFromSettings(network)));
 
       return concat(
         preconfiguredWallet,

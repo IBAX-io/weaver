@@ -19,6 +19,7 @@
 // row, for the sender or the recipient: the node keeps it only as UTXO outputs, which no API lists.
 
 import { formatAddress } from 'lib/crypto/address';
+import { cleanComment, DIGITS, isID, isInt64, MAX_TIME } from './validate';
 
 export type THistoryFilter = 'transfers' | 'fees' | 'all';
 
@@ -31,9 +32,6 @@ export const HISTORY_PAGE_SIZE = 25;
 // The columns the page reads, besides id (which comes with every row)
 export const HISTORY_COLUMNS = ['sender_id', 'recipient_id', 'amount', 'comment', 'type', 'status', 'block_id', 'txhash', 'created_at'] as const;
 
-// A comment is the contract's own text: shown up to this long
-export const COMMENT_LENGTH = 300;
-
 export type THistoryEntry = {
     id: string;
     // When the transaction was signed (ms), as the node records it
@@ -43,7 +41,7 @@ export type THistoryEntry = {
     hash: string;
     // In base units of the ecosystem's token
     amount: string;
-    // The contract's text, without control and formatting characters, cut to COMMENT_LENGTH
+    // The contract's text, without control and formatting characters, cut short (validate.ts)
     comment: string;
 } & (
     | { kind: 'move', to: 'utxo' | 'account' | null }
@@ -64,32 +62,6 @@ export const historyQuery = (keyID: string, ecosystem: string, filter: THistoryF
     ...('fees' === filter ? { type: { $in: [...FEE_TYPES] } } : 'transfers' === filter ? { type: { $nin: [...FEE_TYPES] } } : {}),
     ...(null === before ? {} : { id: { $lt: before } })
 });
-
-const INT64_MIN = -(1n << 63n);
-const INT64_MAX = (1n << 63n) - 1n;
-const DIGITS = /^\d+$/;
-// The latest time a JS Date can hold (ms)
-const MAX_TIME = 8.64e15;
-
-// A bigint column as Postgres writes it: canonical, in range
-const isInt64 = (value: string) => /^-?\d{1,19}$/.test(value)
-    && BigInt(value).toString() === value && BigInt(value) >= INT64_MIN && BigInt(value) <= INT64_MAX;
-
-// Characters that can disguise text: controls, bidi overrides and isolates, zero-width marks
-const HIDDEN_CHARACTERS = /[\p{Cc}\p{Cf}]/gu;
-
-// More than two combining marks on a letter only stack up over the lines around it
-const STACKED_MARKS = /(\p{M}{2})\p{M}+/gu;
-
-const cleanComment = (comment: string) => {
-    const text = comment.replace(HIDDEN_CHARACTERS, ' ').replace(STACKED_MARKS, '$1').replace(/\s+/g, ' ').trim();
-    // Cut by characters, not UTF-16 units, so no emoji is cut in half
-    const characters = Array.from(text);
-    return characters.length > COMMENT_LENGTH ? `${characters.slice(0, COMMENT_LENGTH).join('')}…` : text;
-};
-
-// A row id or block number: a positive bigint as Postgres writes it
-const isID = (value: string) => isInt64(value) && !value.startsWith('-') && '0' !== value;
 
 // One row as the node returns it (every value a string), or null when it is not a history row of
 // this account that this page can show truthfully

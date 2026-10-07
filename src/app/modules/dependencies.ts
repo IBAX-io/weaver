@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import IbaxAPI from 'lib/ibaxAPI';
+import ExplorerAPI from 'lib/explorer';
 import CodeGenerator, { setIds, convertToTreeData, findTagById, copyObject, idGenerator, updateChildrenText, html2childrenTags } from 'lib/constructor';
 import Properties from 'lib/constructor/properties';
 import getConstructorTemplate from 'lib/constructor/templates';
@@ -14,6 +15,8 @@ import { INavigationService } from 'modules/router/types';
 
 export interface IStoreDependencies {
     api: IAPIDependency;
+    // The network's block explorer API, by its base URL (INetwork.explorer)
+    explorer: (base: string) => ExplorerAPI;
     defaultKey: string;
     defaultPassword: string;
     constructorModule: IConstructorDependenies;
@@ -44,6 +47,7 @@ const storeDependencies: IStoreDependencies = {
         apiHost: params.apiHost,
         session: params.sessionToken
     }),
+    explorer: (base: string) => new ExplorerAPI(base),
     // Public guest (Demo mode) key, the same one the official IBAX Weaver ships
     defaultKey: 'fa2692876f3efb8b5abeda1b69423cfcd38de897506a2778e5eb0803a6e4a2de',
     defaultPassword: 'default',

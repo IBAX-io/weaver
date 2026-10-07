@@ -32,7 +32,7 @@ const render = async (props: Partial<React.ComponentProps<typeof History>> = {},
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    const handlers = { onFilter: vi.fn(), onMore: vi.fn() };
+    const handlers = { onFilter: vi.fn(), onMore: vi.fn(), onRetry: vi.fn() };
     const element = (more: Partial<React.ComponentProps<typeof History>> = {}) => (
         <IntlProvider locale={locale} messages={'zh-CN' === locale ? zh : en} timeZone="UTC">
             <History filter="transfers" entries={ENTRIES} more={0} pending={false} error={null} digits={12} symbol="IBXC" {...handlers} {...props} {...more} />
@@ -135,13 +135,13 @@ describe('wallet history', () => {
         await view.unmount();
     });
 
-    it('switches filter, and says which transfers it cannot list except among fees', async () => {
+    it('switches filter, and says where UTXO transfers are listed except among fees', async () => {
         const transfers = await render();
         expect(transfers.button('Fees').getAttribute('aria-pressed')).toBe('false');
         expect(transfers.button('Activity').getAttribute('aria-pressed')).toBe('true');
         await act(() => transfers.button('Fees').click());
         expect(transfers.handlers.onFilter).toHaveBeenCalledWith('fees');
-        expect(transfers.container.textContent).toContain('UTXO transfers between accounts, sent or received, are not listed');
+        expect(transfers.container.textContent).toContain('UTXO transfers between accounts are listed separately, under UTXO transfers.');
         await transfers.unmount();
         const fees = await render({ filter: 'fees' });
         expect(fees.container.textContent).not.toContain('UTXO transfers between accounts');
@@ -158,18 +158,18 @@ describe('wallet history', () => {
 
         const failed = await render({ entries: null, error: 'E_OFFLINE' });
         expect(failed.container.querySelector('.alert-danger').textContent).toContain('Could not reach the node to load the history.');
+        // Tries again what failed, as it was (the page knows which request that was)
         await act(() => failed.button('Try again').click());
-        expect(failed.handlers.onFilter).toHaveBeenCalledWith('transfers');
+        expect(failed.handlers.onRetry).toHaveBeenCalledTimes(1);
         await failed.unmount();
 
-        // Loading more failed: the rows shown stay, under a warning (an unknown code reads as
-        // E_SERVER), and trying again loads the older rows, not the first page over them
+        // Loading more failed: the rows shown stay, under a warning (an unknown code reads as E_SERVER)
         const stale = await render({ error: 'E_SOMETHING', more: 3 });
         expect(stale.rows()).toHaveLength(ENTRIES.length);
         expect(stale.container.querySelector('.alert-warning').textContent).toContain('The node reported an error while loading the history.');
         await act(() => stale.button('Try again').click());
-        expect(stale.handlers.onMore).toHaveBeenCalledTimes(1);
-        expect(stale.handlers.onFilter).not.toHaveBeenCalled();
+        expect(stale.handlers.onRetry).toHaveBeenCalledTimes(1);
+        expect(stale.handlers.onMore).not.toHaveBeenCalled();
         // The alert holding the button goes away: the focus goes to the heading
         expect(document.activeElement).toBe(stale.container.querySelector('h2'));
         await stale.unmount();

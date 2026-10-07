@@ -6,8 +6,9 @@
 import { reducerWithInitialState } from 'typescript-fsa-reducers/dist';
 import { TTransferCall } from 'ibax/tx';
 import { logout } from 'modules/auth/actions';
-import { fetchBalance, fetchHistory, IBalanceOwner, ISendTransferCall, ITransferResult, IWalletBalance, sendTransfer } from './actions';
+import { fetchBalance, fetchHistory, fetchUtxoHistory, IBalanceOwner, IHistoryPageRequest, IUtxoHistoryRequest, ISendTransferCall, ITransferResult, IWalletBalance, sendTransfer } from './actions';
 import { THistoryEntry, THistoryFilter } from './history';
+import { IExplorerCursor, IIncompleteBlock, TUtxoHistoryEntry } from './utxoHistory';
 
 export const sameOwner = (a: IBalanceOwner | null, b: IBalanceOwner) => !!a && a.account === b.account && a.ecosystem === b.ecosystem;
 
@@ -27,6 +28,21 @@ export type State = {
     readonly history: (IBalanceOwner & { readonly filter: THistoryFilter, readonly entries: readonly THistoryEntry[] | null, readonly more: number }) | null;
     readonly historyPending: boolean;
     readonly historyError: string | null;
+    // The request that failed, to try again as it was (the first page or a next one)
+    readonly historyRetry: IHistoryPageRequest | null;
+    // The account's UTXO transfers shown and whose they are: the pages loaded so far, newest first
+    // (null until the first one is in), where the next one goes on (null at the end), and how many
+    // of the account's transactions of every kind were gone through, of how many
+    readonly utxoHistory: (IBalanceOwner & {
+        readonly entries: readonly TUtxoHistoryEntry[] | null,
+        readonly next: IExplorerCursor | null,
+        readonly checked: number,
+        readonly total: number,
+        readonly incomplete: readonly IIncompleteBlock[]
+    }) | null;
+    readonly utxoHistoryPending: boolean;
+    readonly utxoHistoryError: string | null;
+    readonly utxoHistoryRetry: IUtxoHistoryRequest | null;
 };
 
 export const initialState: State = {
@@ -38,8 +54,16 @@ export const initialState: State = {
     lastTransfer: null,
     history: null,
     historyPending: false,
-    historyError: null
+    historyError: null,
+    historyRetry: null,
+    utxoHistory: null,
+    utxoHistoryPending: false,
+    utxoHistoryError: null,
+    utxoHistoryRetry: null
 };
+
+const sameCursor = (a: IExplorerCursor | null, b: IExplorerCursor | null) =>
+    a === b || (!!a && !!b && a.block === b.block && a.position === b.position && a.skip === b.skip && a.after === b.after);
 
 const sameHistory = (history: State['history'], request: IBalanceOwner & { filter: THistoryFilter }) =>
     sameOwner(history, request) && history.filter === request.filter;
@@ -86,7 +110,8 @@ export default reducerWithInitialState<State>(initialState)
             ? state.history
             : { account: payload.account, ecosystem: payload.ecosystem, filter: payload.filter, entries: null, more: 0 },
         historyPending: true,
-        historyError: null
+        historyError: null,
+        historyRetry: null
     }))
     .case(fetchHistory.done, (state, payload) => {
         const { history } = state;
@@ -109,6 +134,54 @@ export default reducerWithInitialState<State>(initialState)
         };
     })
     .case(fetchHistory.failed, (state, payload) => sameHistory(state.history, payload.params)
-        ? { ...state, historyPending: false, historyError: payload.error }
+        ? { ...state, historyPending: false, historyError: payload.error, historyRetry: payload.params }
+        : state)
+    // Like the history: a next page adds to the transfers shown, anything else starts over
+    .case(fetchUtxoHistory.started, (state, payload) => ({
+        ...state,
+        utxoHistory: sameOwner(state.utxoHistory, payload)
+            ? state.utxoHistory
+            : { account: payload.account, ecosystem: payload.ecosystem, entries: null, next: null, checked: 0, total: 0, incomplete: [] },
+        utxoHistoryPending: true,
+        utxoHistoryError: null,
+        utxoHistoryRetry: null
+    }))
+    .case(fetchUtxoHistory.done, (state, payload) => {
+        const { utxoHistory } = state;
+        const { cursor } = payload.params;
+        const shown = utxoHistory && utxoHistory.entries;
+        // An answer for another account or ecosystem, or a next page that no longer follows the
+        // transfers shown, is dropped
+        if (!sameOwner(utxoHistory, payload.params) || (null !== cursor && (!shown || !sameCursor(utxoHistory.next, cursor)))) {
+            return state;
+        }
+        const kept = null === cursor ? [] : shown;
+        // A transfer is shown once, whatever the explorer answered
+        const entries = payload.result.entries.reduce(
+            (list, entry) => list.some(old => old.hash === entry.hash) ? list : [...list, entry],
+            kept
+        );
+        // A block gone through over several pages counts the rows of each
+        const incomplete = payload.result.incomplete.reduce(
+            (list, block) => list.some(old => old.blockID === block.blockID)
+                ? list.map(old => old.blockID === block.blockID ? { ...old, count: old.count + block.count } : old)
+                : [...list, block],
+            null === cursor ? [] : utxoHistory.incomplete
+        );
+        return {
+            ...state,
+            utxoHistory: {
+                ...utxoHistory,
+                entries,
+                next: payload.result.next,
+                checked: (null === cursor ? 0 : utxoHistory.checked) + payload.result.checked,
+                total: payload.result.total,
+                incomplete
+            },
+            utxoHistoryPending: false
+        };
+    })
+    .case(fetchUtxoHistory.failed, (state, payload) => sameOwner(state.utxoHistory, payload.params)
+        ? { ...state, utxoHistoryPending: false, utxoHistoryError: payload.error, utxoHistoryRetry: payload.params }
         : state)
     .case(logout.started, () => initialState);

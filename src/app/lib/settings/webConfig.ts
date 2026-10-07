@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as yup from 'yup';
+import { INetwork } from 'ibax/auth';
 
 const webConfig = yup.object().shape({
   defaultLocale: yup.string().notRequired(),
@@ -17,6 +18,8 @@ const webConfig = yup.object().shape({
     activationEmail: yup.string().email().notRequired(),
     enableDemoMode: yup.bool(),
     disableSync: yup.bool(),
+    // The block explorer API: https only, it is called from the wallet page
+    explorer: yup.string().url().matches(/^https:\/\//).notRequired(),
 
   })).test('ValidationError', params => `${params.path}[x].key must be unique`, function (value: { key: string }[] | undefined) {
     if (!value) {
@@ -27,6 +30,19 @@ const webConfig = yup.object().shape({
     });
     return unique.length === value.length;
   })
+});
+
+// A network of the settings, as the app stores it
+export const networkFromSettings = (network: yup.InferType<typeof webConfig>['networks'][number]): INetwork => ({
+  uuid: network.key,
+  id: network.networkID,
+  name: network.name,
+  honorNodes: network.honorNodes,
+  socketUrl: network.socketUrl,
+  activationEmail: network.activationEmail,
+  disableSync: network.disableSync,
+  demoEnabled: network.enableDemoMode,
+  explorer: network.explorer
 });
 
 export default webConfig;

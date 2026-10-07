@@ -13,6 +13,7 @@
         "https://mainnet-jp1.ibax.network:7079",
         "https://mainnet-us1.ibax.network:7079"
       ],
+      "explorer": "https://scan.ibax.network:8800/api/v2",
       "socketUrl": "",
       "activationEmail": "",
       "enableDemoMode": true,
@@ -29,6 +30,7 @@
         "https://testnet-jp1.ibax.network:5079",
         "https://testnet-us1.ibax.network:5079"
       ],
+      "explorer": "https://testscan.ibax.network:8800/api/v2",
       "socketUrl": "",
       "activationEmail": "",
       "enableDemoMode": true,

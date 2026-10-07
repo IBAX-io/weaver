@@ -8,8 +8,9 @@ import { Alert, Button, Card, Col, Row, Spinner } from 'react-bootstrap';
 import { FormattedMessage, useIntl } from 'react-intl';
 import CopyToClipboard from 'react-copy-to-clipboard';
 import { useAppDispatch, useAppSelector } from 'lib/hooks';
-import { fetchBalance, fetchHistory, ISendTransferCall, sendTransfer, walletErrorCode } from 'modules/wallet/actions';
+import { fetchBalance, fetchHistory, fetchUtxoHistory, ISendTransferCall, sendTransfer, walletErrorCode } from 'modules/wallet/actions';
 import { DEFAULT_HISTORY_FILTER, THistoryFilter } from 'modules/wallet/history';
+import { IExplorerCursor } from 'modules/wallet/utxoHistory';
 import { sameOwner } from 'modules/wallet/reducer';
 import { formatAddress } from 'lib/crypto/address';
 import { formatAmount } from 'lib/tx/amount';
@@ -18,6 +19,7 @@ import UtxoTransferForm from './UtxoTransferForm';
 import TransferSelfForm from './TransferSelfForm';
 import BalanceAmount from './BalanceAmount';
 import History from './History';
+import UtxoHistory from './UtxoHistory';
 
 const StyledWallet = themed.section`
     flex: 1;
@@ -84,6 +86,13 @@ const StyledWallet = themed.section`
         padding: 0 4px;
     }
 
+    /* A failed transfer's amount, which never moved */
+    .wallet__history-amount_void {
+        font-weight: normal;
+        text-decoration: line-through;
+        color: ${props => props.theme.contentForeground};
+    }
+
     .wallet__history-penalty {
         white-space: normal;
         text-align: start;
@@ -133,10 +142,22 @@ const Wallet: React.FC = () => {
     const loadHistory = (filter: THistoryFilter, before: string | null = null) =>
         dispatch(fetchHistory.started({ account: address, ecosystem, filter, before }));
 
+    const utxoHistory = address && ecosystem && sameOwner(wallet.utxoHistory, { account: address, ecosystem }) ? wallet.utxoHistory : null;
+    // From the newest transaction, or where the last page stopped
+    const loadUtxoHistory = (cursor: IExplorerCursor | null) => dispatch(fetchUtxoHistory.started({ account: address, ecosystem, cursor }));
+    // The block explorer the network names (its host is shown: the address is sent there)
+    const explorer = useAppSelector(state => {
+        const session = state.auth.session;
+        const network = session && state.storage.networks.find(item => item.uuid === session.network.uuid);
+        return network && network.explorer ? network.explorer : null;
+    });
+    const explorerHost = explorer ? new URL(explorer).host : null;
+
     useEffect(() => {
         if (address && ecosystem) {
             dispatch(fetchBalance.started({ account: address, ecosystem }));
             dispatch(fetchHistory.started({ account: address, ecosystem, filter: DEFAULT_HISTORY_FILTER, before: null }));
+            dispatch(fetchUtxoHistory.started({ account: address, ecosystem, cursor: null }));
         }
     }, [dispatch, address, ecosystem]);
 
@@ -183,6 +204,7 @@ const Wallet: React.FC = () => {
                         onClick={() => {
                             dispatch(fetchBalance.started({ account: address, ecosystem }));
                             loadHistory(historyFilter);
+                            loadUtxoHistory(null);
                         }}
                     >
                         {wallet.balancePending && <Spinner as="span" animation="border" size="sm" className="me-2" aria-hidden="true" />}
@@ -245,13 +267,12 @@ const Wallet: React.FC = () => {
                                             />
                                         </CopyToClipboard>
                                     </div>
-                                    {/* Said where the transfer happens: the history below never shows it */}
+                                    {/* Said where the transfer happens: where it will be listed, if anywhere */}
                                     {'utxo' === last.call.transfer.type && (
                                         <div className="small mt-1">
-                                            <FormattedMessage
-                                                id="wallet.done.utxo.history"
-                                                defaultMessage="It will not appear in the history below, because the node keeps no history of UTXO transfers. Keep the transaction hash."
-                                            />
+                                            {explorer
+                                                ? <FormattedMessage id="wallet.done.utxo.history" defaultMessage="It is listed under UTXO transfers below once the block explorer has indexed it, usually within a minute. This page looks for it a few times; if it is not there by then, press Refresh." />
+                                                : <FormattedMessage id="wallet.done.utxo.unlisted" defaultMessage="This network has no block explorer to list UTXO transfers: keep the transaction hash." />}
                                         </div>
                                     )}
                                 </>
@@ -323,6 +344,26 @@ const Wallet: React.FC = () => {
                                     loadHistory(historyFilter, shown[shown.length - 1].id);
                                 }
                             }}
+                            onRetry={() => dispatch(fetchHistory.started(wallet.historyRetry || { account: address, ecosystem, filter: historyFilter, before: null }))}
+                        />
+
+                        <UtxoHistory
+                            explorer={explorerHost}
+                            entries={utxoHistory ? utxoHistory.entries : null}
+                            more={!!utxoHistory && null !== utxoHistory.next}
+                            checked={utxoHistory ? utxoHistory.checked : 0}
+                            total={utxoHistory ? utxoHistory.total : 0}
+                            incomplete={utxoHistory ? utxoHistory.incomplete : []}
+                            pending={wallet.utxoHistoryPending}
+                            error={wallet.utxoHistoryError}
+                            digits={balance.value.digits}
+                            symbol={balance.value.token_symbol}
+                            onMore={() => {
+                                if (utxoHistory && utxoHistory.next) {
+                                    loadUtxoHistory(utxoHistory.next);
+                                }
+                            }}
+                            onRetry={() => dispatch(fetchUtxoHistory.started(wallet.utxoHistoryRetry || { account: address, ecosystem, cursor: null }))}
                         />
                     </>
                 )}

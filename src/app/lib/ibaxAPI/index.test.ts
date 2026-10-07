@@ -460,3 +460,33 @@ test('ListWhere', () => {
         });
     });
 });
+
+test('TxInfo', async () => {
+    // A UTXO transfer's ToID is an int64 past 2^53: the text must come back as the node wrote it
+    const body = '{"blockid":"1606","confirm":0,"data":{"params":{"utxo":{"ToID":-868164129336259442,"Value":"1"}}}}';
+    let url: string;
+    const api = new IbaxAPI({
+        apiHost: paramTestingAPIHost,
+        apiEndpoint: paramTestingAPIEndpoint,
+        transport: async request => {
+            url = request.url;
+            return { json: JSON.parse(body), body };
+        }
+    });
+    const answer = await api.txInfo({ hash: 'ab12' });
+    expect(url).toBe(`${paramTestingAPIHost}/${paramTestingAPIEndpoint}/txinfo/ab12?contractinfo=true`);
+    expect(answer.text).toBe(body);
+    expect(answer.text).toContain('-868164129336259442');
+    expect(answer.json).toEqual(JSON.parse(body));
+});
+
+test('An error the transport already made is passed on as it is', async () => {
+    // The default transport's E_OFFLINE, for an answer that is not JSON
+    const api = new IbaxAPI({
+        apiHost: paramTestingAPIHost,
+        transport: async () => {
+            throw { error: 'E_OFFLINE' };
+        }
+    });
+    await expect(api.txInfo({ hash: 'ab12' })).rejects.toEqual({ error: 'E_OFFLINE' });
+});
