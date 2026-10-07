@@ -77,6 +77,12 @@ $helper-colors: (
 @mixin make-bg($bgcolor, $app-text-color: #fff) {
   background-color: $bgcolor;
   color: $app-text-color !important;
+
+  // A disabled button keeps its colour, only faded, as in Bootstrap 3 (Bootstrap 5's .btn.disabled
+  // swaps in the variant's disabled background: the pager's first/previous buttons went blank)
+  &.btn:is(.disabled, :disabled) {
+    background-color: $bgcolor;
+  }
 }
 
 @mixin thumbnail-size($sz: 8px) {

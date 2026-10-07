@@ -103,10 +103,13 @@ body {
   height: 100%;
 }
 
+/* Page templates' Div(breadcrumb): a plain block under the page title, as Weaver 1.x rendered it
+   (Bootstrap 5's .breadcrumb is a flex row, which pulled the text out of line) */
 .breadcrumb {
-  margin: -20px -25px 20px -20px;
-  background-color: #fafbfc;
-  border-top: 1px solid #cfdbe2;
+  display: block;
+  margin: 0;
+  background: none;
+  border-top: 0;
   border-bottom: 1px solid #cfdbe2;
   font-weight: normal;
   border-radius: 0;

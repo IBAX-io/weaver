@@ -127,7 +127,7 @@ const Generator: React.FC<IWalletGeneratorProps> = (props) => (
 
         </Col>
         <Col md={12}>
-          <div className="d-none d-lg-block text-start">
+          <div className="generator__warning d-none d-lg-block text-start">
             <FormattedMessage
               id="auth.backup.warn"
               defaultMessage="Backup Payload (Private Key)"
@@ -144,6 +144,13 @@ const StyledGenerator = styled(Generator)`
   textarea.input-seed {
     height: 60px;
     resize: none;
+  }
+
+  /* A note, not part of the form (Weaver 1.x .visible-md-text) */
+  .generator__warning {
+    margin: 20px 0 10px;
+    font-size: 12px;
+    font-style: italic;
   }
 `;
 

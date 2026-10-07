@@ -36,7 +36,8 @@
 //   Wells      .well, .well-sm, .well-lg
 //   Buttons    .btn-default, .btn-xs, .btn-block (.btn, .btn-primary,
 //              .btn-success, .btn-info, .btn-warning, .btn-danger,
-//              .btn-link, .btn-sm, .btn-lg come from Bootstrap 5)
+//              .btn-link, .btn-sm, .btn-lg come from Bootstrap 5);
+//              .btn-xs, .btn-link, .btn-default, .btn-primary also without .btn
 //   Labels     .label, .label-{default,primary,success,info,warning,danger}
 //              (+ app theme: -inverse,-green,-pink,-purple)
 //   Badges     .badge
@@ -45,7 +46,8 @@
 //   Lists      .list-group, .list-group-item (also outside .list-group),
 //              .list-group-item-heading, .list-group-item-text,
 //              a.list-group-item
-//   Tables     .table margins, .table-condensed, row/cell states
+//   Tables     .table margins, header cells (theme table-extras),
+//              .table-condensed, row/cell states
 //              .active/.success/.info/.warning/.danger (.table-striped,
 //              .table-bordered, .table-hover, .table-responsive come from
 //              Bootstrap 5)
@@ -220,7 +222,7 @@ $bs3-min-widths: ("sm": $bs3-screen-sm, "md": $bs3-screen-md, "lg": $bs3-screen-
   --#{$prefix}list-group-border-color: #{$app-gray-light};
   --#{$prefix}list-group-border-width: 1px;
   --#{$prefix}list-group-border-radius: 0;
-  --#{$prefix}list-group-item-padding-x: 10px;
+  --#{$prefix}list-group-item-padding-x: 15px;
   --#{$prefix}list-group-item-padding-y: 10px;
   --#{$prefix}list-group-action-color: #555;
   --#{$prefix}list-group-action-hover-color: #555;
@@ -739,6 +741,45 @@ $bs3-min-widths: ("sm": $bs3-screen-sm, "md": $bs3-screen-md, "lg": $bs3-screen-
     line-height: 1.5;
   }
 
+  // Bootstrap 3 applied variant and size classes without .btn, and templates rely on it
+  // (Class: btn-xs btn-link, btn-xs btn-default, btn-link fa fa-trash): Bootstrap 5 only sets
+  // variables there, which .btn alone reads, leaving the browser's grey button
+  .btn-xs:not(.btn) {
+    padding: 1px 5px;
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 3px;
+  }
+
+  .btn-link:not(.btn) {
+    color: $link-color;
+    font-weight: 400;
+    background-color: transparent;
+    border-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+
+    &:hover,
+    &:focus {
+      color: $link-hover-color;
+      text-decoration: underline;
+    }
+  }
+
+  .btn-default:not(.btn),
+  .btn-primary:not(.btn) {
+    color: #fff;
+    background-color: $primary;
+    border: 1px solid #eaeaea;
+
+    &:hover,
+    &:focus,
+    &:active {
+      color: #fff;
+      background-color: $success;
+    }
+  }
+
   .btn-block {
     display: block;
     width: 100%;
@@ -924,6 +965,16 @@ $bs3-min-widths: ("sm": $bs3-screen-sm, "md": $bs3-screen-md, "lg": $bs3-screen-
     margin-bottom: $bs3-line-height-computed;
   }
 
+  // The app theme's table-extras (Weaver 1.x)
+  .table > thead > tr > th {
+    padding: 14px 8px;
+    color: #888;
+  }
+
+  .table > tbody > tr > td {
+    vertical-align: middle;
+  }
+
   .table-condensed > :not(caption) > * > * {
     padding: 5px;
   }
@@ -945,6 +996,12 @@ $bs3-min-widths: ("sm": $bs3-screen-sm, "md": $bs3-screen-md, "lg": $bs3-screen-
 
   .form-group {
     margin-bottom: 15px;
+  }
+
+  // Read-only fields look like disabled ones, as in Bootstrap 3 (Bootstrap 5 greys disabled only)
+  .form-control[readonly] {
+    background-color: $input-disabled-bg;
+    opacity: 1;
   }
 
   .help-block {

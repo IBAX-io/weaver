@@ -68,6 +68,8 @@
   $btn-padding-x-sm: 10px,
   $btn-padding-y-lg: 10px,
   $btn-padding-x-lg: 20px,
+  // White fields, as in Bootstrap 3 (Bootstrap 5 takes the page background)
+  $input-bg: #fff,
   $input-padding-y: 6px,
   $input-padding-x: 16px,
   $input-color: app.$app-gray-dark,
@@ -77,6 +79,10 @@
   $input-group-addon-bg: app.$app-gray-lighter,
 
   // Components
+  // Tables keep the background and text color around them, as in Bootstrap 3 (Bootstrap 5
+  // paints the page background and black text on every cell)
+  $table-bg: transparent,
+  $table-color: currentcolor,
   $table-cell-padding-y: 8px,
   $table-cell-padding-x: 8px,
   $table-cell-padding-y-sm: 5px,

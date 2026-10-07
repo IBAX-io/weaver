@@ -40,4 +40,21 @@ describe('wallet generator', () => {
     it('creates wallets from recovery phrases only (negative control)', async () => {
         expect(await seedAccepted('create', PRIVATE_KEY)).toBe(false);
     });
+
+    it('sets the password warning apart as a small italic note', async () => {
+        const container = document.createElement('div');
+        const root = createRoot(container);
+        await act(() => root.render(
+            <IntlProvider locale="en-US" messages={{}} onError={() => undefined}>
+                <ValidatedForm>
+                    <Generator action="import" descriptionValue="" seed="" password="" onSeedChange={() => undefined} onPasswordChange={() => undefined} />
+                </ValidatedForm>
+            </IntlProvider>
+        ));
+        const note = container.querySelector('.generator__warning');
+        expect(note).not.toBeNull();
+        const css = [...document.querySelectorAll('style')].map(tag => tag.textContent).join('');
+        expect(css).toMatch(/\.generator__warning\{margin:20px 0 10px;font-size:12px;font-style:italic;\}/);
+        await act(() => root.unmount());
+    });
 });

@@ -174,3 +174,37 @@ fieldset {
     @include alert-solid(map.get($theme-colors, $state));
   }
 }
+
+// The designer's dark side-panel tabs (Objects / Search / Tree): Weaver 1.x theme .nav-tabs-dark,
+// on Bootstrap 5's nav markup (.nav-item > .nav-link.active instead of li.active > a)
+.nav-tabs-dark.nav-justified {
+  background-color: #828c9e;
+  border-bottom: 0;
+
+  > .nav-item > .nav-link {
+    margin: 0 1px 0 0;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 0;
+    line-height: 34px;
+    color: #eaeff8;
+    background-color: #96a2b7;
+
+    &:hover {
+      background-color: #8e99ad;
+    }
+
+    &:focus {
+      color: #707c91;
+    }
+
+    &.active {
+      color: #707c91;
+      background-color: #3a4653;
+    }
+  }
+
+  > .nav-item:last-child > .nav-link {
+    margin-right: 0;
+  }
+}
