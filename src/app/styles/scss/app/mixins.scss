@@ -16,18 +16,20 @@
 
 // The app's "default" button skin: white on dark green, green on hover (Weaver 1.x .btn-default).
 // Used by .btn-secondary in the IDE chrome and .btn-default in protypo content.
+$app-default-button-border: #eaeaea;
+
 @mixin app-default-button {
   --#{$prefix}btn-color: #fff;
   --#{$prefix}btn-bg: #{$primary};
-  --#{$prefix}btn-border-color: #eaeaea;
+  --#{$prefix}btn-border-color: #{$app-default-button-border};
   --#{$prefix}btn-hover-color: #fff;
   --#{$prefix}btn-hover-bg: #{$brand-success};
-  --#{$prefix}btn-hover-border-color: #eaeaea;
+  --#{$prefix}btn-hover-border-color: #{$app-default-button-border};
   --#{$prefix}btn-active-color: #fff;
   --#{$prefix}btn-active-bg: #{$brand-success};
-  --#{$prefix}btn-active-border-color: #eaeaea;
+  --#{$prefix}btn-active-border-color: #{$app-default-button-border};
   --#{$prefix}btn-disabled-color: #fff;
   --#{$prefix}btn-disabled-bg: #{$primary};
-  --#{$prefix}btn-disabled-border-color: #eaeaea;
+  --#{$prefix}btn-disabled-border-color: #{$app-default-button-border};
   --#{$prefix}btn-focus-shadow-rgb: #{to-rgb($primary)};
 }

@@ -3,6 +3,8 @@
 // ------------------------------------------------------------------------
 // Look-and-feel tweaks Bootstrap variables cannot express. Values that
 // map to a Bootstrap variable are configured in ../bootstrap.scss instead.
+// Rules here apply to the whole app; Bootstrap 3 compatibility that only
+// page templates need goes in ../protypo-content.scss.
 // ========================================================================
 
 @use "sass:color";
@@ -176,9 +178,18 @@ fieldset {
 }
 
 // The designer's dark side-panel tabs (Objects / Search / Tree): Weaver 1.x theme .nav-tabs-dark,
-// on Bootstrap 5's nav markup (.nav-item > .nav-link.active instead of li.active > a)
+// on Bootstrap 5's nav markup (.nav-item > .nav-link.active instead of li.active > a). The
+// backgrounds are 1.x's; its text colours were not readable (the current tab 2.3:1, a focused tab
+// 1.6:1), so the text is dark on the light tabs and white on the current one.
+$designer-tabs-bg: #828c9e;
+$designer-tab-bg: #96a2b7;
+$designer-tab-hover-bg: #8e99ad;
+$designer-tab-color: #1f2a36;
+$designer-tab-active-bg: #3a4653;
+$designer-tab-active-color: #fff;
+
 .nav-tabs-dark.nav-justified {
-  background-color: #828c9e;
+  background-color: $designer-tabs-bg;
   border-bottom: 0;
 
   > .nav-item > .nav-link {
@@ -187,20 +198,24 @@ fieldset {
     border: 0;
     border-radius: 0;
     line-height: 34px;
-    color: #eaeff8;
-    background-color: #96a2b7;
+    color: $designer-tab-color;
+    background-color: $designer-tab-bg;
 
     &:hover {
-      background-color: #8e99ad;
+      color: $designer-tab-color;
+      background-color: $designer-tab-hover-bg;
     }
 
-    &:focus {
-      color: #707c91;
+    // The tabs touch each other and the panel: the keyboard focus ring goes inside the tab, in the
+    // tab's text colour (the app's green ring does not show on the dark current tab)
+    &:focus-visible {
+      outline-color: currentcolor !important;
+      outline-offset: -4px;
     }
 
     &.active {
-      color: #707c91;
-      background-color: #3a4653;
+      color: $designer-tab-active-color;
+      background-color: $designer-tab-active-bg;
     }
   }
 

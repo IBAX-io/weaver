@@ -12,6 +12,8 @@ import { saveWallet } from './actions';
 
 // The whole store, the way the app runs it: every slice sees every action
 const reducer = combineReducers(rootReducer);
+// Test keys only: A is a published test vector, B the same with its last digit changed (any
+// 32-byte value below the curve order is a valid key)
 const KEY_A = '1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727';
 const KEY_B = '1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b726';
 
@@ -33,4 +35,10 @@ describe('stored wallets across sign-in and sign-out', () => {
         state = reducer(state, saveWallet(b));
         expect(state.storage.wallets.map(wallet => wallet.id)).toEqual([a.id, b.id]);
     }, 20000);
+
+    it('signs out cleanly when no wallet was ever chosen', () => {
+        const state = reducer(reducer(undefined, { type: '@@weaver/INIT' }), logout.done({ params: null, result: null }));
+        expect(state.auth.wallet).toBeNull();
+        expect(state.auth.isAuthenticated).toBe(false);
+    });
 });

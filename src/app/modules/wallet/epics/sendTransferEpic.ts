@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { defer, Observable, of } from 'rxjs';
+import { defer, EMPTY, Observable, of } from 'rxjs';
 import { catchError, map, mergeMap } from 'rxjs/operators';
 import * as uuid from 'uuid';
-import { Epic } from 'modules';
+import { Epic, IRootState } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import ModalObservable from 'modules/modal/util/ModalObservable';
 import TxObservable from 'modules/tx/util/TxObservable';
@@ -23,8 +23,17 @@ const describeConfirmation = (call: ISendTransferCall, hasAccount: boolean) => (
         : `${call.confirm.description}\n\n${call.unknownRecipientWarning}`
 });
 
+// Whose wallet is open: the account and ecosystem a transfer is sent from and its result shown to
+const walletOwner = (state: IRootState) => {
+    const address = state.auth.wallet?.wallet?.address;
+    const ecosystem = state.auth.wallet?.access?.ecosystem;
+    return address && ecosystem ? { account: address, ecosystem } : null;
+};
+
 // Confirm, then sign and send like any transaction (password prompt, status polling, error modal),
-// then reload the balance of whichever account is shown by then
+// then report it and reload the balance. A transfer that finishes after the user signed out or
+// switched account or ecosystem is reported to nobody: the wallet open by then belongs to someone
+// else (its form and receipt are not this transfer's).
 const sendTransferEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(sendTransfer.started),
     mergeMap((action): Observable<Action> => {
@@ -38,6 +47,11 @@ const sendTransferEpic: Epic = (action$, state$, { api }) => action$.pipe(
         }
 
         const transfer = action.payload.transfer;
+        const owner = walletOwner(state);
+        const stillOpen = () => {
+            const current = walletOwner(state$.value);
+            return null !== owner && null !== current && current.account === owner.account && current.ecosystem === owner.ecosystem;
+        };
         const recipientKnown$: Observable<boolean> = 'utxo' === transfer.type
             ? defer(() => api({ apiHost: state.auth.session.network.apiHost }).keyinfo({ id: transfer.toID })).pipe(
                 map(info => info.ecosystems.length > 0),
@@ -51,14 +65,13 @@ const sendTransferEpic: Epic = (action$, state$, { api }) => action$.pipe(
                 modal: { id: 'WALLET_TRANSFER_CONFIRM', type: 'CONFIRM', params: describeConfirmation(action.payload, known) },
                 success: () => TxObservable(action$, {
                     tx: { uuid: uuid.v4(), contracts: [], transfers: [transfer] },
-                    success: transactions => {
-                        const current = state$.value.auth.wallet;
-                        return of(
+                    success: transactions => stillOpen()
+                        ? of(
                             sendTransfer.done({ params: action.payload, result: { hash: transactions[0] ? transactions[0].hash : '' } }),
-                            ...(current ? [fetchBalance.started({ account: current.wallet.address, ecosystem: current.access.ecosystem })] : [])
-                        );
-                    },
-                    failure: error => of(sendTransfer.failed({ params: action.payload, error }))
+                            fetchBalance.started(owner)
+                        )
+                        : EMPTY,
+                    failure: error => stillOpen() ? of(sendTransfer.failed({ params: action.payload, error })) : EMPTY
                 }),
                 failure: () => of(sendTransfer.failed({ params: action.payload, error: null }))
             }))

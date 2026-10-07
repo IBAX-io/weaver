@@ -105,7 +105,11 @@ const UtxoTransferForm: React.FC<Props> = props => {
                             aria-describedby={recipientProblem ? 'wallet-utxo-recipient-error wallet-utxo-recipient-hint' : 'wallet-utxo-recipient-hint'}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRecipient(e.target.value)}
                             // Leaving the field empty is not a mistake yet: "required" shows once the form is sent
-                            onBlur={() => recipient.trim() && setTouched(state => ({ ...state, recipient: true }))}
+                            onBlur={() => {
+                                if (recipient.trim()) {
+                                    setTouched(state => ({ ...state, recipient: true }));
+                                }
+                            }}
                         />
                         <Form.Control.Feedback type="invalid" id="wallet-utxo-recipient-error">
                             {recipientProblem && (

@@ -86,6 +86,6 @@ export default reducerWithInitialState<State>(initialState)
     .case(actions.acquireSession.failed, acquireSessionFailedHandler)
     // The signed-in wallet stored again (a new password): unlocking from now on uses the new key.
     // Signed out (logoutDoneHandler keeps the context with wallet: null) nothing is signed in.
-    .case(saveWallet, (state, wallet) => state.wallet && state.wallet.wallet && state.wallet.wallet.walletID === wallet.id
+    .case(saveWallet, (state, wallet) => state.wallet?.wallet?.walletID === wallet.id
         ? { ...state, wallet: { ...state.wallet, wallet: { ...state.wallet.wallet, encKey: wallet.encKey } } }
         : state);

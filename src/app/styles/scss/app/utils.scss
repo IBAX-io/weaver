@@ -55,22 +55,16 @@ $helper-colors: (
   "yellow": $brand-yellow
 );
 
-@mixin bgcolor-variant($name, $app-text-color: #fff) {
-  $base: map.get($helper-colors, $name);
-  & {
-    background-color: $base;
-    color: $app-text-color !important;
-  }
-  &-light {
-    background-color: lighter($base);
-    color: $app-text-color !important;
-  }
-  &-dark {
-    background-color: darker($base);
-    color: $app-text-color !important;
-  }
-  small {
-    color: inherit;
+// A bg-* class on a button (the pager's first/previous buttons) is its colour in every state, faded
+// when disabled, as in Bootstrap 3: Bootstrap 5's buttons paint every state from these properties,
+// which their variant classes set. The class twice, so these come first whatever variant class the
+// button also has (.btn-default in templates and the theme's .btn-secondary are two classes deep).
+@mixin bg-button($bgcolor) {
+  @at-root #{&}#{&}:is(.btn, [class*="btn-"]) {
+    --#{$prefix}btn-bg: #{$bgcolor};
+    --#{$prefix}btn-hover-bg: #{$bgcolor};
+    --#{$prefix}btn-active-bg: #{$bgcolor};
+    --#{$prefix}btn-disabled-bg: #{$bgcolor};
   }
 }
 
@@ -78,10 +72,22 @@ $helper-colors: (
   background-color: $bgcolor;
   color: $app-text-color !important;
 
-  // A disabled button keeps its colour, only faded, as in Bootstrap 3 (Bootstrap 5's .btn.disabled
-  // swaps in the variant's disabled background: the pager's first/previous buttons went blank)
-  &.btn:is(.disabled, :disabled) {
-    background-color: $bgcolor;
+  @include bg-button($bgcolor);
+}
+
+@mixin bgcolor-variant($name, $app-text-color: #fff) {
+  $base: map.get($helper-colors, $name);
+  & {
+    @include make-bg($base, $app-text-color);
+  }
+  &-light {
+    @include make-bg(lighter($base), $app-text-color);
+  }
+  &-dark {
+    @include make-bg(darker($base), $app-text-color);
+  }
+  small {
+    color: inherit;
   }
 }
 

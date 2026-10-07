@@ -37,7 +37,8 @@
 //   Buttons    .btn-default, .btn-xs, .btn-block (.btn, .btn-primary,
 //              .btn-success, .btn-info, .btn-warning, .btn-danger,
 //              .btn-link, .btn-sm, .btn-lg come from Bootstrap 5);
-//              .btn-xs, .btn-link, .btn-default, .btn-primary also without .btn
+//              the variants (.btn-default ... -danger, .btn-link) and
+//              sizes (.btn-xs, -sm, -lg) also without .btn
 //   Labels     .label, .label-{default,primary,success,info,warning,danger}
 //              (+ app theme: -inverse,-green,-pink,-purple)
 //   Badges     .badge
@@ -46,7 +47,8 @@
 //   Lists      .list-group, .list-group-item (also outside .list-group),
 //              .list-group-item-heading, .list-group-item-text,
 //              a.list-group-item
-//   Tables     .table margins, header cells (theme table-extras),
+//   Breadcrumb .breadcrumb (block, not Bootstrap 5's flex row), > li, > .active
+//   Tables     .table margins, header and body cells (theme table-extras),
 //              .table-condensed, row/cell states
 //              .active/.success/.info/.warning/.danger (.table-striped,
 //              .table-bordered, .table-hover, .table-responsive come from
@@ -54,6 +56,7 @@
 //   Forms      .form-group, .form-horizontal, .form-inline,
 //              .control-label, .help-block, .form-control-static,
 //              .has-{error,warning,success}, .input-sm, .input-lg,
+//              .form-control[readonly] (grey, as Bootstrap 3),
 //              .input-group-addon, .input-group-btn, .checkbox, .radio,
 //              .checkbox-inline, .radio-inline
 //   Alerts     .alert h4/p/ul spacing, .alert-dismissable/-dismissible
@@ -69,6 +72,7 @@
 // ========================================================================
 
 @use "sass:color";
+@use "sass:list";
 @use "sass:map";
 @use "sass:math";
 @use "bootstrap" as *;
@@ -78,6 +82,7 @@
 $bs3-screen-sm: 768px;
 $bs3-screen-md: 992px;
 $bs3-screen-lg: 1200px;
+
 $bs3-columns: 12;
 $bs3-gutter: 30px;
 $bs3-line-height-computed: 20px;
@@ -88,6 +93,20 @@ $bs3-state-bg: (
   "warning": #fcf8e3,
   "danger": #f2dede
 );
+
+// Button classes Bootstrap 3 applied without .btn: variants set the colours, sizes the metrics
+@function bs3-bare-buttons($classes) {
+  $selectors: ();
+  @each $class in $classes {
+    $selectors: list.append($selectors, ".btn-#{$class}:not(.btn)", $separator: comma);
+  }
+  @return $selectors;
+}
+$bs3-bare-button-variants: bs3-bare-buttons((default, primary, success, info, warning, danger, link));
+$bs3-bare-button-sizes: bs3-bare-buttons((xs, sm, lg));
+
+// The app theme's table-extras header colour (Weaver 1.x)
+$bs3-table-header-color: #888;
 $bs3-state-text: (
   "success": $success,
   "info": $info,
@@ -737,47 +756,52 @@ $bs3-min-widths: ("sm": $bs3-screen-sm, "md": $bs3-screen-md, "lg": $bs3-screen-
     --#{$prefix}btn-padding-y: 1px;
     --#{$prefix}btn-padding-x: 5px;
     --#{$prefix}btn-font-size: 12px;
+    --#{$prefix}btn-line-height: 1.5;
     --#{$prefix}btn-border-radius: 3px;
     line-height: 1.5;
   }
 
   // Bootstrap 3 applied variant and size classes without .btn, and templates rely on it
-  // (Class: btn-xs btn-link, btn-xs btn-default, btn-link fa fa-trash): Bootstrap 5 only sets
-  // variables there, which .btn alone reads, leaving the browser's grey button
-  .btn-xs:not(.btn) {
-    padding: 1px 5px;
-    font-size: 12px;
-    line-height: 1.5;
-    border-radius: 3px;
-  }
-
-  .btn-link:not(.btn) {
-    color: $link-color;
-    font-weight: 400;
-    background-color: transparent;
-    border-color: transparent;
-    border-radius: 0;
-    box-shadow: none;
+  // (Class: btn-xs btn-link, btn-xs btn-default, btn-link fa fa-trash). Bootstrap 5's variant and
+  // size classes only set the --bs-btn-* properties, which .btn alone reads, which left the
+  // browser's grey button: here those classes read them themselves, each what it set in Bootstrap 3
+  // (a variant its colours, a size its padding, font and corners; neither touched the layout)
+  #{$bs3-bare-button-variants} {
+    color: var(--#{$prefix}btn-color);
+    background-color: var(--#{$prefix}btn-bg);
+    border-color: var(--#{$prefix}btn-border-color);
 
     &:hover,
     &:focus {
-      color: $link-hover-color;
-      text-decoration: underline;
+      color: var(--#{$prefix}btn-hover-color);
+      background-color: var(--#{$prefix}btn-hover-bg);
+      border-color: var(--#{$prefix}btn-hover-border-color);
+    }
+
+    &:active {
+      color: var(--#{$prefix}btn-active-color);
+      background-color: var(--#{$prefix}btn-active-bg);
+      border-color: var(--#{$prefix}btn-active-border-color);
+    }
+
+    &:disabled,
+    &.disabled {
+      color: var(--#{$prefix}btn-disabled-color);
+      background-color: var(--#{$prefix}btn-disabled-bg);
+      border-color: var(--#{$prefix}btn-disabled-border-color);
+      opacity: var(--#{$prefix}btn-disabled-opacity);
     }
   }
 
-  .btn-default:not(.btn),
-  .btn-primary:not(.btn) {
-    color: #fff;
-    background-color: $primary;
-    border: 1px solid #eaeaea;
+  #{$bs3-bare-button-sizes} {
+    padding: var(--#{$prefix}btn-padding-y) var(--#{$prefix}btn-padding-x);
+    font-size: var(--#{$prefix}btn-font-size);
+    line-height: var(--#{$prefix}btn-line-height, #{$btn-line-height});
+    border-radius: var(--#{$prefix}btn-border-radius);
+  }
 
-    &:hover,
-    &:focus,
-    &:active {
-      color: #fff;
-      background-color: $success;
-    }
+  .btn-link:not(.btn):is(:hover, :focus) {
+    text-decoration: underline;
   }
 
   .btn-block {
@@ -959,6 +983,38 @@ $bs3-min-widths: ("sm": $bs3-screen-sm, "md": $bs3-screen-md, "lg": $bs3-screen-
     line-height: 1.3;
   }
 
+  // Breadcrumbs ------------------------------------------------------------
+  // Div(breadcrumb): a plain block under the page title, as Weaver 1.x's theme rendered it
+  // (Bootstrap 5's .breadcrumb is a flex row, which pulled the text out of line); list items
+  // inline with Bootstrap 3's separator
+
+  .breadcrumb {
+    display: block;
+    margin: 0;
+    padding: 10px 20px;
+    list-style: none;
+    font-weight: normal;
+    color: #909fa7;
+    background: none;
+    border-top: 0;
+    border-bottom: 1px solid $app-panel-border;
+    border-radius: 0;
+
+    > li {
+      display: inline-block;
+
+      + li::before {
+        padding: 0 5px;
+        color: #ccc;
+        content: "/\00a0";
+      }
+    }
+
+    > .active {
+      color: #777;
+    }
+  }
+
   // Tables -----------------------------------------------------------------
 
   .table {
@@ -968,7 +1024,7 @@ $bs3-min-widths: ("sm": $bs3-screen-sm, "md": $bs3-screen-md, "lg": $bs3-screen-
   // The app theme's table-extras (Weaver 1.x)
   .table > thead > tr > th {
     padding: 14px 8px;
-    color: #888;
+    color: $bs3-table-header-color;
   }
 
   .table > tbody > tr > td {

@@ -12,7 +12,7 @@ export interface IGeneratorToolProps {
 }
 
 const GeneratorTool: React.FC<React.PropsWithChildren<IGeneratorToolProps>> = (props) => (
-  <Col xs={4} className="pl0 pr0">
+  <Col xs={4}>
     <Button
       variant="secondary"
       disabled={props.disabled}

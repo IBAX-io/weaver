@@ -67,7 +67,7 @@
   "auth.role.guest": "Non-role",
   "auth.role.select": "Role selection",
   "auth.backup": "Backup Payload (Private Key)",
-  "auth.backup.warn": "Warning:  weaver.ibax.io never stores your password/private key/seed, so it is not possible to recover or reset it for you. If you forget your password, only your private key or seed (mnemonic phrase) can help you restore your access to the funds in your wallet.",
+  "auth.backup.warn": "Warning: Weaver keeps your private key only on this device, encrypted with your password, and never sends it anywhere, so it cannot recover or reset your password for you. If you forget your password, only your private key or seed (mnemonic phrase) can restore your access to the funds in your wallet.",
   "auth.seed": "Account Seed",
   "auth.seed.generate": "Generate",
   "auth.seed.load": "Load",

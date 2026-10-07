@@ -13,6 +13,7 @@ import { formatAmount } from 'lib/tx/amount';
 import themed from 'components/Theme/themed';
 import UtxoTransferForm from './UtxoTransferForm';
 import TransferSelfForm from './TransferSelfForm';
+import BalanceAmount from './BalanceAmount';
 
 const StyledWallet = themed.section`
     flex: 1;
@@ -31,20 +32,21 @@ const StyledWallet = themed.section`
         word-break: break-all;
     }
 
-    /* A balance stays one number: the font shrinks with the card (container units) rather than
-       the digits breaking onto a second line, which reads as another number */
+    /* A balance stays one number (BalanceAmount): the font shrinks to the card's width (container
+       units) divided by the number's length in characters, a tabular digit being about 0.6em wide,
+       with a little to spare; past the smallest size the number wraps at its decimal point only */
     .wallet__balance {
         container-type: inline-size;
     }
 
     .wallet__amount {
-        font-size: clamp(0.875rem, 6.5cqi, 1.5rem);
+        font-size: clamp(0.875rem, calc(100cqi / (var(--wallet-amount-chars, 1) * 0.62)), 1.5rem);
         font-weight: 600;
         font-variant-numeric: tabular-nums;
         line-height: 1.3;
     }
 
-    .wallet__amount-value {
+    .wallet__amount-part {
         white-space: nowrap;
     }
 
@@ -204,9 +206,7 @@ const Wallet: React.FC = () => {
                                             <div className="wallet__hint small">
                                                 <FormattedMessage id={item.id} defaultMessage={item.defaultMessage} />
                                             </div>
-                                            <div className="wallet__amount">
-                                                <span className="wallet__amount-value">{formatAmount(balance.value[item.key], balance.value.digits)}</span> <small>{balance.value.token_symbol}</small>
-                                            </div>
+                                            <BalanceAmount amount={formatAmount(balance.value[item.key], balance.value.digits)} symbol={balance.value.token_symbol} />
                                         </Card.Body>
                                     </Card>
                                 </Col>

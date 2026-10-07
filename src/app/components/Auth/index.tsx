@@ -9,6 +9,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import LangMenu from 'containers/Main/Header/LangMenu';
 import themed from 'components/Theme/themed';
 import Wallet from 'components/Auth/Wallet';
+import Copyright from './Copyright';
 import Login from 'containers/Auth/Login';
 import NetworkList from 'containers/Auth/Login/NetworkList';
 import AddNetwork from 'containers/Auth/Login/NetworkList/AddNetwork';
@@ -36,7 +37,7 @@ const Auth: React.FC<IAuthProps> = (props) => {
           <div className="clearfix p-lg text-center text-white">
             <div className="float-start">
               <div>
-                <FormattedMessage id="legal.copy" defaultMessage="IBAX © 2019 – {year}" values={{ year: new Date().getFullYear() }} />
+                <Copyright />
                 &nbsp;
                 <a
                   className="year-title"

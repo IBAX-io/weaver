@@ -67,7 +67,7 @@
   "auth.role.guest": "无角色",
   "auth.role.select": "选择角色",
   "auth.backup": "备份数据（私钥）",
-  "auth.backup.warn": "警告：weaver.ibax.io 不会存储您的密码/私钥/助记词，因此无法为您恢复或重置。如果您忘记密码，只有您的私钥或助记词才能帮助您恢复对钱包资金的访问。",
+  "auth.backup.warn": "警告：Weaver 只在本机保存用您的密码加密的私钥，从不上传，因此无法为您找回或重置密码。如果您忘记密码，只有私钥或助记词才能帮您恢复对钱包资金的访问。",
   "auth.seed": "账户助记词",
   "auth.seed.generate": "生成",
   "auth.seed.load": "加载",

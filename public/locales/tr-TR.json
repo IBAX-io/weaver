@@ -67,7 +67,7 @@
   "auth.role.guest": "Non-rol",
   "auth.role.select": "Rol seçimi",
   "auth.backup": "Backup Payload (Private Key)",
-  "auth.backup.warn": "Uyarı: weaver.ibax.io, parolanızı/private keyinizi/seedinizi asla saklamaz, bu nedenle sizin için kurtarmanız veya sıfırlamanız mümkün değildir. Parolanızı unutursanız, yalnızca private keyinizi veya seediniz (mnemonic phrase), cüzdanınızdaki fonlara erişiminizi geri kazanmanıza yardımcı olabilir",
+  "auth.backup.warn": "Uyarı: Weaver private keyinizi yalnızca bu cihazda, parolanızla şifrelenmiş olarak saklar ve hiçbir yere göndermez; bu nedenle parolanızı sizin için kurtaramaz veya sıfırlayamaz. Parolanızı unutursanız, cüzdanınızdaki fonlara erişiminizi yalnızca private keyiniz veya seediniz (mnemonic phrase) geri kazandırabilir.",
   "auth.seed": "Hesap seedi",
   "auth.seed.generate": "Generate",
   "auth.seed.load": "Yükle",

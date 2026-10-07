@@ -237,7 +237,7 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
     const network = state.storage.networks.find(l => l.uuid === state.auth.session.network.uuid);
     const context: ITxContext = {
       networkID: network.id,
-      ecosystemID: parseInt(state.auth.wallet && state.auth.wallet.access.ecosystem || '1', 10),
+      ecosystemID: parseInt(state.auth.wallet?.access?.ecosystem || '1', 10),
       cryptoSuite: state.auth.session.cryptoSuite
     };
 

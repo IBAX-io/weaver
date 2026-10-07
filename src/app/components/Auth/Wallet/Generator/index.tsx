@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Col } from 'react-bootstrap';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import styled from 'styled-components';
 
 import Validation from 'components/Validation';
@@ -26,119 +26,123 @@ export interface IWalletGeneratorProps {
   action: 'create' | 'import';
 }
 
-const Generator: React.FC<IWalletGeneratorProps> = (props) => (
-  <div className={props.className}>
-    <fieldset>
-      <p className="text-center">{props.descriptionValue}</p>
-    </fieldset>
-    <fieldset>
-      <Validation.components.ValidatedFormGroup for="seed" className="row">
-        <Col md={3} className="clearfix">
-          <div className="float-start">
-            {props.action === 'import' ? (
-              <FormattedMessage
-                id="auth.backup"
-                defaultMessage="Backup Payload (Private Key)"
+const Generator: React.FC<IWalletGeneratorProps> = (props) => {
+  const intl = useIntl();
+  return (
+    <div className={props.className}>
+      <fieldset>
+        <p className="text-center">{props.descriptionValue}</p>
+      </fieldset>
+      <fieldset>
+        <Validation.components.ValidatedFormGroup for="seed" className="row">
+          <Col md={3} className="clearfix">
+            <div className="float-start">
+              {props.action === 'import' ? (
+                <FormattedMessage
+                  id="auth.backup"
+                  defaultMessage="Backup Payload (Private Key)"
+                />
+              ) : (
+                <FormattedMessage id="auth.seed" defaultMessage="Auth seed" />
+              )}
+            </div>
+            <div className="float-end d-md-none">
+              <Validation.components.ValidationMessage for="seed" />
+            </div>
+          </Col>
+          <Col md={9}>
+            <div>
+              <Validation.components.ValidatedTextarea
+                className="input-seed"
+                onChange={(e) => props.onSeedChange(e.target.value)}
+                value={props.seed}
+                name="seed"
+                validators={
+                  props.compareSeed
+                    ? [
+                      Validation.validators.required,
+                      Validation.validators.compare(props.compareSeed)
+                    ]
+                    : [Validation.validators.required, 'import' === props.action ? Validation.validators.backup : Validation.validators.mnemonic]
+                }
               />
-            ) : (
-              <FormattedMessage id="auth.seed" defaultMessage="Auth seed" />
-            )}
-          </div>
-          <div className="float-end d-md-none">
-            <Validation.components.ValidationMessage for="seed" />
-          </div>
-        </Col>
-        <Col md={9}>
-          <div>
-            <Validation.components.ValidatedTextarea
-              className="input-seed"
-              onChange={(e) => props.onSeedChange(e.target.value)}
-              value={props.seed}
-              name="seed"
+            </div>
+            {/* The tools side by side, a third each (Bootstrap 5 columns need a row) */}
+            <div className="row g-0">
+              {props.onGenerate && (
+                <GeneratorTool onClick={props.onGenerate}>
+                  <FormattedMessage
+                    id="auth.seed.generate"
+                    defaultMessage="Generate"
+                  />
+                </GeneratorTool>
+              )}
+              {props.onSave && (
+                <GeneratorTool disabled={!props.seed} onClick={props.onSave}>
+                  <FormattedMessage id="auth.seed.save" defaultMessage="Save" />
+                </GeneratorTool>
+              )}
+              {props.onLoad && (
+                <GeneratorTool onClick={props.onLoad}>
+                  <FormattedMessage id="auth.seed.load" defaultMessage="Load" />
+                </GeneratorTool>
+              )}
+            </div>
+            <div className="d-none d-md-block text-start">
+              <Validation.components.ValidationMessage for="seed" />
+            </div>
+          </Col>
+        </Validation.components.ValidatedFormGroup>
+      </fieldset>
+      <fieldset>
+        <Validation.components.ValidatedFormGroup for="password" className="row">
+          <Col md={3} className="clearfix">
+            <div className="float-start">
+              <FormattedMessage id="general.password" defaultMessage="Password" />
+            </div>
+            <div className="float-end d-md-none">
+              <Validation.components.ValidationMessage for="password" />
+            </div>
+          </Col>
+          <Col md={9}>
+            <Validation.components.ValidatedControl
+              onChange={(e) => props.onPasswordChange(e.target.value)}
+              value={props.password}
+              name="password"
+              type="password"
               validators={
-                props.compareSeed
+                props.comparePassword
                   ? [
                     Validation.validators.required,
-                    Validation.validators.compare(props.compareSeed)
+                    Validation.validators.minlength(6),
+                    Validation.validators.compare(props.comparePassword)
                   ]
-                  : [Validation.validators.required, 'import' === props.action ? Validation.validators.backup : Validation.validators.mnemonic]
+                  : [
+                    Validation.validators.required,
+                    Validation.validators.minlength(6)
+                  ]
               }
             />
-          </div>
-          {/* The tools side by side, a third each (Bootstrap 5 columns need a row) */}
-          <div className="row g-0">
-            {props.onGenerate && (
-              <GeneratorTool onClick={props.onGenerate}>
-                <FormattedMessage
-                  id="auth.seed.generate"
-                  defaultMessage="Generate"
-                />
-              </GeneratorTool>
-            )}
-            {props.onSave && (
-              <GeneratorTool disabled={!props.seed} onClick={props.onSave}>
-                <FormattedMessage id="auth.seed.save" defaultMessage="Save" />
-              </GeneratorTool>
-            )}
-            {props.onLoad && (
-              <GeneratorTool onClick={props.onLoad}>
-                <FormattedMessage id="auth.seed.load" defaultMessage="Load" />
-              </GeneratorTool>
-            )}
-          </div>
-          <div className="d-none d-md-block text-start">
-            <Validation.components.ValidationMessage for="seed" />
-          </div>
-        </Col>
-      </Validation.components.ValidatedFormGroup>
-    </fieldset>
-    <fieldset>
-      <Validation.components.ValidatedFormGroup for="password" className="row">
-        <Col md={3} className="clearfix">
-          <div className="float-start">
-            <FormattedMessage id="general.password" defaultMessage="Password" />
-          </div>
-          <div className="float-end d-md-none">
-            <Validation.components.ValidationMessage for="password" />
-          </div>
-        </Col>
-        <Col md={9}>
-          <Validation.components.ValidatedControl
-            onChange={(e) => props.onPasswordChange(e.target.value)}
-            value={props.password}
-            name="password"
-            type="password"
-            validators={
-              props.comparePassword
-                ? [
-                  Validation.validators.required,
-                  Validation.validators.minlength(6),
-                  Validation.validators.compare(props.comparePassword)
-                ]
-                : [
-                  Validation.validators.required,
-                  Validation.validators.minlength(6)
-                ]
-            }
-          />
-          <div className="d-none d-md-block text-start">
-            <Validation.components.ValidationMessage for="password" />
-          </div>
+            <div className="d-none d-md-block text-start">
+              <Validation.components.ValidationMessage for="password" />
+            </div>
 
-        </Col>
-        <Col md={12}>
-          <div className="generator__warning d-none d-lg-block text-start">
-            <FormattedMessage
-              id="auth.backup.warn"
-              defaultMessage="Backup Payload (Private Key)"
-            />
-          </div>
-        </Col>
-      </Validation.components.ValidatedFormGroup>
-    </fieldset>
-    <div />
-  </div>
-);
+          </Col>
+          <Col md={12}>
+            {/* Shown at every width: it is the only place that says a lost password cannot be reset */}
+            <div className="generator__warning text-start" lang={intl.locale}>
+              <FormattedMessage
+                id="auth.backup.warn"
+                defaultMessage="Warning: Weaver keeps your private key only on this device, encrypted with your password, and never sends it anywhere, so it cannot recover or reset your password for you. If you forget your password, only your private key or seed (mnemonic phrase) can restore your access to the funds in your wallet."
+              />
+            </div>
+          </Col>
+        </Validation.components.ValidatedFormGroup>
+      </fieldset>
+      <div />
+    </div>
+  );
+};
 
 const StyledGenerator = styled(Generator)`
   textarea.input-seed {
@@ -146,11 +150,16 @@ const StyledGenerator = styled(Generator)`
     resize: none;
   }
 
-  /* A note, not part of the form (Weaver 1.x .visible-md-text) */
+  /* A note, not part of the form: Weaver 1.x's small italic text, now at every width. Chinese
+     has no italics, the browser would only slant the characters */
   .generator__warning {
     margin: 20px 0 10px;
     font-size: 12px;
     font-style: italic;
+  }
+
+  .generator__warning:lang(zh) {
+    font-style: normal;
   }
 `;
 

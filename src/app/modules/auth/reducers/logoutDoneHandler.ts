@@ -9,10 +9,8 @@ import { Reducer } from 'modules';
 
 const logoutDoneHandler: Reducer<typeof logout.done, State> = (state, payload) => ({
     ...state,
-    wallet: {
-        ...state.wallet,
-        wallet: null
-    },
+    // The ecosystem and roles stay for the next sign-in; without a context there is nothing to keep
+    wallet: state.wallet ? { ...state.wallet, wallet: null } : null,
     isAuthenticated: false,
     isLoggingIn: false
 });

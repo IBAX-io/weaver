@@ -99,6 +99,40 @@ describe('sendTransferEpic', () => {
         expect(out).toContainEqual(sendTransfer.done({ params: CALL, result: { hash: 'ab12' } }));
         expect(out).toContainEqual(fetchBalance.started(OWNER));
     });
+
+    // The transaction is confirmed only after the wallet open on screen changed hands
+    const confirmedAfter = async (change: (auth: IRootState['auth']) => IRootState['auth'], outcome: 'done' | 'failed') => {
+        const client = clientWith({ account: 'x', ecosystems: [{ ecosystem: '1', name: '', roles: [], notifications: [] }] });
+        const state = signedIn(false);
+        const respond = (action: Action) => {
+            if (txCall.match(action)) {
+                state.auth = change(state.auth);
+                return ['done' === outcome
+                    ? txExec.done({ params: action.payload, result: [{ name: 'UTXO', hash: 'ab12', body: null, status: null }] })
+                    : txExec.failed({ params: action.payload, error: { type: 'E_ERROR', error: 'rejected' } })];
+            }
+            return confirmWith('RESULT')(action);
+        };
+        return runEpicLoop(sendTransferEpic, [sendTransfer.started(CALL)], { respond, state, dependencies: { api: () => client } });
+    };
+    const reported = (actions: Action[]) => types(actions).filter(type => [sendTransfer.done.type, sendTransfer.failed.type, fetchBalance.started.type].includes(type));
+
+    it('reports the transfer to nobody once the user has signed out', async () => {
+        // logout.done keeps the context and empties its wallet
+        const signedOut = (auth: IRootState['auth']) => ({ ...auth, wallet: { ...auth.wallet, wallet: null }, isAuthenticated: false });
+        expect(reported(await confirmedAfter(signedOut, 'done'))).toEqual([]);
+        expect(reported(await confirmedAfter(signedOut, 'failed'))).toEqual([]);
+    });
+
+    it('does not show a transfer in the wallet of the account or ecosystem opened after it', async () => {
+        const other = (auth: IRootState['auth']) => ({ ...auth, wallet: { ...auth.wallet, wallet: { ...auth.wallet.wallet, address: '0813-4574-2329-7730-4517' } } });
+        const otherEcosystem = (auth: IRootState['auth']) => ({ ...auth, wallet: { ...auth.wallet, access: { ...auth.wallet.access, ecosystem: '5' } } });
+        expect(reported(await confirmedAfter(other, 'done'))).toEqual([]);
+        expect(reported(await confirmedAfter(otherEcosystem, 'failed'))).toEqual([]);
+        // Positive control: the same run with the wallet unchanged reports both ways
+        expect(reported(await confirmedAfter(auth => auth, 'done'))).toEqual([sendTransfer.done.type, fetchBalance.started.type]);
+        expect(reported(await confirmedAfter(auth => auth, 'failed'))).toEqual([sendTransfer.failed.type]);
+    });
 });
 
 describe('fetchBalanceEpic', () => {
