@@ -7,7 +7,7 @@ import React, { useEffect, useRef } from 'react';
 import classNames from 'classnames';
 import { FormattedMessage } from 'react-intl';
 import { IAccountContext, IWallet } from 'ibax/auth';
-import { ISignOutReason } from 'modules/auth/actions';
+import { E_TOKENEXPIRED, ISignOutReason } from 'modules/auth/actions';
 import { IAccount } from 'ibax/api';
 import { INotificationsMessage } from 'ibax/socket';
 
@@ -42,9 +42,10 @@ export interface IWalletListProps {
   onUpgrade: (wallet: ILegacyWallet) => any;
   // Stored wallets not set up for this network's key algorithms yet
   walletsToEnable: IWallet[];
-  // Why the app signed the user out of this network: its key algorithms changed, found with the
-  // session ('session') or when the node refused transactions ('send')
-  signOutNotice: ISignOutReason['during'] | null;
+  // Why the app signed the user out of this network: its key algorithms changed, or the node no
+  // longer took the session's token; found with the session ('session') or when the node refused
+  // transactions ('send')
+  signOutNotice: ISignOutReason | null;
   onEnable: (wallet: IWallet) => any;
 }
 
@@ -56,6 +57,33 @@ const AccountSection: React.FC<{ id: string, title: React.ReactNode, desc?: Reac
     {props.children}
   </section>
 );
+
+const SignOutNotice: React.FC<{ notice: ISignOutReason }> = ({ notice }) => {
+  if (E_TOKENEXPIRED === notice.reason) {
+    return 'send' === notice.during ? (
+      <FormattedMessage
+        id="auth.signedOut.expired.send"
+        defaultMessage="You were signed out: the node no longer accepts your session (it expired, or the node was restarted), so it refused your transactions, and those not sent yet were cancelled. Sign in again."
+      />
+    ) : (
+      <FormattedMessage
+        id="auth.signedOut.expired.session"
+        defaultMessage="You were signed out: the node no longer accepts your session (it expired, or the node was restarted). Sign in again."
+      />
+    );
+  }
+  return 'send' === notice.during ? (
+    <FormattedMessage
+      id="auth.signedOut.send"
+      defaultMessage="You were signed out: this network now uses other key algorithms, so the node refused your transactions, and those not sent yet were cancelled. Your account has another address on it: sign in again, after setting the account up below if it is listed there."
+    />
+  ) : (
+    <FormattedMessage
+      id="auth.signedOut.session"
+      defaultMessage="You were signed out: this network now uses other key algorithms, so your account has another address on it. Sign in again, after setting the account up below if it is listed there."
+    />
+  );
+};
 
 const legacyAddress = (wallet: ILegacyWallet) =>
   /^-?\d+$/.test(wallet.id) ? formatAddress(wallet.id) : wallet.id;
@@ -108,17 +136,7 @@ const WalletList: React.FC<IWalletListProps> = (props) => {
           {props.signOutNotice && (
             // Shown with the page: an alert is read out, a polite region filled from the start is not
             <div className="alert alert-warning text-start" role="alert">
-              {'send' === props.signOutNotice ? (
-                <FormattedMessage
-                  id="auth.signedOut.send"
-                  defaultMessage="You were signed out: this network now uses other key algorithms, so the node refused your transactions, and those not sent yet were cancelled. Your account has another address on it: sign in again, after setting the account up below if it is listed there."
-                />
-              ) : (
-                <FormattedMessage
-                  id="auth.signedOut.session"
-                  defaultMessage="You were signed out: this network now uses other key algorithms, so your account has another address on it. Sign in again, after setting the account up below if it is listed there."
-                />
-              )}
+              <SignOutNotice notice={props.signOutNotice} />
             </div>
           )}
           <div className="text-center desktop-flex-stretch">

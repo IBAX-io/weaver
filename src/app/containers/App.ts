@@ -6,16 +6,14 @@
 import { connect } from 'react-redux';
 import { IRootState } from 'modules';
 import { initialize } from 'modules/engine/actions';
+import { selectScreen } from './appScreen';
 
 import App from 'components/App';
 
 const mapStateToProps = (state: IRootState) => ({
   locale: 'en-US',
   localeMessages: state.engine.localeMessages,
-  isSessionAcquired: state.auth.isAcquired,
-  isAuthenticated: state.auth.isAuthenticated,
-  isLoaded: state.engine.isLoaded,
-  isFatal: !!state.engine.fatalError,
+  screen: selectScreen(state),
   securityWarningClosed: state.storage.securityWarningClosed,
   network: state.engine.guestSession && state.engine.guestSession.network
 });

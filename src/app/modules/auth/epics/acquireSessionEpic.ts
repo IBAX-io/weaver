@@ -13,9 +13,11 @@ import { fetchNotifications, ecosystemInit } from 'modules/content/actions';
 import { modalShow } from 'modules/modal/actions';
 import { displayableAuthError } from '../util/authErrors';
 import { defer, forkJoin, from, of } from 'rxjs';
-import { catchError, map, mergeMap } from 'rxjs/operators';
+import { catchError, map, mergeMap, switchMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
 import { sameCryptoSuite } from 'lib/crypto/suites';
+import { isSessionRetryError } from '../util/sessionRetry';
+import { isSessionExpiredError, signOutForExpiredSession } from '../util/sessionExpiry';
 
 enum RemoteSectionStatus {
     Removed = '0',
@@ -25,7 +27,8 @@ enum RemoteSectionStatus {
 
 const acquireSessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(acquireSession.started),
-    mergeMap(action => {
+    // A newer attempt (the retry, or the user asking again) replaces one still waiting for the node
+    switchMap(action => {
         const state = state$.value;
         const client = api({
             apiHost: action.payload.network.apiHost,
@@ -103,6 +106,18 @@ const acquireSessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
                 }
                 const rawError = (e && (e.error || e.message)) || 'E_OFFLINE';
                 const error = typeof rawError === 'string' ? rawError : 'E_SERVER';
+                if (isSessionExpiredError(error)) {
+                    // The node is the same algorithms' but no longer takes the token: signed out,
+                    // the sign-in page says the session expired
+                    return of(
+                        acquireSession.failed({ params: action.payload, error }),
+                        ...signOutForExpiredSession(state$.value, action.payload, 'session')
+                    );
+                }
+                if (isSessionRetryError(error)) {
+                    // Still signed in: the app says the node is not reachable and asks again
+                    return of(acquireSession.failed({ params: action.payload, error }));
+                }
                 return of(
                     acquireSession.failed({
                         params: action.payload,

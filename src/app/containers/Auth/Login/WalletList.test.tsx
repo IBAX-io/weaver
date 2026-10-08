@@ -121,6 +121,13 @@ describe('login page on a network of other key algorithms', () => {
         const send = await renderList({ signedOutBecause: { ...CHANGED, during: 'send' } });
         expect(send.container.querySelector('[role="alert"]').textContent).toContain('those not sent yet were cancelled');
         await send.unmount();
+        const expired = await renderList({ signedOutBecause: { reason: 'E_TOKENEXPIRED', network: 'net', during: 'session' } });
+        expect(expired.container.querySelector('[role="alert"]').textContent)
+            .toBe('You were signed out: the node no longer accepts your session (it expired, or the node was restarted). Sign in again.');
+        await expired.unmount();
+        const expiredSend = await renderList({ signedOutBecause: { reason: 'E_TOKENEXPIRED', network: 'net', during: 'send' } });
+        expect(expiredSend.container.querySelector('[role="alert"]').textContent).toContain('those not sent yet were cancelled');
+        await expiredSend.unmount();
         // Not on another network, nor when there is no reason
         for (const signedOutBecause of [{ ...CHANGED, network: 'other', during: 'session' } as const, null]) {
             const view = await renderList({ signedOutBecause });

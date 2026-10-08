@@ -150,4 +150,11 @@ describe('persistence', () => {
         expect(discardStaleSessions(signedOut)).toEqual({ ...signedOut, auth: { ...signedOut.auth, session: null } });
         expect(JSON.stringify(discardStaleSessions(signedOut).auth)).not.toContain('"t"');
     });
+
+    it('drops a damaged network session, keeping the rest', () => {
+        const suite = { cryptoer: 'SM2', hasher: 'SM3' };
+        for (const guestSession of ['x', { cryptoSuite: suite }, { network: { uuid: 'net' }, cryptoSuite: suite }]) {
+            expect(discardStaleSessions({ engine: { guestSession, other: 1 } })).toEqual({ engine: { guestSession: null, other: 1 } });
+        }
+    });
 });

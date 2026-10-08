@@ -18,20 +18,19 @@ import themed from 'components/Theme/themed';
 import Auth from 'components/Auth';
 import Error from 'containers/Auth/Error';
 import Splash from 'components/Splash';
+import SessionRetry from 'containers/SessionRetry';
 import ModalProvider from 'containers/Modal/ModalProvider';
 import NotificationsProvider from 'containers/Notifications/NotificationsProvider';
 import SecurityWarning from 'containers/SecurityWarning';
 import ThemeProvider from 'components/Theme/ThemeProvider';
 import Titlebar from 'components/Titlebar';
 import Main from './Main';
+import { TScreen } from 'containers/appScreen';
 
 interface AppProps {
   network: INetworkEndpoint;
   locale: string;
-  isSessionAcquired: boolean;
-  isAuthenticated: boolean;
-  isLoaded: boolean;
-  isFatal: boolean;
+  screen: TScreen;
   securityWarningClosed: boolean;
   localeMessages: { [key: string]: string };
   initialize: () => void;
@@ -72,28 +71,12 @@ class App extends React.Component<AppProps> {
     this.props.initialize();
   }
 
-  // The first condition that holds decides the screen, in this order
-  screen() {
-    if (this.props.isFatal) {
-      return 'error';
-    }
-    if (!this.props.isLoaded) {
-      return 'splash';
-    }
-    if (!this.props.isAuthenticated) {
-      return 'auth';
-    }
-    if (!this.props.isSessionAcquired) {
-      return 'splash';
-    }
-    return 'main';
-  }
-
   renderScreen() {
-    switch (this.screen()) {
+    switch (this.props.screen) {
       case 'error': return <Error />;
       case 'splash': return <Splash />;
       case 'auth': return <Auth />;
+      case 'retry': return <SessionRetry />;
       default: return (
         <Routes>
           <Route path={mainRoute} element={<MainRoute />} />
@@ -142,7 +125,7 @@ class App extends React.Component<AppProps> {
               )
             })}
 
-            <FadeIn key={this.screen()}>{this.renderScreen()}</FadeIn>
+            <FadeIn key={this.props.screen}>{this.renderScreen()}</FadeIn>
           </ThemedApp>
         </ThemeProvider>
       </IntlProvider>

@@ -73,7 +73,7 @@ const walletsToEnable = memoized((wallets: IRootState['storage']['wallets'], sui
 const signOutNotice = (state: IRootState) => {
     const reason = state.auth.signedOutBecause;
     const session = state.engine.guestSession;
-    return reason && session && reason.network === session.network.uuid ? reason.during : null;
+    return reason && session && reason.network === session.network.uuid ? reason : null;
 };
 
 const legacyEntries = memoized((entries: unknown[]) => ({

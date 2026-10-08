@@ -11,3 +11,10 @@ import { IRootState } from 'modules';
 // here: an action that comes after signing out finds none and asks nothing.
 export const signedInSession = (state: IRootState): ISession | null =>
     state.auth.isAuthenticated && state.auth.session ? state.auth.session : null;
+
+// Whether the session is still the one signed in: a late answer about a session already left must
+// not end the next one, nor sign out twice
+export const isSignedInSession = (state: IRootState, session: ISession) => {
+    const open = signedInSession(state);
+    return !!open && open.sessionToken === session.sessionToken;
+};

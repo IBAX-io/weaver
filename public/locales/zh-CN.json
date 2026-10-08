@@ -399,5 +399,9 @@
   "wallet.done.utxo.ask": "要在列表中看到它，请在下方查找 UTXO 转账。",
   "general.network.explorer": "区块浏览器 API（可选）",
   "general.network.explorer.desc": "钱包在这里查找账户的 UTXO 转账，例如 https://scan.ibax.network:8800/api/v2。不填则无法列出这类转账。",
-  "validation.httpsUrl": "请输入 https 地址"
+  "validation.httpsUrl": "请输入 https 地址",
+  "auth.signedOut.expired.session": "你已被退出登录：节点不再接受你的会话（会话已过期，或节点已重启）。请重新登录。",
+  "auth.signedOut.expired.send": "你已被退出登录：节点不再接受你的会话（会话已过期，或节点已重启），因此拒绝了你的交易，尚未发出的交易已取消。请重新登录。",
+  "auth.session.retrying": "你仍处于登录状态。节点一旦响应，账户就会打开；每隔几秒会自动重试。",
+  "auth.session.retry": "立即重试"
 }

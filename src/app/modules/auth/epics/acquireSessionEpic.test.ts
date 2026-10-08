@@ -12,7 +12,7 @@ import { cryptoSuiteFromNode, DEFAULT_CRYPTO_SUITE, ICryptoSuiteId } from 'lib/c
 import { modalShow } from 'modules/modal/actions';
 import { sectionsInit } from 'modules/sections/actions';
 import IbaxAPI from 'lib/ibaxAPI';
-import { acquireSession, cryptoChanged, E_CRYPTO_CHANGED, login, loginGuest, logout } from '../actions';
+import { acquireSession, cryptoChanged, E_CRYPTO_CHANGED, E_TOKENEXPIRED, login, loginGuest, logout, sessionExpired } from '../actions';
 import reducer, { initialState } from '../reducer';
 import acquireSessionEpic from './acquireSessionEpic';
 
@@ -80,14 +80,56 @@ describe('acquireSessionEpic', () => {
         expect(again).toEqual([acquireSession.failed({ params: session, error: E_CRYPTO_CHANGED })]);
     });
 
-    it('reports a node that cannot be asked as before, without signing out', async () => {
-        for (const [error, code] of [[{ error: 'E_OFFLINE', msg: '' }, 'E_OFFLINE'], [new Error('boom'), 'boom'], [{ error: 5 }, 'E_SERVER']] as const) {
+    it('takes a node that does not answer for offline: still signed in, no change of algorithms', async () => {
+        const { client, api } = nodeReporting(DEFAULT_CRYPTO_SUITE);
+        client.getUid.mockRejectedValue({ error: 'E_OFFLINE', msg: '' });
+        const out = await runEpic(acquireSessionEpic, [acquireSession.started(session)], signedIn(), { api });
+        // The app shows the session waiting for the node (no modal) and asks again
+        expect(out).toEqual([acquireSession.failed({ params: session, error: 'E_OFFLINE' })]);
+
+        const restored = { ...initialState, isAuthenticated: true, session };
+        const offline = reducer(reducer(restored, acquireSession.started(session)), out[0]);
+        expect(offline).toMatchObject({ isAuthenticated: true, isAcquired: false, session, sessionRetryReason: 'E_OFFLINE' });
+        // Asked again, it stays the retry screen until the node answers
+        expect(reducer(offline, acquireSession.started(session)).sessionRetryReason).toBe('E_OFFLINE');
+        expect(reducer(offline, acquireSession.done({ params: session, result: true }))).toMatchObject({ isAcquired: true, sessionRetryReason: null });
+        expect(reducer(offline, logout.done({ params: null, result: null }))).toMatchObject({ isAuthenticated: false, sessionRetryReason: null });
+    });
+
+    it('waits the same way for a node still catching up with the chain', async () => {
+        const { client, api } = nodeReporting(DEFAULT_CRYPTO_SUITE);
+        client.sections.mockRejectedValue({ error: 'E_UPDATING', msg: '' });
+        const out = await runEpic(acquireSessionEpic, [acquireSession.started(session)], signedIn(), { api });
+        expect(out).toEqual([acquireSession.failed({ params: session, error: 'E_UPDATING' })]);
+    });
+
+    it.each(['E_UNAUTHORIZED', 'E_TOKENEXPIRED'])('signs a session whose token the node refuses (%s) out, the sign-in page says it expired', async error => {
+        const { client, api } = nodeReporting(DEFAULT_CRYPTO_SUITE);
+        // The node restarted (a new token secret), or the token is past its time
+        client.sections.mockRejectedValue({ error, msg: '' });
+        const out = await runEpic(acquireSessionEpic, [acquireSession.started(session)], signedIn(), { api });
+        expect(out).toEqual([acquireSession.failed({ params: session, error }), sessionExpired({ reason: E_TOKENEXPIRED, network: 'net', during: 'session' }), logout.started(null)]);
+        const restored = { ...initialState, isAuthenticated: true, session };
+        expect(out.concat(logout.done({ params: null, result: null })).reduce(reducer, restored))
+            .toMatchObject({ isAuthenticated: false, signedOutBecause: { reason: E_TOKENEXPIRED, network: 'net', during: 'session' }, sessionRetryReason: null });
+    });
+
+    it('ends the session on any other error, and says why', async () => {
+        for (const [error, code] of [[{ error: 'E_SERVER', msg: '' }, 'E_SERVER'], [new Error('boom'), 'boom'], [{ error: 5 }, 'E_SERVER']] as const) {
             const { api } = nodeReporting({ error });
             const out = await runEpic(acquireSessionEpic, [acquireSession.started(session)], signedIn(), { api });
             expect(out[0]).toEqual(acquireSession.failed({ params: session, error: code }));
             expect(out[1]).toEqual(expect.objectContaining({ type: modalShow.type }));
             expect(out.some(action => logout.started.match(action) || cryptoChanged.match(action))).toBe(false);
+            const restored = { ...initialState, isAuthenticated: true, session };
+            expect(reducer(restored, out[0])).toMatchObject({ isAuthenticated: false, isAcquired: false, sessionRetryReason: null });
         }
+    });
+
+    it('leaves no session acquired after the sign-out, so the next sign-in waits for its own', () => {
+        const open = reducer({ ...initialState, isAuthenticated: true, session }, acquireSession.done({ params: session, result: true }));
+        expect(open.isAcquired).toBe(true);
+        expect(reducer(open, logout.done({ params: null, result: null }))).toMatchObject({ isAuthenticated: false, isAcquired: false });
     });
 
     it('says the algorithms changed though the sections fail first, and the sections\' error otherwise', async () => {

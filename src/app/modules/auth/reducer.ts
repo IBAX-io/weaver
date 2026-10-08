@@ -9,6 +9,7 @@ import { saveWallet } from 'modules/storage/actions';
 import { reducerWithInitialState } from 'typescript-fsa-reducers';
 import { ISession, IAccountContext } from 'ibax/auth';
 import { IAccount } from 'ibax/api';
+import { TSessionRetryError } from './util/sessionRetry';
 import loginHandler from './reducers/loginHandler';
 import loginDoneHandler from './reducers/loginDoneHandler';
 import loginFailedHandler from './reducers/loginFailedHandler';
@@ -30,7 +31,7 @@ import loginGuestFailedHandler from './reducers/loginGuestFailedHandler';
 import acquireSessionHandler from './reducers/acquireSessionHandler';
 import acquireSessionDoneHandler from './reducers/acquireSessionDoneHandler';
 import acquireSessionFailedHandler from './reducers/acquireSessionFailedHandler';
-import cryptoChangedHandler from './reducers/cryptoChangedHandler';
+import signedOutHandler from './reducers/signedOutHandler';
 
 export type State = {
     readonly isAcquired: boolean;
@@ -49,6 +50,8 @@ export type State = {
     readonly privateKey: string;
     // Why the user was signed out of which network, shown on its sign-in page until the next sign-in
     readonly signedOutBecause: ISignOutReason | null;
+    // Why the restored session is not acquired yet while it is being asked for again
+    readonly sessionRetryReason: TSessionRetryError | null;
 };
 
 export const initialState: State = {
@@ -65,7 +68,8 @@ export const initialState: State = {
     wallet: null,
     privateKey: null,
     wallets: [],
-    signedOutBecause: null
+    signedOutBecause: null,
+    sessionRetryReason: null
 };
 
 export default reducerWithInitialState<State>(initialState)
@@ -90,7 +94,8 @@ export default reducerWithInitialState<State>(initialState)
     .case(actions.acquireSession.started, acquireSessionHandler)
     .case(actions.acquireSession.done, acquireSessionDoneHandler)
     .case(actions.acquireSession.failed, acquireSessionFailedHandler)
-    .case(actions.cryptoChanged, cryptoChangedHandler)
+    .case(actions.cryptoChanged, signedOutHandler)
+    .case(actions.sessionExpired, signedOutHandler)
     // The signed-in wallet stored again (a new password): unlocking from now on uses the new key
     .case(saveWallet, (state, wallet) => state.wallet?.wallet.walletID === wallet.id
         ? { ...state, wallet: { ...state.wallet, wallet: { ...state.wallet.wallet, encKey: wallet.encKey } } }

@@ -94,29 +94,34 @@ export const parsePersistedState = (raw: string | null): TPersistedState | null 
     }
 };
 
-const hasCryptoSuite = (session: unknown) => {
-    const suite = session && 'object' === typeof session ? (session as { cryptoSuite?: { cryptoer?: unknown, hasher?: unknown } }).cryptoSuite : null;
-    return !!suite && 'string' === typeof suite.cryptoer && 'string' === typeof suite.hasher;
+// A session as this version stores it: the network it is of and the key algorithms it signs with
+const isUsableSession = (session: unknown) => {
+    if (!session || 'object' !== typeof session) {
+        return false;
+    }
+    const { network, cryptoSuite } = session as { network?: { uuid?: unknown, apiHost?: unknown }, cryptoSuite?: { cryptoer?: unknown, hasher?: unknown } };
+    return !!network && 'string' === typeof network.uuid && 'string' === typeof network.apiHost &&
+        !!cryptoSuite && 'string' === typeof cryptoSuite.cryptoer && 'string' === typeof cryptoSuite.hasher;
 };
 
 // Sessions stored that cannot be used, dropped as the app starts:
 // - one kept after signing out (Weaver up to 1.4 kept it, its token valid for months): dropped
-// - one stored without the network's key algorithms (Weaver up to 1.4) cannot sign: the signed-in
-//   one is dropped with its account (the user signs in again), the network one too (connected to
-//   again at start)
+// - one stored without the network's key algorithms (Weaver up to 1.4), or damaged, cannot sign:
+//   the signed-in one is dropped with its account (the user signs in again), the network one too
+//   (connected to again at start)
 export const discardStaleSessions = (persisted: TPersistedState | null): TPersistedState | null => {
     if (!persisted) {
         return persisted;
     }
     const { auth, engine } = persisted;
     const result = { ...persisted };
-    if (auth && auth.session && !hasCryptoSuite(auth.session)) {
+    if (auth && auth.session && !isUsableSession(auth.session)) {
         result.auth = { ...auth, session: null, wallet: null, id: null, isAuthenticated: false, isDefaultWallet: false };
     }
     else if (auth && auth.session && true !== auth.isAuthenticated) {
         result.auth = { ...auth, session: null };
     }
-    if (engine && engine.guestSession && !hasCryptoSuite(engine.guestSession)) {
+    if (engine && engine.guestSession && !isUsableSession(engine.guestSession)) {
         result.engine = { ...engine, guestSession: null };
     }
     return result;

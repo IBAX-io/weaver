@@ -25,7 +25,7 @@ const load = (file: string) => JSON.parse(fs.readFileSync(path.join(LOCALES_DIR,
 // Every value of these unions; the compiler fails this file when one is added and not listed here
 const TX_ERRORS = [
     'error', 'info', 'warning', 'panic', 'E_GUEST_VIOLATION', 'E_AUTH_CANCELLED', 'E_INVALID_TRANSFER', 'E_INVALID_PARAM',
-    'E_UNSUPPORTED_PARAM', 'E_INSUFFICIENT_BALANCE', 'E_TX_TIMEOUT', 'E_PENALTY', 'E_DUPLICATE_TX', 'E_CONTRACT', 'E_SERVER', 'E_CRYPTO_CHANGED', 'E_SIGNED_OUT'
+    'E_UNSUPPORTED_PARAM', 'E_INSUFFICIENT_BALANCE', 'E_TX_TIMEOUT', 'E_PENALTY', 'E_DUPLICATE_TX', 'E_CONTRACT', 'E_SERVER', 'E_CRYPTO_CHANGED', 'E_TOKENEXPIRED', 'E_SIGNED_OUT'
 ] as const satisfies readonly TTxError[];
 const TX_ERRORS_COMPLETE: [Exclude<TTxError, typeof TX_ERRORS[number]>] extends [never] ? true : false = true;
 const DIRECTIONS = ['toAccount', 'toUTXO'] as const satisfies readonly TTransferSelfDirection[];
@@ -33,9 +33,9 @@ const DIRECTIONS_COMPLETE: [Exclude<TTransferSelfDirection, typeof DIRECTIONS[nu
 
 // Messages the app looks up by a code it builds at runtime (ErrorModal, the wallet page)
 const BUILT_KEYS = [
-    // Never shown: E_AUTH_CANCELLED and E_SIGNED_OUT (nothing to say), E_CRYPTO_CHANGED (the sign-in
-    // page says it)
-    ...TX_ERRORS.filter(code => !['E_AUTH_CANCELLED', 'E_CRYPTO_CHANGED', 'E_SIGNED_OUT'].includes(code)).map(code => `tx.error.${code}`),
+    // Never shown: E_AUTH_CANCELLED and E_SIGNED_OUT (nothing to say), E_CRYPTO_CHANGED and
+    // E_TOKENEXPIRED (the sign-in page says it)
+    ...TX_ERRORS.filter(code => !['E_AUTH_CANCELLED', 'E_CRYPTO_CHANGED', 'E_TOKENEXPIRED', 'E_SIGNED_OUT'].includes(code)).map(code => `tx.error.${code}`),
     ...AMOUNT_CHECK_PROBLEMS.map(problem => `wallet.error.${problem}`),
     ...RECIPIENT_PROBLEMS.map(problem => `wallet.error.recipient.${problem}`),
     ...WALLET_ERRORS.map(code => `wallet.balance.error.${code}`),

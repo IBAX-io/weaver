@@ -14,8 +14,9 @@ const sources = (dir: string): string[] => readdirSync(dir, { withFileTypes: tru
     : /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [join(dir, entry.name)] : []);
 
 // Reading the session's network or token straight off the state: none once signed out, so what
-// does it fails on an action that comes after (it ended every epic before signedInSession)
-const directReads = (text: string) => [...text.matchAll(/\bauth\.session\.(?!prompt\b)\w+/g)].map(match => match[0]);
+// does it fails on an action that comes after (it ended every epic before signedInSession). A
+// message id starting a string ("auth.session.prompt") is not a read.
+const directReads = (text: string) => [...text.matchAll(/(?<!['"`])\bauth\.session\.\w+/g)].map(match => match[0]);
 
 describe('the signed-in session', () => {
     it('is read through signedInSession only', () => {
@@ -29,5 +30,6 @@ describe('the signed-in session', () => {
         expect(directReads('apiHost: state.auth.session.network.apiHost')).toEqual(['auth.session.network']);
         expect(directReads('const session = state$.value.auth.session;')).toEqual([]);
         expect(directReads('<FormattedMessage id="auth.session.prompt" />')).toEqual([]);
+        expect(directReads("intl.formatMessage({ id: 'auth.session.retry' })")).toEqual([]);
     });
 });

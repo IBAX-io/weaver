@@ -399,5 +399,9 @@
   "wallet.done.utxo.ask": "Listede görmek için aşağıda UTXO transferlerini arayın.",
   "general.network.explorer": "Blok gezgini API'si (isteğe bağlı)",
   "general.network.explorer.desc": "Cüzdanın hesabın UTXO transferlerini aradığı yer; örneğin https://scan.ibax.network:8800/api/v2. Olmadan listelenemezler.",
-  "validation.httpsUrl": "Bir https adresi girin"
+  "validation.httpsUrl": "Bir https adresi girin",
+  "auth.signedOut.expired.session": "Oturumunuz kapatıldı: düğüm oturumunuzu artık kabul etmiyor (süresi doldu ya da düğüm yeniden başlatıldı). Yeniden giriş yapın.",
+  "auth.signedOut.expired.send": "Oturumunuz kapatıldı: düğüm oturumunuzu artık kabul etmiyor (süresi doldu ya da düğüm yeniden başlatıldı), bu yüzden işlemlerinizi reddetti ve henüz gönderilmemiş olanlar iptal edildi. Yeniden giriş yapın.",
+  "auth.session.retrying": "Oturumunuz hâlâ açık. Node yanıt verir vermez hesabınız açılacak; birkaç saniyede bir yeniden deneniyor.",
+  "auth.session.retry": "Şimdi yeniden dene"
 }

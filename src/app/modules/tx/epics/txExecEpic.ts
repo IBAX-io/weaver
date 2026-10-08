@@ -15,8 +15,9 @@ import { ISignedTransaction, ITxContext, signTransaction, TTxPayload } from 'lib
 import { isBaseUnits } from 'lib/tx/amount';
 import { parseAddress } from 'lib/crypto/address';
 import { ICryptoSuiteId, sameCryptoSuite } from 'lib/crypto/suites';
-import { E_CRYPTO_CHANGED } from 'modules/auth/actions';
+import { E_CRYPTO_CHANGED, E_TOKENEXPIRED } from 'modules/auth/actions';
 import { CryptoChangedError, signOutForCryptoChange } from 'modules/auth/util/cryptoChange';
+import { isSessionExpiredError, SessionExpiredError, signOutForExpiredSession } from 'modules/auth/util/sessionExpiry';
 import IbaxAPI from 'lib/ibaxAPI';
 import { apiErrorCode, isApiError } from 'lib/ibaxAPI/errors';
 import fileObservable from 'modules/io/util/fileObservable';
@@ -78,9 +79,33 @@ const TRANSFER_NAMES: { [K in TTransferCall['type']]: string } = {
   transferSelf: 'TransferSelf'
 };
 
+// The node executed the transaction and reported an error (/txstatus errmsg, or a penalty)
+class TxExecutionError {
+  constructor(readonly txError: ITxError) { }
+}
+
+// The node checks every transaction's signature when it is sent and refuses a bad one (go-ibax
+// ProcessClientTxBatches: "Incorrect sign" for any other suite's signature). When it refuses a
+// send (it answered: not when it could not be reached), it is asked which algorithms it uses now:
+// other than the session's, that is the reason (the chain's crypto settings were changed while
+// the session was open; a redeployed chain also refuses the token). Otherwise a refused token
+// ends the session, and any other refusal, or one the node cannot be asked about, stands as it is.
+const refusedSending = (client: IbaxAPI, suite: ICryptoSuiteId) => (error: unknown) => {
+  if ('E_OFFLINE' === apiErrorCode(error)) {
+    return throwError(() => error);
+  }
+  const refused = () => isSessionExpiredError(apiErrorCode(error)) ? new SessionExpiredError('send') : error;
+  return defer(() => client.getUid()).pipe(
+    catchError(() => throwError(refused)),
+    mergeMap(uid => throwError(() => sameCryptoSuite(uid.cryptoSuite, suite) ? refused() : new CryptoChangedError('send')))
+  );
+};
+
 // Every parameter set of a contract becomes one signed transaction; files are read first
 const signContract = (client: IbaxAPI, context: ITxContext, privateKey: string, contract: TContractCall): Observable<ITxJob[]> =>
   from(client.getContract({ name: contract.name })).pipe(
+    // The token refused here already is the same as the transactions refused for it
+    catchError(error => isSessionExpiredError(apiErrorCode(error)) ? refusedSending(client, context.cryptoSuite)(error) : throwError(() => error)),
     concatMap((proto: IContractResponse) => from(contract.params).pipe(
       concatMap((params: TContractParams) => from(proto.fields).pipe(
         filter(field => field.type === 'file' && !!params[field.name]),
@@ -125,28 +150,11 @@ const signContract = (client: IbaxAPI, context: ITxContext, privateKey: string, 
     ))
   );
 
-// The node executed the transaction and reported an error (/txstatus errmsg, or a penalty)
-class TxExecutionError {
-  constructor(readonly txError: ITxError) { }
-}
-
 class TxPending {
   constructor(readonly count: number) { }
 }
 
 const POLL_RETRY_ERRORS = ['E_HASHNOTFOUND', 'E_OFFLINE'];
-
-// The node checks every transaction's signature when it is sent and refuses a bad one (go-ibax
-// ProcessClientTxBatches: "Incorrect sign" for any other suite's signature). When it refuses a
-// send (it answered: not when it could not be reached), it is asked which algorithms it uses now:
-// other than the session's, that is the reason (the chain's crypto settings were changed while
-// the session was open); otherwise, or if it cannot tell, the refusal stands as it is.
-const refusedSending = (client: IbaxAPI, suite: ICryptoSuiteId) => (error: unknown) => 'E_OFFLINE' === apiErrorCode(error)
-  ? throwError(() => error)
-  : defer(() => client.getUid()).pipe(
-    catchError(() => throwError(() => error)),
-    mergeMap(uid => throwError(() => sameCryptoSuite(uid.cryptoSuite, suite) ? error : new CryptoChangedError('send')))
-  );
 
 // Sends a batch and polls until every transaction is in a block; an execution error stops polling
 const sendBatch = (client: IbaxAPI, suite: ICryptoSuiteId, jobs: ITxJob[]): Observable<ITransaction[]> => defer(() => {
@@ -306,10 +314,16 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
         txExec.failed({ params: action.payload, error: { type: E_CRYPTO_CHANGED, error: '', params: [] } }),
         ...signOutForCryptoChange(state$.value, session, error.during)
       )
-      : of(txExec.failed({
-        params: action.payload,
-        error: toTxError(error)
-      })))
+      : error instanceof SessionExpiredError
+        // Signed out the same way, the sign-in page says the session expired
+        ? of(
+          txExec.failed({ params: action.payload, error: { type: E_TOKENEXPIRED, error: '', params: [] } }),
+          ...signOutForExpiredSession(state$.value, session, error.during)
+        )
+        : of(txExec.failed({
+          params: action.payload,
+          error: toTxError(error)
+        })))
   );
   })
 );

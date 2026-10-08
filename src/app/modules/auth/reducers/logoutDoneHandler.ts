@@ -17,7 +17,10 @@ const logoutDoneHandler: Reducer<typeof logout.done, State> = (state, payload) =
     // state or in what is stored of it. What asks the node finds none (signedInSession).
     session: null,
     isAuthenticated: false,
-    isLoggingIn: false
+    // No session is open any more: the next one is acquired anew
+    isAcquired: false,
+    isLoggingIn: false,
+    sessionRetryReason: null
 });
 
 export default logoutDoneHandler;

@@ -399,5 +399,9 @@
   "wallet.done.utxo.ask": "To see it listed, look up UTXO transfers below.",
   "general.network.explorer": "Block explorer API (optional)",
   "general.network.explorer.desc": "Where the wallet looks up the account's UTXO transfers, such as https://scan.ibax.network:8800/api/v2. Without one, they cannot be listed.",
-  "validation.httpsUrl": "Enter an https address"
+  "validation.httpsUrl": "Enter an https address",
+  "auth.signedOut.expired.session": "You were signed out: the node no longer accepts your session (it expired, or the node was restarted). Sign in again.",
+  "auth.signedOut.expired.send": "You were signed out: the node no longer accepts your session (it expired, or the node was restarted), so it refused your transactions, and those not sent yet were cancelled. Sign in again.",
+  "auth.session.retrying": "You are still signed in. Your account opens as soon as the node answers; trying again every few seconds.",
+  "auth.session.retry": "Try again now"
 }

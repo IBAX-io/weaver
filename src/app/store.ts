@@ -5,10 +5,10 @@
 
 import { Action, createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
-import { discardStaleSessions, IPersistenceBackend, mergePersistedState, persistedStateChanged, selectPersistedState, storedWalletsChanged, toPersistedState } from 'lib/persistence';
+import { IPersistenceBackend, mergePersistedState, persistedStateChanged, selectPersistedState, storedWalletsChanged, toPersistedState } from 'lib/persistence';
 import createLocalStorageBackend from 'lib/persistence/localStorageBackend';
 import createDebouncedBackend from 'lib/persistence/debouncedBackend';
-import { quarantineUnusableWallets } from 'modules/storage/util/storedWallets';
+import { restorePersistedState } from 'modules/restorePersistedState';
 
 import rootReducer, { rootEpic, IRootState, IStoreDependencies } from './modules';
 import desktop from 'lib/desktop';
@@ -39,7 +39,7 @@ const configureStore = () => {
 
   const store = createStore(
     reducer,
-    mergePersistedState(initialState, discardStaleSessions(quarantineUnusableWallets(persistence.load()))),
+    mergePersistedState(initialState, restorePersistedState(persistence.load())),
     composeEnhancers(applyMiddleware(...middleware))
   );
 

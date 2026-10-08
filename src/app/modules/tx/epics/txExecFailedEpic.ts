@@ -10,11 +10,14 @@ import { txExec } from '../actions';
 import { modalShow } from '../../modal/actions';
 import { navigate } from 'modules/router/actions';
 
+// Nothing to show for a cancelled prompt or for transactions of a session signed out of since; a
+// session the app ended (the network's key algorithms changed, or the node refused its token) is
+// explained on the sign-in page the user is sent to
+const SILENT_ERRORS = ['E_AUTH_CANCELLED', 'E_SIGNED_OUT', 'E_CRYPTO_CHANGED', 'E_TOKENEXPIRED'];
+
 export const txExecFailedEpic: Epic = (action$, state$, { routerService }) => action$.pipe(
     ofAction(txExec.failed),
-    // Nothing to show for a cancelled prompt; a change of the network's key algorithms is said on
-    // the sign-in page the user is sent to
-    filter(l => !l.payload.params.silent && 'E_AUTH_CANCELLED' !== l.payload.error.type && 'E_CRYPTO_CHANGED' !== l.payload.error.type && 'E_SIGNED_OUT' !== l.payload.error.type),
+    filter(l => !l.payload.params.silent && !SILENT_ERRORS.includes(l.payload.error.type)),
     map(action => {
         if (action.payload.params.section && action.payload.error.id && action.payload.params.errorRedirects) {
             const errorRedirect = action.payload.params.errorRedirects[action.payload.error.id];

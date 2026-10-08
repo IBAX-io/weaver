@@ -13,7 +13,11 @@
 
 **Note: `yarn start` serves the web app at http://127.0.0.1:3000. `yarn start-desktop` opens the desktop app on that server (run `yarn start` first). On the first start `public/settings.json` is created from `public/settings.json.dist` (mainnet, testnet and a local node at http://127.0.0.1:7079); edit it to change the networks. It is not replaced afterwards: one created by an earlier version lacks the `explorer` of mainnet and testnet (see below), so add it from `settings.json.dist`, or delete the file to have it created again.**
 
-**Crypto: each node reports its key and hash algorithms (`/api/v2/getuid`); Weaver uses the algorithms of the network it connects to.**
+**Crypto: each node reports its key and hash algorithms (`/api/v2/getuid`), and everything Weaver signs for a network uses that network's algorithms, kept in the session.**
+
+- The one built-in default, `DEFAULT_CRYPTO_SUITE` (ECDSA secp256k1 with Keccak-256, what the public IBAX networks use), never decides how anything is signed. It only names a stored wallet and picks the accounts the sign-in page lists before any network was reached.
+- A node that reports no algorithms predates configurable crypto and is taken to use ECDSA P-256 with SHA-256.
+- A chain changes its algorithms only by being redeployed. A signed-in user is then signed out and told why: their account has another address under the new algorithms. The same happens, with its own notice, when the node no longer accepts the session (expired, or the node restarted).
 
 ### Configuration example
 

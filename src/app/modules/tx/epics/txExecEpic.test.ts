@@ -13,7 +13,7 @@ import { cryptoSuiteFromNode, DEFAULT_CRYPTO_SUITE, ICryptoSuiteId, resolveCrypt
 import { ITransactionBody, ITransactionCall } from 'ibax/tx';
 import { IContractResponse, ITxStatus } from 'ibax/api';
 import { IAPIError, isApiError } from 'lib/ibaxAPI/errors';
-import { cryptoChanged, E_CRYPTO_CHANGED, logout } from 'modules/auth/actions';
+import { cryptoChanged, E_CRYPTO_CHANGED, E_TOKENEXPIRED, logout, sessionExpired } from 'modules/auth/actions';
 import { txExec } from '../actions';
 import txExecEpic from './txExecEpic';
 
@@ -321,6 +321,37 @@ describe('txExecEpic', () => {
             const output = await run(client, TRANSFER);
             expect(output).toEqual([txExec.failed({ params: TRANSFER, error: { type: 'E_OFFLINE', error: '', params: [] } })]);
             expect(getUid).not.toHaveBeenCalled();
+        });
+
+        it('signs out saying the session expired when the node refuses the token', async () => {
+            for (const suite of [DEFAULT_CRYPTO_SUITE, null]) {
+                const { client } = refusingNode(suite);
+                vi.mocked(client.txSend).mockRejectedValue({ error: 'E_UNAUTHORIZED', msg: 'Unauthorized' });
+                expect(await run(client, TRANSFER)).toEqual([
+                    txExec.failed({ params: TRANSFER, error: { type: E_TOKENEXPIRED, error: '', params: [] } }),
+                    sessionExpired({ reason: E_TOKENEXPIRED, network: 'testnet', during: 'send' }),
+                    logout.started(null)
+                ]);
+            }
+        });
+
+        it('says the algorithms changed when the token is refused by a chain redeployed under other ones', async () => {
+            const { client } = refusingNode({ cryptoer: 'SM2', hasher: 'SM3' });
+            vi.mocked(client.txSend).mockRejectedValue({ error: 'E_UNAUTHORIZED', msg: 'Unauthorized' });
+            expect(await run(client, TRANSFER)).toEqual(SIGNED_OUT);
+        });
+
+        it('takes a token refused when the contract is looked up the same way, before anything is signed', async () => {
+            const { client, getUid } = refusingNode(DEFAULT_CRYPTO_SUITE);
+            vi.mocked(client.getContract).mockRejectedValue({ error: 'E_TOKENEXPIRED', msg: '' });
+            const contractCall = call({ contracts: [{ name: 'SetValue', params: [{ Value: 'x' }] }] });
+            expect(await run(client, contractCall)).toEqual([
+                txExec.failed({ params: contractCall, error: { type: E_TOKENEXPIRED, error: '', params: [] } }),
+                sessionExpired({ reason: E_TOKENEXPIRED, network: 'testnet', during: 'send' }),
+                logout.started(null)
+            ]);
+            expect(getUid).toHaveBeenCalledTimes(1);
+            expect(client.txSend).not.toHaveBeenCalled();
         });
 
         it('asks nothing more when the node takes the transactions', async () => {

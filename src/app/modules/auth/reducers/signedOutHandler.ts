@@ -4,13 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { State } from '../reducer';
-import { cryptoChanged } from '../actions';
-import { Reducer } from 'modules';
+import { ISignOutReason } from '../actions';
 
 // Kept through the sign-out (and stored, so a restart still says it), cleared by the next sign-in
-const cryptoChangedHandler: Reducer<typeof cryptoChanged, State> = (state, payload) => ({
+const signedOutHandler = (state: State, payload: ISignOutReason): State => ({
     ...state,
     signedOutBecause: payload
 });
 
-export default cryptoChangedHandler;
+export default signedOutHandler;

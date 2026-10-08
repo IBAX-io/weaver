@@ -9,11 +9,26 @@ import { catchError, filter, map, mergeMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
 import { discoverNetwork, initialize } from 'modules/engine/actions';
 import { connect } from '../actions';
+import { acquireSession } from 'modules/auth/actions';
 import { authenticate } from 'services/auth';
 
 const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.pipe(
-    ofAction(discoverNetwork.done, initialize.done),
-    filter(() => !!state$.value.engine.guestSession),
+    ofAction(discoverNetwork.done, initialize.done, acquireSession.done),
+    filter(action => {
+        const state = state$.value;
+        if (!state.engine.guestSession) {
+            return false;
+        }
+        // Signed out, the network is discovered again at start (connectDefaultEpic): connected then
+        if (initialize.done.match(action)) {
+            return state.auth.isAuthenticated;
+        }
+        // A session restored once the node answered again, which it did not at start
+        if (acquireSession.done.match(action)) {
+            return !state.socket.socket;
+        }
+        return true;
+    }),
     mergeMap(action => {
         const state = state$.value;
         const network = state.storage.networks.find(n => n.uuid === state.engine.guestSession.network.uuid);

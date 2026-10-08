@@ -17,17 +17,23 @@ export const loginGuest = actionCreator.async<void, { privateKey: string, public
 export const logout = actionCreator.async('LOGOUT');
 // The network's key algorithms are no longer the ones the session signed in under (its address and
 // signatures would be the old ones): the session ends, the network is connected to again, and the
-// sign-in page of that network says why. `during`: found when a session was restored or signed in
-// with, or when the node refused transactions (those not sent yet were cancelled).
+// sign-in page of that network says why.
 export const E_CRYPTO_CHANGED = 'E_CRYPTO_CHANGED';
+// The node no longer accepts the session's token (util/sessionExpiry.ts): the session ends, and the
+// sign-in page of that network says why.
+export const E_TOKENEXPIRED = 'E_TOKENEXPIRED';
 // Asked of the node for a session signed out of since: nothing is asked, nothing is shown
 export const E_SIGNED_OUT = 'E_SIGNED_OUT';
-export interface ISignOutReason {
-    reason: typeof E_CRYPTO_CHANGED;
+export type TSignOutReason = typeof E_CRYPTO_CHANGED | typeof E_TOKENEXPIRED;
+// `during`: found when a session was restored or signed in with, or when the node refused
+// transactions (those not sent yet were cancelled)
+export interface ISignOutReason<R extends TSignOutReason = TSignOutReason> {
+    reason: R;
     network: string;
     during: 'session' | 'send';
 }
-export const cryptoChanged = actionCreator<ISignOutReason>('CRYPTO_CHANGED');
+export const cryptoChanged = actionCreator<ISignOutReason<typeof E_CRYPTO_CHANGED>>('CRYPTO_CHANGED');
+export const sessionExpired = actionCreator<ISignOutReason<typeof E_TOKENEXPIRED>>('SESSION_EXPIRED');
 export const inviteEcosystem = actionCreator<{ ecosystem: string, redirectPage?: string }>('INVITE_ECOSYSTEM');
 export const createWallet = actionCreator.async<ICreateWalletCall, IWallet, string>('CREATE_WALLET');
 // Re-encrypts a wallet stored by an earlier version (asks for its password)

@@ -20,6 +20,8 @@ declare module 'ibax/tx' {
         'E_TX_TIMEOUT' |
         // The network's key algorithms changed since sign-in: the node refused the signatures
         'E_CRYPTO_CHANGED' |
+        // The node no longer accepts the session's token (it expired, or the node restarted)
+        'E_TOKENEXPIRED' |
         'E_SIGNED_OUT' |
         'E_PENALTY' |
         'E_DUPLICATE_TX' |

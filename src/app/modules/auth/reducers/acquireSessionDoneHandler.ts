@@ -10,7 +10,8 @@ import { Reducer } from 'modules';
 const acquireSessionDoneHandler: Reducer<typeof acquireSession.done, State> = (state, payload): State => ({
     ...state,
     isAuthenticated: payload.result,
-    isAcquired: payload.result
+    isAcquired: payload.result,
+    sessionRetryReason: null
 });
 
 export default acquireSessionDoneHandler;
