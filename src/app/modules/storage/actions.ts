@@ -20,3 +20,5 @@ export const removeLegacyWallet = actionCreator<string>('REMOVE_LEGACY_WALLET');
 export const mergeHonorNodes = actionCreator<{ uuid: string, honorNodes: string[] }>('MERGE_HONOR_NODES');
 export const closeSecurityWarning = actionCreator<string>('CLOSE_SECURITY_WARNING');
 export const setMenuFolded = actionCreator<boolean>('SET_MENU_FOLDED');
+// The user agreed to send account addresses to a network's block explorer (explorerConsent)
+export const allowExplorer = actionCreator<string>('ALLOW_EXPLORER');

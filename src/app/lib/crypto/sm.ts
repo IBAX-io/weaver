@@ -10,12 +10,13 @@
 //   default ID "1234567812345678"; r = (e + x1) mod n where (x1, y1) = kG; s = (1 + d)^-1 (k - rd)
 //   mod n; the signature is the DER SEQUENCE { INTEGER r, INTEGER s } (minimal: up to 72 bytes,
 //   fewer when r or s has leading zero bytes).
-// Point arithmetic is @noble/curves' (audited); only the SM2 equations and SM3 are written here.
-import { weierstrass } from '@noble/curves/abstract/weierstrass.js';
+// Point and field arithmetic and DER are @noble/curves' (audited); only the SM2 equations and SM3
+// are written here.
+import { DER, weierstrass } from '@noble/curves/abstract/weierstrass.js';
 import { bytesToNumberBE, createHmacDrbg, numberToBytesBE } from '@noble/curves/utils.js';
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { concatBytes, rotl } from '@noble/hashes/utils.js';
+import { concatBytes, hexToBytes, randomBytes, rotl } from '@noble/hashes/utils.js';
 
 // ---------------------------------------------------------------------------------------- SM3
 
@@ -89,20 +90,13 @@ const SM2_CURVE = {
     Gy: BigInt('0xBC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0')
 };
 const SM2Point = weierstrass(SM2_CURVE);
+const Fn = SM2Point.Fn;
 const N = SM2_CURVE.n;
 // gmsm's default_uid
 const DEFAULT_ID = new TextEncoder().encode('1234567812345678');
+// Nonce candidates tried at most: each is out of range with a chance of about 2^-32
+const MAX_NONCES = 64;
 
-const mod = (x: bigint, m: bigint) => ((x % m) + m) % m;
-const invert = (x: bigint, m: bigint) => {
-    // Extended Euclid; m is prime and x in [1, m)
-    let [a, b, u, v] = [mod(x, m), m, BigInt(1), BigInt(0)];
-    while (a !== BigInt(0)) {
-        const q = b / a;
-        [a, b, u, v] = [b - q * a, a, v - q * u, u];
-    }
-    return mod(v, m);
-};
 const be32 = (n: bigint) => numberToBytesBE(n, 32);
 
 const privateScalar = (privateKey: Uint8Array) => {
@@ -114,13 +108,18 @@ const privateScalar = (privateKey: Uint8Array) => {
     return d;
 };
 
+// Whether a private key can be used with SM2 (its range is smaller than secp256k1's and P-256's)
+export const isValidSm2PrivateKey = (privateKey: Uint8Array) => {
+    const d = bytesToNumberBE(privateKey);
+    return 32 === privateKey.length && d >= BigInt(1) && d <= N - BigInt(2);
+};
+
 // Uncompressed public key: 04 || x || y
 export const sm2PublicKey = (privateKey: Uint8Array): Uint8Array =>
     SM2Point.BASE.multiply(privateScalar(privateKey)).toBytes(false);
 
-// ZA of a public key (04 || x || y) and the default ID
-export const sm2Za = (publicKey: Uint8Array) => {
-    const point = SM2Point.fromBytes(publicKey);
+// ZA of a public key and the default ID
+const za = (point: InstanceType<typeof SM2Point>) => {
     const { x, y } = point.toAffine();
     const entl = DEFAULT_ID.length * 8;
     return sm3(concatBytes(
@@ -129,110 +128,71 @@ export const sm2Za = (publicKey: Uint8Array) => {
     ));
 };
 
-const der = (r: bigint, s: bigint) => {
-    const integer = (n: bigint) => {
-        let bytes = numberToBytesBE(n, 32);
-        let start = 0;
-        while (start < bytes.length - 1 && 0 === bytes[start]) {
-            start++;
-        }
-        bytes = bytes.slice(start);
-        // A leading 1 bit would read as negative
-        const body = bytes[0] & 0x80 ? concatBytes(new Uint8Array([0]), bytes) : bytes;
-        return concatBytes(new Uint8Array([0x02, body.length]), body);
-    };
-    const content = concatBytes(integer(r), integer(s));
-    return concatBytes(new Uint8Array([0x30, content.length]), content);
-};
-
-// r and s of a DER signature, or null when it is not one (strict DER, as Go's encoding/asn1 reads it)
-const parseDer = (signature: Uint8Array): [bigint, bigint] | null => {
-    if (signature.length < 8 || 0x30 !== signature[0] || signature[1] !== signature.length - 2) {
-        return null;
-    }
-    const values: bigint[] = [];
-    let offset = 2;
-    for (let i = 0; i < 2; i++) {
-        if (0x02 !== signature[offset] || offset + 2 > signature.length) {
-            return null;
-        }
-        const length = signature[offset + 1];
-        const body = signature.subarray(offset + 2, offset + 2 + length);
-        // Non-empty, non-negative, minimally encoded
-        if (0 === length || length > 33 || body.length !== length || body[0] & 0x80
-            || (length > 1 && 0 === body[0] && !(body[1] & 0x80))) {
-            return null;
-        }
-        values.push(bytesToNumberBE(body));
-        offset += 2 + length;
-    }
-    return offset === signature.length ? [values[0], values[1]] : null;
-};
-
-// The nonce: from the key and the digest (RFC 6979 style), so a weak random source cannot leak the
-// key; any k in [1, n) makes a valid signature for the node
-const drbg = createHmacDrbg<bigint>(32, 32, (key, ...messages) => hmac(sha256, key, concatBytes(...messages)));
-
-export const sm2SignWithNonce = (message: Uint8Array, privateKey: Uint8Array, nonce: (attempt: number) => bigint) => {
+// The signature from nonce candidates (DER, strict and minimal as Go's encoding/asn1 writes it).
+// (1 + d)^-1 is taken blinded by a random b, so its timing does not follow the key.
+const signWith = (message: Uint8Array, privateKey: Uint8Array, nonce: (attempt: number) => bigint) => {
     const d = privateScalar(privateKey);
-    const e = bytesToNumberBE(sm3(concatBytes(sm2Za(sm2PublicKey(privateKey)), message)));
-    for (let attempt = 0; ; attempt++) {
+    const e = bytesToNumberBE(sm3(concatBytes(za(SM2Point.BASE.multiply(d)), message)));
+    for (let attempt = 0; attempt < MAX_NONCES; attempt++) {
         const k = nonce(attempt);
         if (k < BigInt(1) || k >= N) {
             continue;
         }
-        const r = mod(e + SM2Point.BASE.multiply(k).toAffine().x, N);
+        const r = Fn.create(e + SM2Point.BASE.multiply(k).toAffine().x);
         if (r === BigInt(0) || r + k === N) {
             continue;
         }
-        const s = mod(invert(d + BigInt(1), N) * (k - r * d), N);
+        const b = Fn.create(bytesToNumberBE(randomBytes(32))) || BigInt(1);
+        const s = Fn.mul(Fn.mul(Fn.inv(Fn.mul(b, d + BigInt(1))), b), Fn.create(k - r * d));
         if (s !== BigInt(0)) {
-            return der(r, s);
+            return hexToBytes(DER.hexFromSig({ r, s }));
         }
     }
+    throw new Error('No SM2 nonce found');
 };
+
+// The standard's example signs with a given k: for its test only
+export const sm2SignWithNonceForTest = signWith;
+
+// The nonce: hedged (RFC 6979 section 3.6), from the key, the digest, fresh random bytes and the
+// algorithm's name. The random bytes make the same key never reuse a nonce across algorithms
+// (secp256k1 and P-256 sign with the same key); the key and digest keep a weak random source from
+// leaking it.
+const drbg = createHmacDrbg<bigint>(32, 32, (key, ...messages) => hmac(sha256, key, concatBytes(...messages)));
+const DOMAIN = new TextEncoder().encode('SM2');
 
 // SM2 signature of a message (go-ibax passes the configured hash of the data) as DER
 export const sm2Sign = (message: Uint8Array, privateKey: Uint8Array): Uint8Array => {
-    const seed = concatBytes(privateKey, sm3(message));
-    const nonces: bigint[] = [];
-    return sm2SignWithNonce(message, privateKey, attempt => {
-        while (nonces.length <= attempt) {
-            // Each candidate from the DRBG, the attempt mixed into its seed
-            nonces.push(drbg(concatBytes(seed, numberToBytesBE(nonces.length, 4)), bytes => {
-                const k = bytesToNumberBE(bytes);
-                return k >= BigInt(1) && k < N ? k : undefined;
-            }));
-        }
-        return nonces[attempt];
-    });
+    const seed = concatBytes(privateKey, sm3(message), randomBytes(32), DOMAIN);
+    return signWith(message, privateKey, attempt => drbg(concatBytes(seed, numberToBytesBE(attempt, 4)), bytes => {
+        const k = bytesToNumberBE(bytes);
+        return k >= BigInt(1) && k < N ? k : undefined;
+    }));
 };
 
 export const sm2Verify = (message: Uint8Array, signature: Uint8Array, publicKey: Uint8Array): boolean => {
-    const rs = parseDer(signature);
-    if (!rs) {
-        return false;
-    }
-    const [r, s] = rs;
-    if (r < BigInt(1) || r >= N || s < BigInt(1) || s >= N) {
-        return false;
-    }
+    let r: bigint;
+    let s: bigint;
     let point;
     try {
+        ({ r, s } = DER.toSig(signature));
         point = SM2Point.fromBytes(publicKey);
         point.assertValidity();
     }
     catch (e) {
         return false;
     }
-    const t = mod(r + s, N);
+    if (r < BigInt(1) || r >= N || s < BigInt(1) || s >= N) {
+        return false;
+    }
+    const t = Fn.create(r + s);
     if (t === BigInt(0)) {
         return false;
     }
-    const e = bytesToNumberBE(sm3(concatBytes(sm2Za(publicKey), message)));
+    const e = bytesToNumberBE(sm3(concatBytes(za(point), message)));
     const sum = SM2Point.BASE.multiply(s).add(point.multiply(t));
     if (sum.is0()) {
         return false;
     }
-    return mod(e + sum.toAffine().x, N) === r;
+    return Fn.create(e + sum.toAffine().x) === r;
 };

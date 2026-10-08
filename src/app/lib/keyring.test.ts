@@ -45,6 +45,25 @@ describe('keyring', () => {
         expect(isValidPrivateKey(undefined)).toBe(false);
     });
 
+    it('takes a key past SM2\'s range, with no address on SM2 networks and one on every other', () => {
+        // SM2's group order: valid on secp256k1 and P-256 (larger orders), not on SM2
+        const key = 'fffffffeffffffffffffffffffffffff7203df6b21c6052b53bbf40939d54123';
+        expect(isValidPrivateKey(key)).toBe(true);
+        const identities = deriveIdentities(key);
+        const keys = Object.keys(identities);
+        expect(keys).toHaveLength(12);
+        for (const suite of keys) {
+            if (suite.startsWith('SM2/')) {
+                expect(identities[suite]).toBeNull();
+            }
+            else {
+                expect(identities[suite]).toEqual(expect.objectContaining({ keyID: expect.any(String) }));
+            }
+        }
+        // One step inside the range: an address on SM2 networks too
+        expect(deriveIdentities('fffffffeffffffffffffffffffffffff7203df6b21c6052b53bbf40939d54121')['SM2/SM3']).not.toBeNull();
+    });
+
     it('derives the same identities as the node for every suite', () => {
         const vector = fixture.vectors[0];
         const identities = deriveIdentities(vector.privateKey);

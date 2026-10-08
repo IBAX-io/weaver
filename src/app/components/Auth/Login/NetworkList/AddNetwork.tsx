@@ -18,6 +18,7 @@ export interface IAddNetworkProps {
     name: string;
     networkID?: number;
     apiHost: string;
+    explorer?: string;
   }) => void;
 }
 
@@ -26,6 +27,7 @@ interface IAddNetworkState {
   autoDiscovery: boolean;
   networkID: number;
   apiHost: string;
+  explorer: string;
 }
 
 class AddNetwork extends React.Component<IAddNetworkProps, IAddNetworkState> {
@@ -33,7 +35,8 @@ class AddNetwork extends React.Component<IAddNetworkProps, IAddNetworkState> {
     name: '',
     autoDiscovery: false,
     networkID: 1,
-    apiHost: ''
+    apiHost: '',
+    explorer: ''
   };
 
   onNameChange = (name: string) => {
@@ -64,7 +67,8 @@ class AddNetwork extends React.Component<IAddNetworkProps, IAddNetworkState> {
     this.props.onSubmit({
       name: payload.name,
       networkID: payload.discovery ? undefined : parseInt(payload.id, 10),
-      apiHost: payload.url
+      apiHost: payload.url,
+      explorer: (payload.explorer || '').trim() || undefined
     });
   };
 
@@ -191,6 +195,36 @@ class AddNetwork extends React.Component<IAddNetworkProps, IAddNetworkState> {
                       name="url"
                       validators={[Validation.validators.required]}
                     />
+                  </div>
+                </Col>
+              </Validation.components.ValidatedFormGroup>
+            </fieldset>
+
+            <fieldset>
+              <Validation.components.ValidatedFormGroup for="explorer" className="row">
+                <Col md={3} className="clearfix">
+                  <div className="float-start">
+                    <FormattedMessage id="general.network.explorer" defaultMessage="Block explorer API (optional)" />
+                  </div>
+                  <div className="float-end d-md-none">
+                    <Validation.components.ValidationMessage for="explorer" />
+                  </div>
+                </Col>
+                <Col md={9}>
+                  <div className="text-start">
+                    <Validation.components.ValidatedControl
+                      onChange={(e) => this.setState({ explorer: (e.target as HTMLInputElement).value })}
+                      value={this.state.explorer}
+                      name="explorer"
+                      placeholder="https://"
+                      validators={[Validation.validators.httpsUrl]}
+                    />
+                    <div className="small text-start">
+                      <FormattedMessage
+                        id="general.network.explorer.desc"
+                        defaultMessage="Where the wallet looks up the account's UTXO transfers, such as https://scan.ibax.network:8800/api/v2. Without one, they cannot be listed."
+                      />
+                    </div>
                   </div>
                 </Col>
               </Validation.components.ValidatedFormGroup>

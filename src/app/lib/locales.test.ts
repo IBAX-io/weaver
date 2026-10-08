@@ -33,8 +33,8 @@ const DIRECTIONS_COMPLETE: [Exclude<TTransferSelfDirection, typeof DIRECTIONS[nu
 
 // Messages the app looks up by a code it builds at runtime (ErrorModal, the wallet page)
 const BUILT_KEYS = [
-    // E_AUTH_CANCELLED is never shown
-    ...TX_ERRORS.filter(code => 'E_AUTH_CANCELLED' !== code).map(code => `tx.error.${code}`),
+    // Never shown: E_AUTH_CANCELLED (nothing to say), E_CRYPTO_CHANGED (the sign-in page says it)
+    ...TX_ERRORS.filter(code => 'E_AUTH_CANCELLED' !== code && 'E_CRYPTO_CHANGED' !== code).map(code => `tx.error.${code}`),
     ...AMOUNT_CHECK_PROBLEMS.map(problem => `wallet.error.${problem}`),
     ...RECIPIENT_PROBLEMS.map(problem => `wallet.error.recipient.${problem}`),
     ...WALLET_ERRORS.map(code => `wallet.balance.error.${code}`),

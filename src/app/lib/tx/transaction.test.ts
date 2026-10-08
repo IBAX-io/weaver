@@ -4,17 +4,18 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect } from 'vitest';
-import { bytesToHex } from '@noble/hashes/utils.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { ICryptoSuiteId } from 'ibax/crypto';
 import { signTransaction, TTxPayload } from './transaction';
 import fixture from './fixtures/go-ibax-transfers.json';
 import params from './fixtures/go-ibax-contract-params.json';
 import Contract, { ContractParamError } from './contract';
 import defaultSchema from './schema/defaultSchema';
-import { DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
+import { DEFAULT_CRYPTO_SUITE, resolveCryptoSuite } from 'lib/crypto/suites';
 
-// Transactions the node's own client-transaction entry point decoded (or rejected); signing is
-// deterministic (RFC 6979), so the same inputs must reproduce the exact bytes.
+// Transactions the node's own client-transaction entry point decoded (or rejected). The same inputs
+// must reproduce the exact bytes the node took, but for the signature: hedged (fresh randomness in
+// every nonce), it differs each time and must verify over the same transaction.
 const cases = fixture.cases as unknown as {
     cryptoer: ICryptoSuiteId['cryptoer'];
     hasher: ICryptoSuiteId['hasher'];
@@ -48,6 +49,42 @@ const PARAMS: { [name: string]: { type: string; value: unknown } } = {
     FL: { type: 'file', value: { name: 'a.txt', type: 'text/plain', value: new Uint8Array([104, 105]).buffer } }
 };
 
+// go-ibax converter.DecodeLength
+const readLength = (data: Uint8Array, offset: number): [number, number] => {
+    const first = data[offset];
+    if (first < 128) {
+        return [first, offset + 1];
+    }
+    let length = 0;
+    for (let i = 1; i <= (first & 0x7F); i++) {
+        length = length * 256 + data[offset + i];
+    }
+    return [length, offset + 1 + (first & 0x7F)];
+};
+
+// The client transaction's signed part (0x80, payload) and its signature
+const split = (data: Uint8Array) => {
+    const [payloadLength, payloadStart] = readLength(data, 1);
+    const [signatureLength, signatureStart] = readLength(data, payloadStart + payloadLength);
+    return {
+        signed: bytesToHex(data.slice(0, payloadStart + payloadLength)),
+        payload: data.slice(payloadStart, payloadStart + payloadLength),
+        signature: bytesToHex(data.slice(signatureStart, signatureStart + signatureLength))
+    };
+};
+
+// The bytes the node took, but for a signature of the same transaction by the same key
+const expectSameTransaction = (data: Uint8Array, taken: string, suiteId: ICryptoSuiteId, privateKey: string) => {
+    const ours = split(data);
+    const theirs = split(hexToBytes(taken));
+    expect(ours.signed).toBe(theirs.signed);
+    const suite = resolveCryptoSuite(suiteId);
+    const publicKey = suite.publicKey(privateKey);
+    expect(suite.verify(suite.doubleHash(ours.payload), ours.signature, publicKey)).toBe(true);
+    expect(suite.verify(suite.doubleHash(theirs.payload), theirs.signature, publicKey)).toBe(true);
+    expect(ours.signature).not.toBe(theirs.signature);
+};
+
 const resign = (c: typeof cases[number]) => signTransaction(
     { ecosystemID: c.ecosystemID, networkID: c.signedNetworkID ?? c.networkID, cryptoSuite: { cryptoer: c.cryptoer, hasher: c.hasher }, time: c.time },
     c.payload,
@@ -60,7 +97,7 @@ describe('signTransaction', () => {
         expect(accepted.length).toBeGreaterThan(0);
         for (const c of accepted) {
             const signed = resign(c);
-            expect(bytesToHex(signed.data)).toBe(c.data);
+            expectSameTransaction(signed.data, c.data, { cryptoer: c.cryptoer, hasher: c.hasher }, c.privateKey);
             expect(signed.hash).toBe(c.node.hash);
             expect(c.node.type).toBe(c.payload.type === 'utxo' ? 5 : 6);
             expect(c.node.keyMatchesPublicKey).toBe(true);
@@ -77,7 +114,7 @@ describe('signTransaction', () => {
             'Incorrect sign'
         ]));
         for (const c of cases.filter(item => item.node.error && !item.tampered)) {
-            expect(bytesToHex(resign(c).data)).toBe(c.data);
+            expectSameTransaction(resign(c).data, c.data, { cryptoer: c.cryptoer, hasher: c.hasher }, c.privateKey);
         }
     });
 
@@ -113,7 +150,7 @@ describe('contract parameters', () => {
             fields: PARAMS
         }).sign(params.privateKey);
 
-        expect(bytesToHex(signed.data)).toBe(params.data);
+        expectSameTransaction(signed.data, params.data, DEFAULT_CRYPTO_SUITE, params.privateKey);
         expect(Object.keys(params.node).sort()).toEqual(Object.keys(PARAMS).sort());
         expect(Object.entries(params.node).filter(([, result]) => result.startsWith('ERR'))).toEqual([]);
         // Whole floats reach the node as float64 (an msgpack integer would be refused)

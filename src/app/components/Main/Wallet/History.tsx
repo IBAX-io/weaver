@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { useRef } from 'react';
-import { Alert, Badge, Button, ButtonGroup, Card, Spinner } from 'react-bootstrap';
+import { Badge, Button, ButtonGroup, Card, Spinner } from 'react-bootstrap';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { THistoryEntry, THistoryFilter } from 'modules/wallet/history';
 import { walletErrorCode } from 'modules/wallet/actions';
-import { Amount, CopiedStatus, HashCopy, MINUS, useCopied, useMoreFocus } from './HistoryParts';
+import { Amount, CopiedStatus, directionSign, EntryMeta, HeadingSpinner, IToken, ListError, ListUpdating, MoreButton, TransferDescription, useCopied, useFocusKept, useMoreFocus, useRetry } from './HistoryParts';
 
 interface Props {
     filter: THistoryFilter;
@@ -17,10 +17,10 @@ interface Props {
     // Rows older than the ones shown
     more: number;
     pending: boolean;
+    // The page pending is an older one (not the newest, loaded again)
+    pendingMore: boolean;
     error: string | null;
-    // The ecosystem's token, as the balance gives it
-    digits: number;
-    symbol: string;
+    token: IToken | null;
     onFilter: (filter: THistoryFilter) => void;
     onMore: () => void;
     // Sends again the request that failed
@@ -61,14 +61,13 @@ const Description: React.FC<{ entry: THistoryEntry }> = ({ entry }) => {
             if (!entry.counterparty) {
                 return <FormattedMessage id="wallet.history.burnt" defaultMessage="Burnt" />;
             }
+            if (!fee) {
+                return <TransferDescription direction={entry.direction} counterparty={entry.counterparty} />;
+            }
             const address = <span className="font-monospace">{entry.counterparty}</span>;
             return 'out' === entry.direction
-                ? (fee
-                    ? <FormattedMessage id="wallet.history.fee.out" defaultMessage="Fee paid to {address}" values={{ address }} />
-                    : <FormattedMessage id="wallet.history.transfer.out" defaultMessage="Sent to {address}" values={{ address }} />)
-                : (fee
-                    ? <FormattedMessage id="wallet.history.fee.in" defaultMessage="Fee received from {address}" values={{ address }} />
-                    : <FormattedMessage id="wallet.history.transfer.in" defaultMessage="Received from {address}" values={{ address }} />);
+                ? <FormattedMessage id="wallet.history.fee.out" defaultMessage="Fee paid to {address}" values={{ address }} />
+                : <FormattedMessage id="wallet.history.fee.in" defaultMessage="Fee received from {address}" values={{ address }} />;
         }
     }
 };
@@ -77,7 +76,7 @@ const Description: React.FC<{ entry: THistoryEntry }> = ({ entry }) => {
 // between the account's own balances and anything to itself changes neither way
 const sign = (entry: THistoryEntry) => 'created' === entry.kind ? '+'
     : 'transfer' !== entry.kind && 'fee' !== entry.kind ? ''
-        : 'out' === entry.direction ? MINUS : 'in' === entry.direction ? '+' : '';
+        : directionSign(entry.direction);
 
 const History: React.FC<Props> = props => {
     const intl = useIntl();
@@ -85,13 +84,8 @@ const History: React.FC<Props> = props => {
     // The row whose hash was just copied
     const [copied, setCopied] = useCopied();
     const { list, more } = useMoreFocus(props.entries ? props.entries.length : 0, props.pending, props.onMore, title);
-    // The alert holding "Try again" goes away: the focus goes to the heading
-    const retry = () => {
-        if (title.current) {
-            title.current.focus();
-        }
-        props.onRetry();
-    };
+    useFocusKept(list, props.entries, title);
+    const retry = useRetry(title, props.onRetry);
 
     return (
         <Card className="mt-4">
@@ -99,9 +93,7 @@ const History: React.FC<Props> = props => {
                 <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                     <Card.Title as="h2" className="h5 mb-0" tabIndex={-1} ref={title}>
                         <FormattedMessage id="wallet.history" defaultMessage="History" />
-                        {props.pending && props.entries && (
-                            <Spinner as="span" animation="border" size="sm" className="ms-2" aria-hidden="true" />
-                        )}
+                        <HeadingSpinner shown={props.pending && !!props.entries} />
                     </Card.Title>
                     <ButtonGroup size="sm" className="wallet__history-filter" aria-label={intl.formatMessage({ id: 'wallet.history.filter', defaultMessage: 'Filter history' })}>
                         {FILTERS.map(item => (
@@ -125,15 +117,12 @@ const History: React.FC<Props> = props => {
                     </p>
                 )}
 
-                {/* An alert announces itself: outside the polite region, not read twice */}
                 {props.error && (
-                    <Alert variant={props.entries ? 'warning' : 'danger'}>
-                        <FormattedMessage id={`wallet.history.error.${walletErrorCode(props.error)}`} defaultMessage="The node reported an error while loading the history." />
-                        {' '}
-                        <Button variant="link" size="sm" className="p-0 align-baseline" onClick={retry}>
-                            <FormattedMessage id="wallet.history.retry" defaultMessage="Try again" />
-                        </Button>
-                    </Alert>
+                    <ListError
+                        shown={!!props.entries}
+                        onRetry={retry}
+                        message={<FormattedMessage id={`wallet.history.error.${walletErrorCode(props.error)}`} defaultMessage="The node reported an error while loading the history." />}
+                    />
                 )}
 
                 <div role="status" aria-live="polite">
@@ -143,6 +132,7 @@ const History: React.FC<Props> = props => {
                             <FormattedMessage id="wallet.history.loading" defaultMessage="Loading history…" />
                         </p>
                     )}
+                    <ListUpdating shown={props.pending && !props.pendingMore && !!props.entries} />
                     <CopiedStatus copied={null !== copied} />
                     {props.entries && 0 === props.entries.length && (
                         <p className="wallet__hint">
@@ -158,7 +148,7 @@ const History: React.FC<Props> = props => {
                                 <div className="wallet__history-main">
                                     <div className="wallet__history-what"><Description entry={entry} /></div>
                                     {'fee' === entry.kind && entry.penalty && (
-                                        <Badge bg="warning" text="dark" className="wallet__history-penalty">
+                                        <Badge bg="warning" text="dark" className="wallet__history-badge">
                                             <FormattedMessage id="wallet.history.penalty" defaultMessage="The transaction failed; the fee was charged" />
                                         </Badge>
                                     )}
@@ -170,24 +160,12 @@ const History: React.FC<Props> = props => {
                                             <bdi>{entry.comment}</bdi>
                                         </div>
                                     )}
-                                    <div className="wallet__hint small">
-                                        <time dateTime={new Date(entry.time).toISOString()}>
-                                            {intl.formatDate(entry.time, { dateStyle: 'medium', timeStyle: 'short' })}
-                                        </time>
-                                        {' · '}
-                                        <FormattedMessage id="wallet.history.block" defaultMessage="Block {block}" values={{ block: entry.blockID }} />
-                                        {entry.hash && (
-                                            <>
-                                                {' · '}
-                                                <HashCopy hash={entry.hash} copied={copied === entry.id} onCopy={() => setCopied(entry.id)} />
-                                            </>
-                                        )}
-                                    </div>
+                                    <EntryMeta time={entry.time} blockID={entry.blockID} hash={entry.hash || undefined} copied={copied === entry.id} onCopy={() => setCopied(entry.id)} />
                                 </div>
                                 {/* An account's creation moves no tokens */}
                                 {!('created' === entry.kind && /^0+$/.test(entry.amount)) && (
                                     <div className="wallet__history-amount">
-                                        <Amount amount={entry.amount} sign={sign(entry)} digits={props.digits} symbol={props.symbol} />
+                                        <Amount amount={entry.amount} sign={sign(entry)} token={props.token} />
                                     </div>
                                 )}
                             </li>
@@ -196,10 +174,9 @@ const History: React.FC<Props> = props => {
                 )}
 
                 {props.entries && props.more > 0 && (
-                    <Button variant="link" size="sm" className="mt-2 px-0" aria-disabled={props.pending} aria-busy={props.pending} onClick={more}>
-                        {props.pending && <Spinner as="span" animation="border" size="sm" className="me-2" aria-hidden="true" />}
+                    <MoreButton pending={props.pending} pendingMore={props.pendingMore} onClick={more}>
                         <FormattedMessage id="wallet.history.more" defaultMessage="Show older ({more})" values={{ more: props.more }} />
-                    </Button>
+                    </MoreButton>
                 )}
             </Card.Body>
         </Card>

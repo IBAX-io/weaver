@@ -20,6 +20,7 @@
 
 import { formatAddress } from 'lib/crypto/address';
 import { cleanComment, DIGITS, isID, isInt64, MAX_TIME } from './validate';
+import { TDirection, transferDirection } from './direction';
 
 export type THistoryFilter = 'transfers' | 'fees' | 'all';
 
@@ -46,9 +47,9 @@ export type THistoryEntry = {
 } & (
     | { kind: 'move', to: 'utxo' | 'account' | null }
     // counterparty null: tokens sent to account 0, which no one holds (burnt)
-    | { kind: 'transfer', direction: 'in' | 'out' | 'self', counterparty: string | null }
+    | { kind: 'transfer', direction: TDirection, counterparty: string | null }
     // penalty: the transaction failed, the fee was charged all the same
-    | { kind: 'fee', direction: 'in' | 'out' | 'self', counterparty: string | null, penalty: boolean }
+    | { kind: 'fee', direction: TDirection, counterparty: string | null, penalty: boolean }
     | { kind: 'created' }
 );
 
@@ -81,13 +82,11 @@ export const parseHistoryRow = (row: unknown, keyID: string): THistoryEntry | nu
         || !DIGITS.test(createdAt) || time > MAX_TIME) {
         return null;
     }
-    const fromMe = sender === keyID;
-    const toMe = recipient === keyID;
-    if (!fromMe && !toMe) {
+    const direction = transferDirection(sender, recipient, keyID);
+    if (!direction) {
         return null;
     }
     const base = { id, time, blockID, hash, amount, comment: cleanComment(comment) };
-    const direction = fromMe && toMe ? 'self' as const : fromMe ? 'out' as const : 'in' as const;
 
     // Each kind only in the shape the node writes it: a row of another shape is shown as what it
     // does (tokens out or in), never as a harmless move or a creation

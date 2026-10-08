@@ -7,7 +7,7 @@
 // them, dates a clock can show, and text that cannot disguise itself
 
 // A comment is the contract's own text: shown up to this long
-export const COMMENT_LENGTH = 300;
+const COMMENT_LENGTH = 300;
 
 const INT64_MIN = -(1n << 63n);
 const INT64_MAX = (1n << 63n) - 1n;
@@ -19,8 +19,10 @@ export const MAX_TIME = 8.64e15;
 export const isInt64 = (value: string) => /^-?\d{1,19}$/.test(value)
     && BigInt(value).toString() === value && BigInt(value) >= INT64_MIN && BigInt(value) <= INT64_MAX;
 
-// Characters that can disguise text: controls, bidi overrides and isolates, zero-width marks
-const HIDDEN_CHARACTERS = /[\p{Cc}\p{Cf}]/gu;
+// Characters that can disguise text: controls, bidi overrides and isolates, zero-width marks, and
+// letters drawn as blank (Hangul fillers, the blank Braille pattern, Khmer inherent vowels), which
+// are neither of those classes nor white space
+const HIDDEN_CHARACTERS = /[\p{Cc}\p{Cf}\u115F\u1160\u17B4\u17B5\u2800\u3164\uFFA0]/gu;
 
 // More than two combining marks on a letter only stack up over the lines around it
 const STACKED_MARKS = /(\p{M}{2})\p{M}+/gu;

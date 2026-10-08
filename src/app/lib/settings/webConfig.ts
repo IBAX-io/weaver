@@ -5,6 +5,7 @@
 
 import * as yup from 'yup';
 import { INetwork } from 'ibax/auth';
+import { isHttpsUrl } from './httpsUrl';
 
 const webConfig = yup.object().shape({
   defaultLocale: yup.string().notRequired(),
@@ -18,8 +19,15 @@ const webConfig = yup.object().shape({
     activationEmail: yup.string().email().notRequired(),
     enableDemoMode: yup.bool(),
     disableSync: yup.bool(),
-    // The block explorer API: https only, it is called from the wallet page
-    explorer: yup.string().url().matches(/^https:\/\//).notRequired(),
+    // The block explorer API: https only, it is called from the wallet page. One that is not is left
+    // out (the network then has none: the wallet page says so), not the whole settings refused.
+    explorer: yup.string().notRequired().transform(value => {
+      if (undefined === value || null === value || isHttpsUrl(value)) {
+        return value;
+      }
+      console.warn(`settings.json: explorer ${JSON.stringify(value)} is not an https address; the network is used without one`);
+      return undefined;
+    }),
 
   })).test('ValidationError', params => `${params.path}[x].key must be unique`, function (value: { key: string }[] | undefined) {
     if (!value) {

@@ -23,6 +23,7 @@ import acquireSessionEpic from './epics/acquireSessionEpic';
 import backupAccountEpic from './epics/backupAccountEpic';
 import upgradeLegacyWalletEpic from './epics/upgradeLegacyWalletEpic';
 import enableWalletOnNetworkEpic from './epics/enableWalletOnNetworkEpic';
+import reconnectOnCryptoChangeEpic from './epics/reconnectOnCryptoChangeEpic';
 
 export default combineIsolatedEpics({
     acquireSessionEpic,
@@ -42,6 +43,7 @@ export default combineIsolatedEpics({
     switchWalletEpic,
     upgradeLegacyWalletEpic,
     enableWalletOnNetworkEpic,
+    reconnectOnCryptoChangeEpic,
     loginGuestEpic,
     backupAccountEpic
 });

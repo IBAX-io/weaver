@@ -4,16 +4,18 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Epic } from 'modules';
-import { acquireSession, cryptoChanged, logout } from '../actions';
+import { acquireSession, E_CRYPTO_CHANGED } from '../actions';
+import { CryptoChangedError, signOutForCryptoChange } from '../util/cryptoChange';
 import { ISection } from 'ibax/content';
+import { ISectionResponse } from 'ibax/api';
 import { sectionsInit } from 'modules/sections/actions';
 import { fetchNotifications, ecosystemInit } from 'modules/content/actions';
 import { modalShow } from 'modules/modal/actions';
 import { displayableAuthError } from '../util/authErrors';
-import { defer, forkJoin, from, of, throwError } from 'rxjs';
+import { defer, forkJoin, from, of } from 'rxjs';
 import { catchError, map, mergeMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
-import { cryptoSuiteKey } from 'lib/crypto/suites';
+import { sameCryptoSuite } from 'lib/crypto/suites';
 
 enum RemoteSectionStatus {
     Removed = '0',
@@ -30,20 +32,28 @@ const acquireSessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
             sessionToken: action.payload.sessionToken
         });
 
-        // A session restored at start was signed in under the key algorithms the network had then.
-        // The node reports the ones it has now: changed (the chain's crypto settings were changed),
-        // the account's address and every signature would be the old ones, so the session ends and
-        // the user signs in again under the new ones.
-        return defer(() => client.getUid()).pipe(
-            mergeMap(uid => cryptoSuiteKey(uid.cryptoSuite) === cryptoSuiteKey(action.payload.cryptoSuite)
-                ? forkJoin([
-                    from(client.sections({ locale: state.storage.locale })).pipe(map(s => s.list)),
-                    from(client.getParam({ name: 'stylesheet' })).pipe(map(p => p.value), catchError(e => of(''))),
-                    from(client.getParam({ name: 'print_stylesheet' })).pipe(map(p => p.value), catchError(e => of('')))
-                ])
-                : throwError(() => ({ error: 'E_CRYPTO_CHANGED' }))
+        // The session was signed in under the key algorithms the network had then (a restored one
+        // maybe days ago). The node reports the ones it has now, asked alongside the sections:
+        // changed (the chain's crypto settings were), the account's address and every signature
+        // would be the old ones, so the session ends and the user signs in again under the new ones.
+        // The sections failing (as with a token the node no longer takes) waits for that answer.
+        return forkJoin([
+            defer(() => client.getUid()),
+            from(client.sections({ locale: state.storage.locale })).pipe(
+                map(s => ({ list: s.list, error: null as unknown })),
+                catchError(error => of({ list: [] as ISectionResponse[], error }))
             ),
-            mergeMap(([sections, stylesheet, printStylesheet]) => {
+            from(client.getParam({ name: 'stylesheet' })).pipe(map(p => p.value), catchError(e => of(''))),
+            from(client.getParam({ name: 'print_stylesheet' })).pipe(map(p => p.value), catchError(e => of('')))
+        ]).pipe(
+            mergeMap(([uid, answer, stylesheet, printStylesheet]) => {
+                if (!action.payload.cryptoSuite || !sameCryptoSuite(uid.cryptoSuite, action.payload.cryptoSuite)) {
+                    throw new CryptoChangedError('session');
+                }
+                if (answer.error) {
+                    throw answer.error;
+                }
+                const sections = answer.list;
                 const sectionsResult: { [name: string]: ISection } = {};
                 const mainSection = sections.find(l => RemoteSectionStatus.Main === l.status);
 
@@ -83,13 +93,12 @@ const acquireSessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
                 );
             }),
             catchError(e => {
-                if (e && 'E_CRYPTO_CHANGED' === e.error) {
+                if (e instanceof CryptoChangedError) {
                     // Signed out, back to the accounts of this network under its algorithms; the
                     // sign-in page says why (a modal would be closed by the sign-out)
                     return of(
-                        acquireSession.failed({ params: action.payload, error: 'E_CRYPTO_CHANGED' }),
-                        cryptoChanged(),
-                        logout.started(null)
+                        acquireSession.failed({ params: action.payload, error: E_CRYPTO_CHANGED }),
+                        ...signOutForCryptoChange(state$.value, action.payload, e.during)
                     );
                 }
                 const rawError = (e && (e.error || e.message)) || 'E_OFFLINE';

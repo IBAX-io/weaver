@@ -7,7 +7,8 @@ import { defer, from, of } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
-import { login, acquireSession } from '../actions';
+import { login, acquireSession, cryptoChanged, E_CRYPTO_CHANGED, logout } from '../actions';
+import { sameCryptoSuite } from 'lib/crypto/suites';
 import { decryptPrivateKey } from 'lib/keyring';
 import { authenticate } from 'services/auth';
 import { navigate } from 'modules/router/actions';
@@ -17,7 +18,10 @@ const loginEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(login.started),
     mergeMap(action => {
         const wallet = state$.value.auth.wallet;
-        const networkEndpoint = state$.value.engine.guestSession.network;
+        // The network as the account was listed on it: its algorithms then, whatever reconnects
+        // while signing in
+        const guest = state$.value.engine.guestSession;
+        const networkEndpoint = guest.network;
         const network = state$.value.storage.networks.find(l => l.uuid === networkEndpoint.uuid);
         const client = api({ apiHost: networkEndpoint.apiHost });
 
@@ -37,6 +41,16 @@ const loginEpic: Epic = (action$, state$, { api }) => action$.pipe(
                     networkID: network && network.id
                 })).pipe(
                     mergeMap(({ result, cryptoSuite, publicKey }) => {
+                        // The account was listed under the algorithms the network had when it was
+                        // connected to: other ones now, its address is another (the node signed
+                        // the new one in). Back to the list, connected to again; the page says why.
+                        if (!sameCryptoSuite(cryptoSuite, guest.cryptoSuite)) {
+                            return of(
+                                login.failed({ params: action.payload, error: E_CRYPTO_CHANGED }),
+                                cryptoChanged({ reason: E_CRYPTO_CHANGED, network: networkEndpoint.uuid, during: 'session' }),
+                                logout.started(null)
+                            );
+                        }
                         const session = {
                             sessionToken: result.token,
                             network: networkEndpoint,

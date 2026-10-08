@@ -170,10 +170,14 @@ fieldset {
   }
 }
 
-// Alerts: solid theme color with white text
+// Alerts: light with dark text. White on the theme's solid colors could not be read (warning
+// #ff902b: 2.26:1, where text needs 4.5:1)
 @each $state in (success, info, warning, danger) {
   .alert-#{$state} {
-    @include alert-solid(map.get($theme-colors, $state));
+    --#{$prefix}alert-bg: var(--#{$prefix}#{$state}-bg-subtle);
+    --#{$prefix}alert-color: var(--#{$prefix}#{$state}-text-emphasis);
+    --#{$prefix}alert-border-color: transparent;
+    --#{$prefix}alert-link-color: var(--#{$prefix}#{$state}-text-emphasis);
   }
 }
 

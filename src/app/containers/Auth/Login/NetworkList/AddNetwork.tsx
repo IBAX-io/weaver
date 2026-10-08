@@ -14,5 +14,5 @@ const mapStateToProps = (state: IRootState) => ({
 });
 
 export default connect(mapStateToProps, {
-    onSubmit: (params: { name: string, networkID?: number, apiHost: string }) => addNetwork.started(params)
+    onSubmit: (params: { name: string, networkID?: number, apiHost: string, explorer?: string }) => addNetwork.started(params)
 })(AddNetwork);

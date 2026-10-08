@@ -18,7 +18,9 @@ import { IWallet, IWalletIdentities } from 'ibax/auth';
 export const HD_PATH = "m/44'/60'/0'/0/0";
 const MNEMONIC_STRENGTH = 128; // 12 words
 
-// A key must be usable on every curve a network may use
+// An account's key: usable on secp256k1 (every public network) and P-256 (nodes before configurable
+// crypto), as the client has always required. SM2's range is smaller: the rare key past it (about
+// one in 2^32) has no identity on SM2 networks (deriveIdentities) but stays usable everywhere else.
 export const isValidPrivateKey = (privateKey: string | null | undefined): privateKey is string => {
     if (!privateKey || !/^[0-9a-f]{64}$/i.test(privateKey)) {
         return false;
@@ -41,7 +43,7 @@ export const privateKeyFromMnemonic = (mnemonic: string) => {
     return bytesToHex(node.privateKey);
 };
 
-// Public key and account id of the key under every supported network suite. Computed while the
+// Public key and account id of the key under every supported network suite its curve takes. Computed while the
 // private key is at hand, so wallets can be listed for any network without the password.
 export const deriveIdentities = (privateKey: string): IWalletIdentities => {
     const identities: IWalletIdentities = {};
@@ -49,6 +51,10 @@ export const deriveIdentities = (privateKey: string): IWalletIdentities => {
     const publicKeys = new Map<string, string>();
     for (const suiteId of SUPPORTED_CRYPTO_SUITES) {
         const suite = resolveCryptoSuite(suiteId);
+        if (!suite.canUsePrivateKey(privateKey)) {
+            identities[cryptoSuiteKey(suiteId)] = null;
+            continue;
+        }
         const publicKey = publicKeys.get(suiteId.cryptoer) ?? suite.publicKey(privateKey);
         publicKeys.set(suiteId.cryptoer, publicKey);
         identities[cryptoSuiteKey(suiteId)] = { publicKey, keyID: suite.keyID(publicKey) };

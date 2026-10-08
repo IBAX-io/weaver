@@ -14,6 +14,8 @@ import { IRootState } from 'modules';
 import { DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
 import { fetchBalance, fetchHistory, fetchUtxoHistory } from 'modules/wallet/actions';
 import { initialState } from 'modules/wallet/reducer';
+import { allowExplorer } from 'modules/storage/actions';
+import { explorerConsent } from 'modules/wallet/selectors';
 import { THistoryEntry } from 'modules/wallet/history';
 import Wallet from '.';
 import messages from '../../../../../public/locales/en-US.json';
@@ -31,7 +33,9 @@ const renderWallet = async (
     utxoHistory: IRootState['wallet']['utxoHistory'] = null,
     wallet: Partial<IRootState['wallet']> = {},
     // '': the network has no block explorer
-    explorer = 'https://testscan.ibax.network:8800/api/v2'
+    explorer = 'https://testscan.ibax.network:8800/api/v2',
+    // Whether the user agreed to send the address to it
+    allowed = true
 ) => {
     const state: IRootState = {
         ...mockState,
@@ -44,7 +48,7 @@ const renderWallet = async (
                 access: { ecosystem: OWNER.ecosystem, name: '', roles: [], notifications: [] }
             }
         },
-        storage: { ...mockState.storage, networks: [{ uuid: 'testnet', id: 5, name: 'Testnet', honorNodes: ['http://node'], explorer: explorer || undefined }] },
+        storage: { ...mockState.storage, explorerAllowed: allowed && explorer ? [explorerConsent('testnet', explorer)] : [], networks: [{ uuid: 'testnet', id: 5, name: 'Testnet', honorNodes: ['http://node'], explorer: explorer || undefined }] },
         wallet: { ...initialState, balance: { ...OWNER, value: VALUE, fee: VALUE }, history, utxoHistory, ...wallet }
     };
     const dispatched: Action[] = [];
@@ -111,7 +115,7 @@ describe('wallet page history', () => {
         const next = { block: 1500, position: 240, skip: 0, after: '' };
         const page = await renderWallet(null, { ...OWNER, entries: [], next, checked: 240, total: 900, incomplete: [] });
         // The explorer's host, which the address is sent to
-        expect(page.container.textContent).toContain('address is sent to testscan.ibax.network:8800.');
+        expect(page.container.textContent).toContain('address is sent to testscan.ibax.network:8800 to look them up.');
         page.clear();
         await page.click('Refresh');
         expect(page.utxoRequests()).toEqual([{ ...OWNER, cursor: null }]);
@@ -154,7 +158,32 @@ describe('wallet page history', () => {
         await listed.unmount();
         const unlisted = await renderWallet(null, null, { lastTransfer }, '');
         expect(unlisted.container.querySelector('.alert-success').textContent).toContain('This network has no block explorer to list UTXO transfers: keep the transaction hash.');
-        expect(unlisted.container.textContent).toContain('This network has no block explorer configured');
+        expect(unlisted.container.textContent).toContain('This network has no block explorer to look UTXO transfers up in');
         await unlisted.unmount();
+        const notAllowed = await renderWallet(null, null, { lastTransfer }, undefined, false);
+        expect(notAllowed.container.querySelector('.alert-success').textContent).toContain('To see it listed, look up UTXO transfers below.');
+        await notAllowed.unmount();
+    });
+
+    it('asks before sending the account\'s address to the explorer, once for the network', async () => {
+        const page = await renderWallet(null, null, {}, undefined, false);
+        expect(page.utxoRequests()).toEqual([]);
+        // Not on Refresh either
+        await page.click('Refresh');
+        expect(page.utxoRequests()).toEqual([]);
+        await page.click('Look up UTXO transfers');
+        expect(page.dispatched).toContainEqual(allowExplorer(explorerConsent('testnet', 'https://testscan.ibax.network:8800/api/v2')));
+        await page.unmount();
+        // Agreed: looked up as the page opens
+        const allowed = await renderWallet(null);
+        expect(allowed.utxoRequests()).toEqual([{ ...OWNER, cursor: null }]);
+        await allowed.unmount();
+    });
+
+    it('lists the history even when the balance cannot be loaded', async () => {
+        const page = await renderWallet({ ...OWNER, filter: 'transfers', entries: [entry('1')], more: 0 }, null, { balance: null });
+        expect(page.container.querySelectorAll('.wallet__history-entry')).toHaveLength(1);
+        expect(page.container.querySelector('.wallet__history-amount').textContent).toContain('Amount not shown');
+        await page.unmount();
     });
 });

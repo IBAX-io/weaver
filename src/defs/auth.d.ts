@@ -30,9 +30,11 @@ declare module 'ibax/auth' {
     keyID: string;
   }
 
-  // Keyed by crypto suite ("ECC_Secp256k1/KECCAK256", ...)
+  // Keyed by crypto suite ("ECC_Secp256k1/KECCAK256", ...). Null: the key lies outside that suite's
+  // curve, so the account has no address on its networks. Missing: computed by a client that did
+  // not support the suite yet (set up with the password: enableWalletOnNetwork).
   interface IWalletIdentities {
-    [suite: string]: IWalletIdentity;
+    [suite: string]: IWalletIdentity | null;
   }
 
   interface IWallet {

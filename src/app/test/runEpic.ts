@@ -34,12 +34,17 @@ export interface IEpicLoopOptions {
     dependencies?: Partial<IStoreDependencies>;
     // How long nothing may happen before the run counts as finished
     quietMs?: number;
+    // Or: the run is finished once this action is dispatched, up to untilMs (work
+    // that takes long without a sign of progress, like deriving a key, would end a quiet wait)
+    until?: (action: Action) => boolean;
+    // How long to wait for it at most: a failure then names what was dispatched instead
+    untilMs?: number;
 }
 
 export const runEpicLoop = async (
     epic: Epic,
     actions: Action[],
-    { respond = () => [], state = mockState, dependencies = {}, quietMs = 200 }: IEpicLoopOptions = {}
+    { respond = () => [], state = mockState, dependencies = {}, quietMs = 200, until, untilMs = 10000 }: IEpicLoopOptions = {}
 ) => {
     const action$ = new Subject<Action>();
     const dispatched: Action[] = [];
@@ -55,8 +60,19 @@ export const runEpicLoop = async (
     };
     const subscription = epic(action$, state$, { ...storeDependencies, ...dependencies }).subscribe(dispatch);
     actions.forEach(dispatch);
-    while (Date.now() - lastActivity < quietMs) {
+    const finished = () => until ? dispatched.some(until) : Date.now() - lastActivity >= quietMs;
+    const started = Date.now();
+    while (!finished()) {
+        if (until && Date.now() - started > untilMs) {
+            subscription.unsubscribe();
+            action$.complete();
+            throw new Error(`runEpicLoop: the awaited action never came; dispatched: ${dispatched.map(action => action.type).join(', ')}`);
+        }
         await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    // Whatever follows the awaited action at once is part of the run
+    if (until) {
+        await new Promise(resolve => setTimeout(resolve, 50));
     }
     // Nothing of this run may leak into the next test
     subscription.unsubscribe();

@@ -10,14 +10,16 @@ import { ofAction } from 'lib/rx/ofAction';
 import { apiErrorCode, InvalidResponseError } from 'lib/ibaxAPI/errors';
 import { parseAddress } from 'lib/crypto/address';
 import { logout } from 'modules/auth/actions';
-import { E_NO_EXPLORER, fetchUtxoHistory, IUtxoHistoryPage, sendTransfer } from '../actions';
+import { E_INVALIDWALLET, E_NO_EXPLORER, E_NOT_ALLOWED, fetchUtxoHistory, IUtxoHistoryPage, sendTransfer } from '../actions';
 import { sameOwner } from '../reducer';
-import { findTransfers, IExplorerRow, parseExplorerPage, TExplorerPage, TUtxoHistoryEntry, verifyUtxoTransfer } from '../utxoHistory';
+import { explorerAllowed, sessionExplorer } from '../selectors';
+import { findTransfers, IExplorerRow, parseExplorerPage, TExplorerPage } from '../utxoHistory';
+import { TUtxoHistoryEntry, verifyUtxoTransfer } from '../utxoTransfer';
 
 // The node lookups in flight at once
 const NODE_LOOKUPS = 5;
 // After a UTXO transfer, how long to wait before looking for it again while the explorer has not
-// indexed it yet
+// indexed it, or the node not confirmed it, yet
 const INDEXING_RETRIES_MS = [5000, 15000, 45000];
 
 // A page of the account's UTXO transfers: found in the explorer, each one looked up in the node. A
@@ -29,15 +31,19 @@ export const fetchUtxoHistoryEpic: Epic = (action$, state$, { api, explorer }) =
         const { account, ecosystem, cursor } = action.payload;
         const state = state$.value;
         const session = state.auth.session;
-        const network = state.storage.networks.find(item => item.uuid === session.network.uuid);
+        const base = sessionExplorer(state);
         const keyID = parseAddress(account);
-        if (!network || !network.explorer) {
+        if (!base) {
             return of(fetchUtxoHistory.failed({ params: action.payload, error: E_NO_EXPLORER }));
         }
-        if (null === keyID) {
-            return of(fetchUtxoHistory.failed({ params: action.payload, error: 'E_INVALIDWALLET' }));
+        // Asked of the user on the wallet page; whatever asks for a page, nothing goes out without it
+        if (!explorerAllowed(state)) {
+            return of(fetchUtxoHistory.failed({ params: action.payload, error: E_NOT_ALLOWED }));
         }
-        const index = explorer(network.explorer);
+        if (null === keyID) {
+            return of(fetchUtxoHistory.failed({ params: action.payload, error: E_INVALIDWALLET }));
+        }
+        const index = explorer(base);
         const read: TExplorerPage = async (page, limit) => {
             const answer = parseExplorerPage(await index.accountTransactions({ wallet: account, ecosystem: Number(ecosystem), page, limit }), limit);
             if (!answer || answer.rows.some(row => row.ecosystem !== ecosystem)) {
@@ -59,17 +65,20 @@ export const fetchUtxoHistoryEpic: Epic = (action$, state$, { api, explorer }) =
             mergeMap(({ found, next, checked, total, incomplete }) => from(found).pipe(
                 mergeMap(lookUp, NODE_LOOKUPS),
                 toArray(),
-                map((answers): IUtxoHistoryPage => ({
-                    // In the explorer's order, newest first, whatever order the node answered in; a
-                    // transfer between two other accounts is left out
-                    entries: found
-                        .map(row => answers.find(answer => answer.hash === row.hash).entry)
-                        .filter((entry): entry is TUtxoHistoryEntry => 'other' !== entry),
-                    next,
-                    checked,
-                    total,
-                    incomplete
-                }))
+                map((answers): IUtxoHistoryPage => {
+                    const byHash = new Map(answers.map(answer => [answer.hash, answer.entry]));
+                    return {
+                        // In the explorer's order, newest first, whatever order the node answered
+                        // in; a transfer between two other accounts is left out
+                        entries: found
+                            .map(row => byHash.get(row.hash))
+                            .filter((entry): entry is TUtxoHistoryEntry => 'other' !== entry),
+                        next,
+                        checked,
+                        total,
+                        incomplete
+                    };
+                })
             )),
             map(result => fetchUtxoHistory.done({ params: action.payload, result })),
             catchError(e => of(fetchUtxoHistory.failed({
@@ -105,11 +114,12 @@ export const reloadUtxoHistoryEpic: Epic = (action$, state$) => action$.pipe(
             of(reload()),
             from(INDEXING_RETRIES_MS).pipe(
                 concatMap(delay => timer(delay)),
-                // Until it is listed, while the same wallet is open and nothing is loading
+                // Until it is listed as the node confirmed it, while the same wallet is open and
+                // nothing is loading
                 filter(() => {
                     const history = owner();
                     return !!history && !state$.value.wallet.utxoHistoryPending
-                        && !(history.entries || []).some(entry => entry.hash === hash);
+                        && !(history.entries || []).some(entry => entry.hash === hash && !('problem' in entry));
                 }),
                 map(reload)
             )

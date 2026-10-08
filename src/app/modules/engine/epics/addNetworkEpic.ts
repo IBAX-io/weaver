@@ -27,7 +27,8 @@ const addNetworkEpic: Epic = (action$, _state$, { defaultKey }) => action$.pipe(
           uuid: uniqueID,
           id: result.networkID,
           honorNodes: result.honorNodes,
-          name: action.payload.name
+          name: action.payload.name,
+          explorer: action.payload.explorer
         }),
         addNetwork.done(null)
       )),

@@ -8,7 +8,8 @@ import { TTransferCall } from 'ibax/tx';
 import { logout } from 'modules/auth/actions';
 import { fetchBalance, fetchHistory, fetchUtxoHistory, IBalanceOwner, IHistoryPageRequest, IUtxoHistoryRequest, ISendTransferCall, ITransferResult, IWalletBalance, sendTransfer } from './actions';
 import { THistoryEntry, THistoryFilter } from './history';
-import { IExplorerCursor, IIncompleteBlock, TUtxoHistoryEntry } from './utxoHistory';
+import { IExplorerCursor, IIncompleteBlock } from './utxoHistory';
+import { TUtxoHistoryEntry } from './utxoTransfer';
 
 export const sameOwner = (a: IBalanceOwner | null, b: IBalanceOwner) => !!a && a.account === b.account && a.ecosystem === b.ecosystem;
 
@@ -27,6 +28,8 @@ export type State = {
     // so far, newest first (null until the first one is in), and how many rows are older
     readonly history: (IBalanceOwner & { readonly filter: THistoryFilter, readonly entries: readonly THistoryEntry[] | null, readonly more: number }) | null;
     readonly historyPending: boolean;
+    // The page pending is an older one (not the newest, loaded again)
+    readonly historyPendingMore: boolean;
     readonly historyError: string | null;
     // The request that failed, to try again as it was (the first page or a next one)
     readonly historyRetry: IHistoryPageRequest | null;
@@ -41,6 +44,7 @@ export type State = {
         readonly incomplete: readonly IIncompleteBlock[]
     }) | null;
     readonly utxoHistoryPending: boolean;
+    readonly utxoHistoryPendingMore: boolean;
     readonly utxoHistoryError: string | null;
     readonly utxoHistoryRetry: IUtxoHistoryRequest | null;
 };
@@ -54,10 +58,12 @@ export const initialState: State = {
     lastTransfer: null,
     history: null,
     historyPending: false,
+    historyPendingMore: false,
     historyError: null,
     historyRetry: null,
     utxoHistory: null,
     utxoHistoryPending: false,
+    utxoHistoryPendingMore: false,
     utxoHistoryError: null,
     utxoHistoryRetry: null
 };
@@ -110,6 +116,7 @@ export default reducerWithInitialState<State>(initialState)
             ? state.history
             : { account: payload.account, ecosystem: payload.ecosystem, filter: payload.filter, entries: null, more: 0 },
         historyPending: true,
+        historyPendingMore: null !== payload.before,
         historyError: null,
         historyRetry: null
     }))
@@ -143,6 +150,7 @@ export default reducerWithInitialState<State>(initialState)
             ? state.utxoHistory
             : { account: payload.account, ecosystem: payload.ecosystem, entries: null, next: null, checked: 0, total: 0, incomplete: [] },
         utxoHistoryPending: true,
+        utxoHistoryPendingMore: null !== payload.cursor,
         utxoHistoryError: null,
         utxoHistoryRetry: null
     }))
@@ -157,10 +165,8 @@ export default reducerWithInitialState<State>(initialState)
         }
         const kept = null === cursor ? [] : shown;
         // A transfer is shown once, whatever the explorer answered
-        const entries = payload.result.entries.reduce(
-            (list, entry) => list.some(old => old.hash === entry.hash) ? list : [...list, entry],
-            kept
-        );
+        const seen = new Set(kept.map(entry => entry.hash));
+        const entries = kept.concat(payload.result.entries.filter(entry => !seen.has(entry.hash) && seen.add(entry.hash)));
         // A block gone through over several pages counts the rows of each
         const incomplete = payload.result.incomplete.reduce(
             (list, block) => list.some(old => old.blockID === block.blockID)

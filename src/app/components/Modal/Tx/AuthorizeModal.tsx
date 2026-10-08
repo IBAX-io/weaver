@@ -16,6 +16,23 @@ export interface IAuthorizeModalProps {
     purpose?: 'upgrade' | 'network';
 }
 
+// What the password is asked for
+const PURPOSES: { [purpose in NonNullable<IAuthorizeModalProps['purpose']> | 'action']: React.ReactNode } = {
+    upgrade: (
+        <FormattedMessage
+            id="modal.authorization.upgrade"
+            defaultMessage="Enter the password this account had in the earlier version of Weaver. The account keeps this password."
+        />
+    ),
+    network: (
+        <FormattedMessage
+            id="modal.authorization.network"
+            defaultMessage="This network uses other key algorithms, so the account has another address on it. Enter the account's password once to set it up for this network."
+        />
+    ),
+    action: <FormattedMessage id="modal.authorization.password" defaultMessage="Please enter your password to perform this action" />
+};
+
 class AuthorizeModal extends Modal<IAuthorizeModalProps, string> {
     onSuccess = (values: { [key: string]: any }) => {
         this.props.onResult(values.password);
@@ -29,19 +46,7 @@ class AuthorizeModal extends Modal<IAuthorizeModalProps, string> {
                 </Modal.Header>
                 <Modal.Body>
                     <div className="pb">
-                        {this.props.params && 'upgrade' === this.props.params.purpose ? (
-                            <FormattedMessage
-                                id="modal.authorization.upgrade"
-                                defaultMessage="Enter the password this account had in the earlier version of Weaver. The account keeps this password."
-                            />
-                        ) : this.props.params && 'network' === this.props.params.purpose ? (
-                            <FormattedMessage
-                                id="modal.authorization.network"
-                                defaultMessage="This network uses other key algorithms, so the account has another address on it. Enter the account's password once to set it up for this network."
-                            />
-                        ) : (
-                            <FormattedMessage id="modal.authorization.password" defaultMessage="Please enter your password to perform this action" />
-                        )}
+                        {PURPOSES[(this.props.params && this.props.params.purpose) || 'action']}
                     </div>
                     <Validation.components.ValidatedFormGroup for="password">
                         <Validation.components.ValidatedControl

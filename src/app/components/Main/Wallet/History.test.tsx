@@ -35,7 +35,7 @@ const render = async (props: Partial<React.ComponentProps<typeof History>> = {},
     const handlers = { onFilter: vi.fn(), onMore: vi.fn(), onRetry: vi.fn() };
     const element = (more: Partial<React.ComponentProps<typeof History>> = {}) => (
         <IntlProvider locale={locale} messages={'zh-CN' === locale ? zh : en} timeZone="UTC">
-            <History filter="transfers" entries={ENTRIES} more={0} pending={false} error={null} digits={12} symbol="IBXC" {...handlers} {...props} {...more} />
+            <History filter="transfers" entries={ENTRIES} more={0} pending={false} pendingMore={false} error={null} token={{ digits: 12, symbol: 'IBXC' }} {...handlers} {...props} {...more} />
         </IntlProvider>
     );
     await act(() => root.render(element()));
@@ -80,8 +80,8 @@ describe('wallet history', () => {
         expect(entry(2).querySelector('.wallet__history-comment bdi').textContent).toBe('rent');
         // A move's source ("Account") is what its line already says
         expect(entry(0).querySelector('.wallet__history-comment')).toBeNull();
-        expect(entry(5).querySelector('.wallet__history-penalty').textContent).toBe('The transaction failed; the fee was charged');
-        expect(view.container.querySelectorAll('.wallet__history-penalty')).toHaveLength(1);
+        expect(entry(5).querySelector('.wallet__history-badge').textContent).toBe('The transaction failed; the fee was charged');
+        expect(view.container.querySelectorAll('.wallet__history-badge')).toHaveLength(1);
         await view.unmount();
     });
 

@@ -13,13 +13,15 @@ import InvalidPasswordNotification from './Types/InvalidPasswordNotification';
 import TxBatchNotification from './Types/TxBatchNotification';
 import TxInterruptedNotification from './Types/TxInterruptedNotification';
 import EcosystemInvitedNotification from './Types/EcosystemInvitedNotification';
+import WalletEnabledNotification from './Types/WalletEnabledNotification';
 
 const definitions: { [key: string]: INotificationProto<any> } = {
     'TX_BATCH': TxBatchNotification,
     'TX_SUCCESS': TxSuccessNotification,
     'INVALID_PASSWORD': InvalidPasswordNotification,
     'TX_INTERRUPTED': TxInterruptedNotification,
-    'ECOSYSTEM_INVITED': EcosystemInvitedNotification
+    'ECOSYSTEM_INVITED': EcosystemInvitedNotification,
+    'WALLET_ENABLED': WalletEnabledNotification
 };
 
 export interface INotificationsProviderProps {

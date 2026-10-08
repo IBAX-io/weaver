@@ -13,7 +13,7 @@ import { cryptoSuiteFromNode, DEFAULT_CRYPTO_SUITE, ICryptoSuiteId, resolveCrypt
 import { ITransactionBody, ITransactionCall } from 'ibax/tx';
 import { IContractResponse, ITxStatus } from 'ibax/api';
 import { IAPIError, isApiError } from 'lib/ibaxAPI/errors';
-import { cryptoChanged, logout } from 'modules/auth/actions';
+import { cryptoChanged, E_CRYPTO_CHANGED, logout } from 'modules/auth/actions';
 import { txExec } from '../actions';
 import txExecEpic from './txExecEpic';
 
@@ -271,6 +271,13 @@ describe('txExecEpic', () => {
         // go-ibax answers a transaction signed with another suite's algorithms like this, at once
         const INCORRECT_SIGN: IAPIError = { error: 'E_SERVER', msg: 'Incorrect sign' } as IAPIError;
         const TRANSFER = call({ transfers: [{ type: 'utxo', toID: RECIPIENT, amount: '1' }] });
+        // The call fails; the session it was signed in (still open) ends, the reason kept for the
+        // testnet's sign-in page
+        const SIGNED_OUT = [
+            txExec.failed({ params: TRANSFER, error: { type: E_CRYPTO_CHANGED, error: '', params: [] } }),
+            cryptoChanged({ reason: E_CRYPTO_CHANGED, network: 'testnet', during: 'send' }),
+            logout.started(null)
+        ];
 
         // The node refuses the send; /getuid reports `suite`, or fails when null
         const refusingNode = (suite: ICryptoSuiteId | null) => {
@@ -288,11 +295,7 @@ describe('txExecEpic', () => {
         it('signs out and says why when the network now uses other key algorithms', async () => {
             const { client } = refusingNode({ cryptoer: 'SM2', hasher: 'SM3' });
             const output = await run(client, TRANSFER);
-            expect(output).toEqual([
-                cryptoChanged(),
-                logout.started(null),
-                txExec.failed({ params: TRANSFER, error: { type: 'E_CRYPTO_CHANGED', error: '', params: [] } })
-            ]);
+            expect(output).toEqual(SIGNED_OUT);
             // Nothing was waited for
             expect(client.txStatus).not.toHaveBeenCalled();
         });
@@ -300,7 +303,7 @@ describe('txExecEpic', () => {
         it('tells a change of the hash alone too', async () => {
             const { client } = refusingNode({ cryptoer: 'ECC_Secp256k1', hasher: 'SHA256' });
             const output = await run(client, TRANSFER);
-            expect(output).toContainEqual(logout.started(null));
+            expect(output).toEqual(SIGNED_OUT);
         });
 
         it('reports the refusal as it is when the algorithms did not change, or the node cannot say', async () => {
@@ -310,6 +313,14 @@ describe('txExecEpic', () => {
                 expect(output).toEqual([txExec.failed({ params: TRANSFER, error: { type: 'E_SERVER', error: 'Incorrect sign', params: [] } })]);
                 expect(getUid).toHaveBeenCalledTimes(1);
             }
+        });
+
+        it('asks nothing when the node could not be reached', async () => {
+            const { client, getUid } = refusingNode({ cryptoer: 'SM2', hasher: 'SM3' });
+            vi.mocked(client.txSend).mockRejectedValue({ error: 'E_OFFLINE', msg: '' });
+            const output = await run(client, TRANSFER);
+            expect(output).toEqual([txExec.failed({ params: TRANSFER, error: { type: 'E_OFFLINE', error: '', params: [] } })]);
+            expect(getUid).not.toHaveBeenCalled();
         });
 
         it('asks nothing more when the node takes the transactions', async () => {

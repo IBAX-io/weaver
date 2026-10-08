@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { mergePersistedState, parsePersistedState, persistedStateChanged, PERSISTENCE_KEY, selectPersistedState, storedWalletsChanged, toPersistedState } from '.';
+import { discardSessionsWithoutCryptoSuite, mergePersistedState, parsePersistedState, persistedStateChanged, PERSISTENCE_KEY, selectPersistedState, storedWalletsChanged, toPersistedState } from '.';
 import createLocalStorageBackend from './localStorageBackend';
 import createDebouncedBackend from './debouncedBackend';
 
@@ -119,5 +119,30 @@ describe('persistence', () => {
         expect(storedWalletsChanged({ storage: { wallets } }, { storage: { wallets } })).toBe(false);
         expect(storedWalletsChanged({ storage: { wallets } }, { storage: { wallets: [...wallets] } })).toBe(true);
         expect(storedWalletsChanged({ storage: { wallets, locale: 'a' } }, { storage: { wallets, locale: 'b' } })).toBe(false);
+    });
+
+    it('drops the sessions an earlier version stored without the network\'s key algorithms', () => {
+        const suite = { cryptoer: 'ECC_Secp256k1', hasher: 'KECCAK256' };
+        const network = { uuid: 'net', apiHost: 'http://node' };
+        const account = { wallet: { id: '7' }, access: { ecosystem: '1' } };
+        // As Weaver up to 1.4 stored them
+        const old = {
+            auth: { isAuthenticated: true, isDefaultWallet: false, session: { network, sessionToken: 't' }, id: '7', wallet: account },
+            engine: { guestSession: { network, sessionToken: 'g' } },
+            storage: { locale: 'en-US' }
+        };
+        expect(discardSessionsWithoutCryptoSuite(old)).toEqual({
+            auth: { isAuthenticated: false, isDefaultWallet: false, session: null, id: null, wallet: null },
+            engine: { guestSession: null },
+            storage: { locale: 'en-US' }
+        });
+        // Sessions with them stay as they are
+        const current = {
+            auth: { ...old.auth, session: { ...old.auth.session, cryptoSuite: suite } },
+            engine: { guestSession: { ...old.engine.guestSession, cryptoSuite: suite } }
+        };
+        expect(discardSessionsWithoutCryptoSuite(current)).toEqual(current);
+        expect(discardSessionsWithoutCryptoSuite({ auth: { session: null }, engine: {} })).toEqual({ auth: { session: null }, engine: {} });
+        expect(discardSessionsWithoutCryptoSuite(null)).toBeNull();
     });
 });

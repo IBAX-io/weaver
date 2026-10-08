@@ -3,19 +3,15 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
-import { defer, Observable, of } from 'rxjs';
-import { catchError, exhaustMap, mergeMap } from 'rxjs/operators';
-import * as uuid from 'uuid';
+import { defer, of } from 'rxjs';
+import { exhaustMap, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { decryptLegacyPrivateKey } from 'lib/crypto/legacyWallet';
 import { createWallet } from 'lib/keyring';
-import { modalShow } from 'modules/modal/actions';
-import ModalObservable from 'modules/modal/util/ModalObservable';
 import { removeLegacyWallet, saveWallet } from 'modules/storage/actions';
-import { enqueueNotification } from 'modules/notifications/actions';
 import { upgradeLegacyWallet } from '../actions';
+import { promptPassword } from '../util/passwordPrompt';
 
 export const UPGRADE_LEGACY_WALLET_MODAL = 'UPGRADE_LEGACY_WALLET';
 
@@ -25,36 +21,26 @@ export const UPGRADE_LEGACY_WALLET_MODAL = 'UPGRADE_LEGACY_WALLET';
 // time: its prompt has a fixed id, so a second one would take the same answer.
 const upgradeLegacyWalletEpic: Epic = (action$, state$) => action$.pipe(
     ofAction(upgradeLegacyWallet.started),
-    exhaustMap(action => ModalObservable<string>(action$, {
-        modal: { id: UPGRADE_LEGACY_WALLET_MODAL, type: 'AUTHORIZE', secret: true, params: { purpose: 'upgrade' } },
-        success: password => defer(() => decryptLegacyPrivateKey(action.payload, password)).pipe(
-            mergeMap((privateKey): Observable<Action> => privateKey
-                ? defer(() => createWallet(privateKey, password)).pipe(
-                    mergeMap(wallet => {
-                        const stored = state$.value.storage.wallets.find(l => l.id === wallet.id);
-                        return stored
-                            ? of(
-                                removeLegacyWallet(action.payload.encKey),
-                                upgradeLegacyWallet.done({ params: action.payload, result: stored })
-                            )
-                            : of(
-                                saveWallet(wallet),
-                                removeLegacyWallet(action.payload.encKey),
-                                upgradeLegacyWallet.done({ params: action.payload, result: wallet })
-                            );
-                    })
-                )
-                : of(
-                    upgradeLegacyWallet.failed({ params: action.payload, error: 'E_INVALID_PASSWORD' }),
-                    enqueueNotification({ id: uuid.v4(), type: 'INVALID_PASSWORD', params: {} })
-                )
-            ),
-            catchError(() => of(
-                upgradeLegacyWallet.failed({ params: action.payload, error: 'E_SERVER' }),
-                modalShow({ id: 'AUTH_ERROR', type: 'AUTH_ERROR', params: { error: 'E_SERVER' } })
-            ))
+    exhaustMap(action => promptPassword(action$, {
+        id: UPGRADE_LEGACY_WALLET_MODAL,
+        purpose: 'upgrade',
+        decrypt: password => decryptLegacyPrivateKey(action.payload, password),
+        withKey: (privateKey, password) => defer(() => createWallet(privateKey, password)).pipe(
+            mergeMap(wallet => {
+                const stored = state$.value.storage.wallets.find(l => l.id === wallet.id);
+                return stored
+                    ? of(
+                        removeLegacyWallet(action.payload.encKey),
+                        upgradeLegacyWallet.done({ params: action.payload, result: stored })
+                    )
+                    : of(
+                        saveWallet(wallet),
+                        removeLegacyWallet(action.payload.encKey),
+                        upgradeLegacyWallet.done({ params: action.payload, result: wallet })
+                    );
+            })
         ),
-        failure: () => of(upgradeLegacyWallet.failed({ params: action.payload, error: 'E_CANCELLED' }))
+        failed: error => upgradeLegacyWallet.failed({ params: action.payload, error })
     }))
 );
 

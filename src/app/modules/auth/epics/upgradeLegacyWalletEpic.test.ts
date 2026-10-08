@@ -23,7 +23,7 @@ const answer = (password: string | null) => (action: Action) => modalShow.match(
 
 describe('upgradeLegacyWalletEpic', () => {
     it('stores the old key the current way, then forgets the old entry', async () => {
-        const out = await runEpicLoop(upgradeLegacyWalletEpic, [upgradeLegacyWallet.started(legacy)], { respond: answer(vector.password), quietMs: 3000 });
+        const out = await runEpicLoop(upgradeLegacyWalletEpic, [upgradeLegacyWallet.started(legacy)], { respond: answer(vector.password), until: action => upgradeLegacyWallet.done.match(action) || upgradeLegacyWallet.failed.match(action) });
         const saved = out.find(action => saveWallet.match(action)) as ReturnType<typeof saveWallet>;
 
         expect(saved).toBeDefined();
@@ -46,7 +46,7 @@ describe('upgradeLegacyWalletEpic', () => {
     it('keeps a wallet of the same key stored since, and its password', async () => {
         const existing = await createWallet(vector.privateKey, 'a newer password');
         const state = { ...mockState, storage: { ...mockState.storage, wallets: [existing] } };
-        const out = await runEpicLoop(upgradeLegacyWalletEpic, [upgradeLegacyWallet.started(legacy)], { respond: answer(vector.password), state, quietMs: 3000 });
+        const out = await runEpicLoop(upgradeLegacyWalletEpic, [upgradeLegacyWallet.started(legacy)], { respond: answer(vector.password), state, until: action => upgradeLegacyWallet.done.match(action) || upgradeLegacyWallet.failed.match(action) });
 
         expect(out.some(action => saveWallet.match(action))).toBe(false);
         expect(out).toContainEqual(removeLegacyWallet(legacy.encKey));

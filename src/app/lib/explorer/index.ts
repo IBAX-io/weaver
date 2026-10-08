@@ -9,7 +9,9 @@
 // {code: 0, data: {total, page, limit, list}}, newest first, every kind of transaction of the
 // account, sent or received. Callers check what it answers: it is an index, not the chain.
 
-export interface IAccountTransactionsRequest {
+import { isHttpsUrl } from 'lib/settings/httpsUrl';
+
+interface IAccountTransactionsRequest {
     // "XXXX-XXXX-XXXX-XXXX-XXXX"
     wallet: string;
     ecosystem: number;
@@ -19,14 +21,18 @@ export interface IAccountTransactionsRequest {
 }
 
 // How long an answer may take, and how large it may be: a page of 500 rows is about 125 KB
-export const EXPLORER_TIMEOUT_MS = 15000;
+const EXPLORER_TIMEOUT_MS = 15000;
 export const EXPLORER_MAX_BYTES = 2 * 1024 * 1024;
 
 export default class ExplorerAPI {
     private base: string;
     private fetch: typeof fetch;
 
+    // The account's address is sent there: over https only, whatever stored the address
     constructor(base: string, fetchFunction: typeof fetch = (input, init) => fetch(input, init)) {
+        if (!isHttpsUrl(base)) {
+            throw new Error('A block explorer is called over https only');
+        }
         this.base = base.replace(/\/+$/, '');
         this.fetch = fetchFunction;
     }

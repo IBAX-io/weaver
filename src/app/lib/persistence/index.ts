@@ -7,7 +7,7 @@
 // otherwise only the listed keys of the slice.
 export const PERSISTED_STATE = {
     storage: true,
-    auth: ['isAuthenticated', 'isDefaultWallet', 'session', 'id', 'wallet'],
+    auth: ['isAuthenticated', 'isDefaultWallet', 'session', 'id', 'wallet', 'signedOutBecause'],
     engine: ['guestSession']
 } as const;
 
@@ -92,4 +92,27 @@ export const parsePersistedState = (raw: string | null): TPersistedState | null 
         console.error('Discarding unreadable persisted state', e);
         return null;
     }
+};
+
+const hasCryptoSuite = (session: unknown) => {
+    const suite = session && 'object' === typeof session ? (session as { cryptoSuite?: { cryptoer?: unknown, hasher?: unknown } }).cryptoSuite : null;
+    return !!suite && 'string' === typeof suite.cryptoer && 'string' === typeof suite.hasher;
+};
+
+// Sessions stored by a version that did not keep the network's key algorithms (Weaver up to 1.4)
+// cannot sign: the signed-in one is dropped with its account (the user signs in again) and the
+// network one too (connected to again at start)
+export const discardSessionsWithoutCryptoSuite = (persisted: TPersistedState | null): TPersistedState | null => {
+    if (!persisted) {
+        return persisted;
+    }
+    const { auth, engine } = persisted;
+    const result = { ...persisted };
+    if (auth && auth.session && !hasCryptoSuite(auth.session)) {
+        result.auth = { ...auth, session: null, wallet: null, id: null, isAuthenticated: false, isDefaultWallet: false };
+    }
+    if (engine && engine.guestSession && !hasCryptoSuite(engine.guestSession)) {
+        result.engine = { ...engine, guestSession: null };
+    }
+    return result;
 };

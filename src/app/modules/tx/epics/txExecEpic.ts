@@ -14,8 +14,9 @@ import defaultSchema from 'lib/tx/schema/defaultSchema';
 import { ISignedTransaction, ITxContext, signTransaction, TTxPayload } from 'lib/tx/transaction';
 import { isBaseUnits } from 'lib/tx/amount';
 import { parseAddress } from 'lib/crypto/address';
-import { cryptoSuiteKey, ICryptoSuiteId } from 'lib/crypto/suites';
-import { cryptoChanged, logout } from 'modules/auth/actions';
+import { ICryptoSuiteId, sameCryptoSuite } from 'lib/crypto/suites';
+import { E_CRYPTO_CHANGED } from 'modules/auth/actions';
+import { CryptoChangedError, signOutForCryptoChange } from 'modules/auth/util/cryptoChange';
 import IbaxAPI from 'lib/ibaxAPI';
 import { apiErrorCode, isApiError } from 'lib/ibaxAPI/errors';
 import fileObservable from 'modules/io/util/fileObservable';
@@ -128,10 +129,6 @@ class TxExecutionError {
   constructor(readonly txError: ITxError) { }
 }
 
-// The node refused the transactions because the network's key algorithms are no longer the ones
-// the session signed in under (the chain's crypto settings were changed while it was open)
-class CryptoChangedError { }
-
 class TxPending {
   constructor(readonly count: number) { }
 }
@@ -139,13 +136,16 @@ class TxPending {
 const POLL_RETRY_ERRORS = ['E_HASHNOTFOUND', 'E_OFFLINE'];
 
 // The node checks every transaction's signature when it is sent and refuses a bad one (go-ibax
-// ProcessClientTxBatches: "Incorrect sign" for any other suite's signature). On a refusal the
-// node is asked which algorithms it uses now: other than the session's, that is the reason;
-// otherwise, or if it cannot tell, the refusal stands as it is.
-const refusedSending = (client: IbaxAPI, suite: ICryptoSuiteId) => (error: unknown) => defer(() => client.getUid()).pipe(
-  catchError(() => throwError(() => error)),
-  mergeMap(uid => throwError(() => cryptoSuiteKey(uid.cryptoSuite) !== cryptoSuiteKey(suite) ? new CryptoChangedError() : error))
-);
+// ProcessClientTxBatches: "Incorrect sign" for any other suite's signature). When it refuses a
+// send (it answered: not when it could not be reached), it is asked which algorithms it uses now:
+// other than the session's, that is the reason (the chain's crypto settings were changed while
+// the session was open); otherwise, or if it cannot tell, the refusal stands as it is.
+const refusedSending = (client: IbaxAPI, suite: ICryptoSuiteId) => (error: unknown) => 'E_OFFLINE' === apiErrorCode(error)
+  ? throwError(() => error)
+  : defer(() => client.getUid()).pipe(
+    catchError(() => throwError(() => error)),
+    mergeMap(uid => throwError(() => sameCryptoSuite(uid.cryptoSuite, suite) ? error : new CryptoChangedError('send')))
+  );
 
 // Sends a batch and polls until every transaction is in a block; an execution error stops polling
 const sendBatch = (client: IbaxAPI, suite: ICryptoSuiteId, jobs: ITxJob[]): Observable<ITransaction[]> => defer(() => {
@@ -243,7 +243,10 @@ const toTxError = (error: unknown): ITxError => {
 export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
   ofAction(txExec.started),
   // Everything, the session and network lookup included, ends in txExec.done or txExec.failed
-  mergeMap(action => defer(() => {
+  mergeMap(action => {
+  // The session the transactions are signed in: signed out of only if it is still the one open
+  const session = state$.value.auth.session;
+  return defer(() => {
     const state = state$.value;
     const client = api({
       apiHost: state.auth.session.network.apiHost,
@@ -295,15 +298,15 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
       // The session ends (its address and signatures are the old algorithms'); the sign-in page
       // says why (txExecFailedEpic shows no modal for it: the sign-out would close it)
       ? of(
-        cryptoChanged(),
-        logout.started(null),
-        txExec.failed({ params: action.payload, error: { type: 'E_CRYPTO_CHANGED', error: '', params: [] } })
+        txExec.failed({ params: action.payload, error: { type: E_CRYPTO_CHANGED, error: '', params: [] } }),
+        ...signOutForCryptoChange(state$.value, session, error.during)
       )
       : of(txExec.failed({
         params: action.payload,
         error: toTxError(error)
       })))
-  ))
+  );
+  })
 );
 
 export default txExecEpic;

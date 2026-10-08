@@ -16,9 +16,10 @@ import ExplorerAPI from 'lib/explorer';
 import { DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
 import { formatAddress, parseAddress } from 'lib/crypto/address';
 import { logout } from 'modules/auth/actions';
-import { E_NO_EXPLORER, fetchUtxoHistory, IUtxoHistoryRequest, sendTransfer } from '../actions';
+import { E_INVALIDWALLET, E_NO_EXPLORER, fetchUtxoHistory, IUtxoHistoryRequest, sendTransfer, E_NOT_ALLOWED } from '../actions';
+import { explorerConsent } from '../selectors';
 import reducer, { initialState } from '../reducer';
-import { TUtxoHistoryEntry } from '../utxoHistory';
+import { TUtxoHistoryEntry } from '../utxoTransfer';
 import { fetchUtxoHistoryEpic, reloadUtxoHistoryEpic } from './fetchUtxoHistoryEpic';
 
 const OWNER = { account: '1188-4962-8957-7794-8872', ecosystem: '1' };
@@ -26,8 +27,8 @@ const ME = parseAddress(OWNER.account);
 const OTHER = '5555';
 const EXPLORER = 'https://scan.example/api/v2';
 
-// explorer '': the network has none configured
-const signedIn = (explorer = EXPLORER): IRootState => ({
+// explorer '': the network has none configured; allowed: the user agreed to send it the address
+const signedIn = (explorer = EXPLORER, allowed = true): IRootState => ({
     ...mockState,
     auth: {
         ...mockState.auth,
@@ -39,6 +40,7 @@ const signedIn = (explorer = EXPLORER): IRootState => ({
     },
     storage: {
         ...mockState.storage,
+        explorerAllowed: allowed && explorer ? [explorerConsent('testnet', explorer)] : [],
         networks: [
             { uuid: 'mainnet', id: 7, name: 'Mainnet', honorNodes: ['http://main'], explorer: 'https://scan.main/api/v2' },
             { uuid: 'testnet', id: 5, name: 'Testnet', honorNodes: ['http://node'], explorer: explorer || undefined }
@@ -190,12 +192,60 @@ describe('fetchUtxoHistoryEpic', () => {
         // Not listed yet: looked for again
         await vi.advanceTimersByTimeAsync(5000);
         expect(out).toHaveLength(2);
-        // Listed now: no more
+        // Listed, the node not confirming it yet: looked for again
         state.wallet = { ...state.wallet, utxoHistory: { ...state.wallet.utxoHistory, entries: [{ hash: 'ab12', blockID: '1', problem: 'unconfirmed' }] } };
+        await vi.advanceTimersByTimeAsync(15000);
+        expect(out).toHaveLength(3);
+        // Confirmed now: no more
+        state.wallet = { ...state.wallet, utxoHistory: { ...state.wallet.utxoHistory, entries: [{ ...transferEntry, hash: 'ab12' }] } };
         await vi.advanceTimersByTimeAsync(60000);
-        expect(out).toHaveLength(2);
+        expect(out).toHaveLength(3);
+    });
+
+    it('looks again neither while a page loads nor once signed out', async () => {
+        vi.useFakeTimers();
+        const state = signedIn();
+        state.wallet = { ...state.wallet, utxoHistory: { ...OWNER, entries: [], next: null, checked: 0, total: 0, incomplete: [] }, utxoHistoryPending: true };
+        const state$ = new StateObservable<IRootState>(new Subject<IRootState>(), state);
+        const action$ = new Subject<Action>();
+        const out: Action[] = [];
+        reloadUtxoHistoryEpic(action$, state$, storeDependencies).subscribe(action => out.push(action));
+        action$.next(sendTransfer.done({ params: { transfer: { type: 'utxo', toID: '1', amount: '1' }, confirm: { title: '', description: '' } }, result: { hash: 'ab12' } }));
+        expect(out).toHaveLength(1);
+        // Loading: not sent again
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(out).toHaveLength(1);
+        // Signed out: never again
+        state.wallet = { ...state.wallet, utxoHistoryPending: false };
+        action$.next(logout.started(null));
+        await vi.advanceTimersByTimeAsync(60000);
+        expect(out).toHaveLength(1);
+    });
+
+    it('sends the address nowhere the user did not agree to, nor over plain http', async () => {
+        const { dependencies } = chain(3, () => true);
+        // Not agreed; agreed for the network's earlier explorer (its settings changed since)
+        const earlier = { ...signedIn(EXPLORER, false), storage: { ...signedIn(EXPLORER, false).storage, explorerAllowed: [explorerConsent('testnet', 'https://old.example/api/v2')] } };
+        for (const state of [signedIn(EXPLORER, false), earlier]) {
+            expect(await runEpic(fetchUtxoHistoryEpic, [fetchUtxoHistory.started(request())], state, dependencies))
+                .toEqual([fetchUtxoHistory.failed({ params: request(), error: E_NOT_ALLOWED })]);
+        }
+        // An http address stored some other way than the network form: as no explorer
+        expect(await runEpic(fetchUtxoHistoryEpic, [fetchUtxoHistory.started(request())], signedIn('http://scan.example/api/v2'), dependencies))
+            .toEqual([fetchUtxoHistory.failed({ params: request(), error: E_NO_EXPLORER })]);
+        expect(dependencies.explorer).not.toHaveBeenCalled();
+    });
+
+    it('fails an address it cannot read', async () => {
+        const state = signedIn();
+        const bad = { account: 'not an address', ecosystem: '1', cursor: null };
+        expect(await runEpic(fetchUtxoHistoryEpic, [fetchUtxoHistory.started(bad)], state))
+            .toEqual([fetchUtxoHistory.failed({ params: bad, error: E_INVALIDWALLET })]);
     });
 });
+
+// A transfer the node confirmed
+const transferEntry: TUtxoHistoryEntry = { hash: hash(1), blockID: '1', time: 1, direction: 'in', counterparty: null, amount: '1', comment: '', failed: false };
 
 describe('UTXO transfers in the wallet state', () => {
     const transfer = (id: number): TUtxoHistoryEntry => ({ hash: hash(id), blockID: String(id), time: id, direction: 'in', counterparty: null, amount: '1', comment: '', failed: false });

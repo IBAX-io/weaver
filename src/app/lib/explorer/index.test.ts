@@ -14,6 +14,13 @@ const explorerAnswering = (answer: () => Promise<Response>, base = 'https://scan
 };
 
 describe('block explorer client', () => {
+    it('calls an explorer over https only', () => {
+        for (const base of ['http://scan.example/api/v2', 'scan.example/api/v2', 'javascript:alert(1)', '']) {
+            expect(() => new ExplorerAPI(base, vi.fn())).toThrow('https only');
+        }
+        expect(() => new ExplorerAPI('https://scan.example/api/v2', vi.fn())).not.toThrow();
+    });
+
     it('asks for an account\'s transactions as the explorer\'s own page does', async () => {
         const { fetch, explorer } = explorerAnswering(async () => new Response('{"code":0,"data":{"total":0,"list":null}}'));
         expect(await explorer.accountTransactions(REQUEST)).toEqual({ code: 0, data: { total: 0, list: null } });
@@ -59,6 +66,14 @@ describe('block explorer client', () => {
             start: controller => { controller.enqueue(parts.slice(0, 20)); controller.enqueue(parts.slice(20)); controller.close(); }
         });
         expect(await explorerAnswering(async () => new Response(split)).explorer.accountTransactions(REQUEST)).toEqual({ code: 0, note: '区块' });
+    });
+
+    it('gives up after 15 seconds, and reads an empty answer as nothing', async () => {
+        const timeout = vi.spyOn(AbortSignal, 'timeout');
+        await explorerAnswering(async () => new Response('{}')).explorer.accountTransactions(REQUEST);
+        expect(timeout).toHaveBeenCalledWith(15000);
+        timeout.mockRestore();
+        expect(await explorerAnswering(async () => new Response(null, { status: 200 })).explorer.accountTransactions(REQUEST)).toBeNull();
     });
 
     it('hands back an answer that is not JSON as nothing, for the caller to refuse', async () => {

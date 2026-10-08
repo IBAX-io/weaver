@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { isValidMnemonic, privateKeyFromBackup } from 'lib/keyring';
+import { isHttpsUrl } from 'lib/settings/httpsUrl';
 
 export class Validator {
     public name: string;
@@ -161,6 +162,12 @@ export const mnemonic = new Validator({
 export const backup = new Validator({
     name: 'backup',
     validate: (value) => 'string' === typeof value && null !== privateKeyFromBackup(value)
+});
+
+// Empty, or an https address (a network's block explorer)
+export const httpsUrl = new Validator({
+    name: 'httpsUrl',
+    validate: (value) => !value || ('string' === typeof value && isHttpsUrl(value.trim()))
 });
 
 export const compare: IValidatorGenerator = (compareValue: any) => {

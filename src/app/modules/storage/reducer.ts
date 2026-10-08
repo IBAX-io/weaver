@@ -26,6 +26,9 @@ export type State = {
   readonly networks: INetwork[];
   readonly securityWarningClosed: boolean;
   readonly menuFolded: boolean;
+  // Networks and block explorers the user agreed to send account addresses to (UTXO transfers):
+  // modules/wallet/selectors explorerConsent
+  readonly explorerAllowed: string[];
 };
 
 export const initialState: State = {
@@ -34,7 +37,8 @@ export const initialState: State = {
   legacyWallets: [],
   networks: [],
   securityWarningClosed: false,
-  menuFolded: false
+  menuFolded: false,
+  explorerAllowed: []
 };
 
 export default reducerWithInitialState<State>(initialState)
@@ -50,4 +54,10 @@ export default reducerWithInitialState<State>(initialState)
   .case(actions.saveNetwork, saveNetworkHandler)
   .case(actions.removeNetwork, removeNetworkHandler)
   .case(actions.savePreconfiguredNetworks, savePreconfiguredNetworksHandler)
-  .case(actions.setMenuFolded, setMenuFoldedHandler);
+  .case(actions.setMenuFolded, setMenuFoldedHandler)
+  .case(actions.allowExplorer, (state, consent) => ({
+    ...state,
+    // Replaces what the user agreed to for the network before: another explorer, or a consent
+    // stored by an earlier version (the network's uuid alone)
+    explorerAllowed: [...(state.explorerAllowed || []).filter(old => old.split(' ')[0] !== consent.split(' ')[0]), consent]
+  }));

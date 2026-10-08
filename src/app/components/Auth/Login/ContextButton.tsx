@@ -18,7 +18,7 @@ const ContextButton: React.FC<React.PropsWithChildren<IContextButtonProps>> = (p
     <div className="button-icon">
       <em className={props.icon} />
     </div>
-    <div>
+    <div className="button-text">
       <div className="button-label">{props.children}</div>
       <div className="button-desc">{props.description}</div>
     </div>
@@ -26,9 +26,11 @@ const ContextButton: React.FC<React.PropsWithChildren<IContextButtonProps>> = (p
 );
 
 export default styled(ContextButton)`
-  display: block;
+  display: flex;
+  align-items: flex-start;
   width: 100%;
-  height: 40px;
+  /* At least the icon's height; a description that wraps makes it taller */
+  min-height: 40px;
   color: #244134;
   border: 0;
   background: 0;
@@ -41,9 +43,8 @@ export default styled(ContextButton)`
   }
 
   .button-icon {
-    vertical-align: top;
+    flex: none;
     text-align: center;
-    float: left;
     width: 40px;
     height: 40px;
     line-height: 40px;
@@ -51,11 +52,19 @@ export default styled(ContextButton)`
     margin-right: 5px;
   }
 
+  /* The text beside the icon wraps (an address has no spaces to wrap at) */
+  .button-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .button-label {
     font-size: 16px;
   }
 
+  /* The theme's body color: the grey it had (#909fa7, 2.73:1 on white) could not be read, and it
+     is what tells accounts apart */
   .button-desc {
-    color: #909fa7;
+    color: ${props => props.theme.contentForeground};
   }
 `;

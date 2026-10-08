@@ -5,119 +5,23 @@
 
 import React, { useEffect } from 'react';
 import { Alert, Button, Card, Col, Row, Spinner } from 'react-bootstrap';
-import { FormattedMessage, useIntl } from 'react-intl';
-import CopyToClipboard from 'react-copy-to-clipboard';
+import { FormattedMessage } from 'react-intl';
 import { useAppDispatch, useAppSelector } from 'lib/hooks';
 import { fetchBalance, fetchHistory, fetchUtxoHistory, ISendTransferCall, sendTransfer, walletErrorCode } from 'modules/wallet/actions';
 import { DEFAULT_HISTORY_FILTER, THistoryFilter } from 'modules/wallet/history';
 import { IExplorerCursor } from 'modules/wallet/utxoHistory';
 import { sameOwner } from 'modules/wallet/reducer';
+import { explorerAllowed, explorerConsent, sessionExplorer, sessionNetwork } from 'modules/wallet/selectors';
+import { allowExplorer } from 'modules/storage/actions';
 import { formatAddress } from 'lib/crypto/address';
 import { formatAmount } from 'lib/tx/amount';
-import themed from 'components/Theme/themed';
+import StyledWallet from './StyledWallet';
 import UtxoTransferForm from './UtxoTransferForm';
 import TransferSelfForm from './TransferSelfForm';
 import BalanceAmount from './BalanceAmount';
 import History from './History';
 import UtxoHistory from './UtxoHistory';
-
-const StyledWallet = themed.section`
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    background: ${props => props.theme.contentBackground};
-    color: ${props => props.theme.contentForeground};
-
-    .wallet__content {
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 24px 16px;
-    }
-
-    .wallet__account {
-        word-break: break-all;
-    }
-
-    /* A balance stays one number (BalanceAmount): the font shrinks to the card's width (container
-       units) divided by the number's length in characters, a tabular digit being about 0.6em wide,
-       with a little to spare; past the smallest size the number wraps at its decimal point only */
-    .wallet__balance {
-        container-type: inline-size;
-    }
-
-    .wallet__amount {
-        font-size: clamp(0.875rem, calc(100cqi / (var(--wallet-amount-chars, 1) * 0.62)), 1.5rem);
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-        line-height: 1.3;
-    }
-
-    .wallet__amount-part {
-        white-space: nowrap;
-    }
-
-    /* History: what happened on the left, the amount on the right (below it on a narrow card) */
-    .wallet__history-entry {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 4px 16px;
-        padding: 10px 0;
-        border-top: 1px solid var(--bs-border-color);
-    }
-
-    .wallet__history-main {
-        flex: 1 1 260px;
-        min-width: 0;
-    }
-
-    /* Pushed right also when it wraps under the text */
-    .wallet__history-amount {
-        margin-left: auto;
-        text-align: end;
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-    }
-
-    /* An icon button with room enough to hit (24px) */
-    .wallet__history-copy {
-        min-width: 24px;
-        min-height: 24px;
-        padding: 0 4px;
-    }
-
-    /* A failed transfer's amount, which never moved */
-    .wallet__history-amount_void {
-        font-weight: normal;
-        text-decoration: line-through;
-        color: ${props => props.theme.contentForeground};
-    }
-
-    .wallet__history-penalty {
-        white-space: normal;
-        text-align: start;
-    }
-
-    /* The theme's .btn has no border, which left the outline buttons as bare words */
-    .wallet__history-filter .btn-outline-primary {
-        border: 1px solid var(--bs-btn-border-color);
-    }
-
-    /* Secondary text that still has to be read: the theme's body color, not the faint muted grey */
-    .wallet__hint,
-    .wallet__unit {
-        color: ${props => props.theme.contentForeground};
-    }
-
-    /* Light alerts with dark text (the app's solid alerts are too faint to read) */
-    .alert-info, .alert-warning, .alert-danger, .alert-success {
-        --bs-alert-border-color: transparent;
-    }
-    .alert-info { --bs-alert-bg: var(--bs-info-bg-subtle); --bs-alert-color: var(--bs-info-text-emphasis); }
-    .alert-warning { --bs-alert-bg: var(--bs-warning-bg-subtle); --bs-alert-color: var(--bs-warning-text-emphasis); }
-    .alert-danger { --bs-alert-bg: var(--bs-danger-bg-subtle); --bs-alert-color: var(--bs-danger-text-emphasis); }
-    .alert-success { --bs-alert-bg: var(--bs-success-bg-subtle); --bs-alert-color: var(--bs-success-text-emphasis); }
-`;
+import { CopyHashButton, useCopied } from './HistoryParts';
 
 const BALANCES = [
     { key: 'amount', id: 'wallet.balance.account', defaultMessage: 'Account balance' },
@@ -125,9 +29,20 @@ const BALANCES = [
     { key: 'total', id: 'wallet.balance.total', defaultMessage: 'Total' }
 ] as const;
 
+// The host of a block explorer's address; null when it has none, or none that can be read
+const hostOf = (explorer: string | null) => {
+    try {
+        return explorer ? new URL(explorer).host : null;
+    }
+    catch (e) {
+        return null;
+    }
+};
+
 const Wallet: React.FC = () => {
     const dispatch = useAppDispatch();
-    const intl = useIntl();
+    // Whether the hash of the transfer just done was copied, for a moment
+    const [copied, setCopied] = useCopied();
     const account = useAppSelector(state => state.auth.wallet);
     const isDemo = useAppSelector(state => state.auth.isDefaultWallet);
     const wallet = useAppSelector(state => state.wallet);
@@ -145,21 +60,24 @@ const Wallet: React.FC = () => {
     const utxoHistory = address && ecosystem && sameOwner(wallet.utxoHistory, { account: address, ecosystem }) ? wallet.utxoHistory : null;
     // From the newest transaction, or where the last page stopped
     const loadUtxoHistory = (cursor: IExplorerCursor | null) => dispatch(fetchUtxoHistory.started({ account: address, ecosystem, cursor }));
-    // The block explorer the network names (its host is shown: the address is sent there)
-    const explorer = useAppSelector(state => {
-        const session = state.auth.session;
-        const network = session && state.storage.networks.find(item => item.uuid === session.network.uuid);
-        return network && network.explorer ? network.explorer : null;
-    });
-    const explorerHost = explorer ? new URL(explorer).host : null;
+    // The block explorer the network names (its host is shown: the address is sent there), and
+    // whether the user agreed to that
+    const network = useAppSelector(sessionNetwork);
+    const explorer = useAppSelector(sessionExplorer);
+    const explorerHost = hostOf(explorer);
+    const allowed = useAppSelector(explorerAllowed) && null !== explorerHost;
 
     useEffect(() => {
         if (address && ecosystem) {
             dispatch(fetchBalance.started({ account: address, ecosystem }));
             dispatch(fetchHistory.started({ account: address, ecosystem, filter: DEFAULT_HISTORY_FILTER, before: null }));
-            dispatch(fetchUtxoHistory.started({ account: address, ecosystem, cursor: null }));
         }
     }, [dispatch, address, ecosystem]);
+    useEffect(() => {
+        if (address && ecosystem && allowed) {
+            dispatch(fetchUtxoHistory.started({ account: address, ecosystem, cursor: null }));
+        }
+    }, [dispatch, address, ecosystem, allowed]);
 
     if (!address || !ecosystem) {
         return (
@@ -173,6 +91,7 @@ const Wallet: React.FC = () => {
 
     // Never show the balance of an account or ecosystem the user has switched away from
     const balance = sameOwner(wallet.balance, { account: address, ecosystem }) ? wallet.balance : null;
+    const token = balance ? { digits: balance.value.digits, symbol: balance.value.token_symbol } : null;
     const onSubmit = (call: ISendTransferCall) => dispatch(sendTransfer.started(call));
     const formsDisabled = isDemo || null !== wallet.transferPending;
     const last = wallet.lastTransfer;
@@ -204,7 +123,9 @@ const Wallet: React.FC = () => {
                         onClick={() => {
                             dispatch(fetchBalance.started({ account: address, ecosystem }));
                             loadHistory(historyFilter);
-                            loadUtxoHistory(null);
+                            if (allowed) {
+                                loadUtxoHistory(null);
+                            }
                         }}
                     >
                         {wallet.balancePending && <Spinner as="span" animation="border" size="sm" className="me-2" aria-hidden="true" />}
@@ -257,22 +178,16 @@ const Wallet: React.FC = () => {
                                 <>
                                     <div className="small font-monospace text-break">
                                         <FormattedMessage id="wallet.done.hash" defaultMessage="Transaction {hash}" values={{ hash: last.result.hash }} />
-                                        <CopyToClipboard text={last.result.hash}>
-                                            <Button
-                                                variant="link"
-                                                size="sm"
-                                                className="wallet__history-copy align-baseline icon-docs"
-                                                aria-label={intl.formatMessage({ id: 'wallet.history.copyHash', defaultMessage: 'Copy the transaction hash' })}
-                                                title={intl.formatMessage({ id: 'wallet.history.copyHash', defaultMessage: 'Copy the transaction hash' })}
-                                            />
-                                        </CopyToClipboard>
+                                        <CopyHashButton hash={last.result.hash} copied={copied === last.result.hash} onCopy={() => setCopied(last.result.hash)} />
                                     </div>
                                     {/* Said where the transfer happens: where it will be listed, if anywhere */}
                                     {'utxo' === last.call.transfer.type && (
                                         <div className="small mt-1">
-                                            {explorer
-                                                ? <FormattedMessage id="wallet.done.utxo.history" defaultMessage="It is listed under UTXO transfers below once the block explorer has indexed it, usually within a minute. This page looks for it a few times; if it is not there by then, press Refresh." />
-                                                : <FormattedMessage id="wallet.done.utxo.unlisted" defaultMessage="This network has no block explorer to list UTXO transfers: keep the transaction hash." />}
+                                            {!explorerHost
+                                                ? <FormattedMessage id="wallet.done.utxo.unlisted" defaultMessage="This network has no block explorer to list UTXO transfers: keep the transaction hash." />
+                                                : allowed
+                                                    ? <FormattedMessage id="wallet.done.utxo.history" defaultMessage="It is listed under UTXO transfers below once the block explorer has indexed it. This page looks for it again for about a minute; if it is not there by then, press Refresh." />
+                                                    : <FormattedMessage id="wallet.done.utxo.ask" defaultMessage="To see it listed, look up UTXO transfers below." />}
                                         </div>
                                     )}
                                 </>
@@ -328,45 +243,48 @@ const Wallet: React.FC = () => {
                                 />
                             </Col>
                         </Row>
-
-                        <History
-                            filter={historyFilter}
-                            entries={history ? history.entries : null}
-                            more={history ? history.more : 0}
-                            pending={wallet.historyPending}
-                            error={wallet.historyError}
-                            digits={balance.value.digits}
-                            symbol={balance.value.token_symbol}
-                            onFilter={filter => loadHistory(filter)}
-                            onMore={() => {
-                                const shown = history && history.entries;
-                                if (shown && shown.length > 0) {
-                                    loadHistory(historyFilter, shown[shown.length - 1].id);
-                                }
-                            }}
-                            onRetry={() => dispatch(fetchHistory.started(wallet.historyRetry || { account: address, ecosystem, filter: historyFilter, before: null }))}
-                        />
-
-                        <UtxoHistory
-                            explorer={explorerHost}
-                            entries={utxoHistory ? utxoHistory.entries : null}
-                            more={!!utxoHistory && null !== utxoHistory.next}
-                            checked={utxoHistory ? utxoHistory.checked : 0}
-                            total={utxoHistory ? utxoHistory.total : 0}
-                            incomplete={utxoHistory ? utxoHistory.incomplete : []}
-                            pending={wallet.utxoHistoryPending}
-                            error={wallet.utxoHistoryError}
-                            digits={balance.value.digits}
-                            symbol={balance.value.token_symbol}
-                            onMore={() => {
-                                if (utxoHistory && utxoHistory.next) {
-                                    loadUtxoHistory(utxoHistory.next);
-                                }
-                            }}
-                            onRetry={() => dispatch(fetchUtxoHistory.started(wallet.utxoHistoryRetry || { account: address, ecosystem, cursor: null }))}
-                        />
                     </>
                 )}
+
+                {/* Not kept behind the balance: it only gives the amounts their digits and symbol */}
+                <History
+                    filter={historyFilter}
+                    entries={history ? history.entries : null}
+                    more={history ? history.more : 0}
+                    pending={wallet.historyPending}
+                    pendingMore={wallet.historyPendingMore}
+                    error={wallet.historyError}
+                    token={token}
+                    onFilter={filter => loadHistory(filter)}
+                    onMore={() => {
+                        const shown = history && history.entries;
+                        if (shown && shown.length > 0) {
+                            loadHistory(historyFilter, shown[shown.length - 1].id);
+                        }
+                    }}
+                    onRetry={() => dispatch(fetchHistory.started(wallet.historyRetry || { account: address, ecosystem, filter: historyFilter, before: null }))}
+                />
+
+                <UtxoHistory
+                    explorer={explorerHost}
+                    allowed={allowed}
+                    onAllow={() => dispatch(allowExplorer(explorerConsent(network.uuid, explorer)))}
+                    entries={utxoHistory ? utxoHistory.entries : null}
+                    more={!!utxoHistory && null !== utxoHistory.next}
+                    checked={utxoHistory ? utxoHistory.checked : 0}
+                    total={utxoHistory ? utxoHistory.total : 0}
+                    incomplete={utxoHistory ? utxoHistory.incomplete : []}
+                    pending={wallet.utxoHistoryPending}
+                    pendingMore={wallet.utxoHistoryPendingMore}
+                    error={wallet.utxoHistoryError}
+                    token={token}
+                    onMore={() => {
+                        if (utxoHistory && utxoHistory.next) {
+                            loadUtxoHistory(utxoHistory.next);
+                        }
+                    }}
+                    onRetry={() => dispatch(fetchUtxoHistory.started(wallet.utxoHistoryRetry || { account: address, ecosystem, cursor: null }))}
+                />
             </div>
         </StyledWallet>
     );

@@ -8,6 +8,7 @@ import { ILegacyWallet } from 'lib/crypto/legacyWallet';
 import { IWallet, ILoginCall, ISession, IAccountContext } from 'ibax/auth';
 import { ICreateWalletCall, IImportWalletCall } from 'ibax/auth';
 import { IAccount } from 'ibax/api';
+import { TPasswordPromptError } from './util/passwordPrompt';
 
 const actionCreator = actionCreatorFactory('auth');
 export const acquireSession = actionCreator.async<ISession, boolean>('ACQUIRE_SESSION');
@@ -15,17 +16,23 @@ export const login = actionCreator.async<ILoginCall, { privateKey: string, publi
 export const loginGuest = actionCreator.async<void, { privateKey: string, publicKey: string, wallet: IAccountContext, session: ISession }, string>('LOGIN_GUEST');
 export const logout = actionCreator.async('LOGOUT');
 // The network's key algorithms are no longer the ones the session signed in under (its address and
-// signatures would be the old ones): the session ends, and the sign-in page says why
-export const cryptoChanged = actionCreator('CRYPTO_CHANGED');
+// signatures would be the old ones): the session ends, the network is connected to again, and the
+// sign-in page of that network says why. `during`: found when a session was restored or signed in
+// with, or when the node refused transactions (those not sent yet were cancelled).
+export const E_CRYPTO_CHANGED = 'E_CRYPTO_CHANGED';
+export interface ISignOutReason {
+    reason: typeof E_CRYPTO_CHANGED;
+    network: string;
+    during: 'session' | 'send';
+}
+export const cryptoChanged = actionCreator<ISignOutReason>('CRYPTO_CHANGED');
 export const inviteEcosystem = actionCreator<{ ecosystem: string, redirectPage?: string }>('INVITE_ECOSYSTEM');
 export const createWallet = actionCreator.async<ICreateWalletCall, IWallet, string>('CREATE_WALLET');
 // Re-encrypts a wallet stored by an earlier version (asks for its password)
-export type TUpgradeLegacyWalletError = 'E_INVALID_PASSWORD' | 'E_SERVER' | 'E_CANCELLED';
-export const upgradeLegacyWallet = actionCreator.async<ILegacyWallet, IWallet, TUpgradeLegacyWalletError>('UPGRADE_LEGACY_WALLET');
+export const upgradeLegacyWallet = actionCreator.async<ILegacyWallet, IWallet, TPasswordPromptError>('UPGRADE_LEGACY_WALLET');
 // Adds a stored wallet's identity on the current network's crypto suite, which a wallet stored
 // before the client supported that suite lacks (asks for its password)
-export type TEnableWalletError = 'E_INVALID_PASSWORD' | 'E_SERVER' | 'E_CANCELLED';
-export const enableWalletOnNetwork = actionCreator.async<IWallet, IWallet, TEnableWalletError>('ENABLE_WALLET_ON_NETWORK');
+export const enableWalletOnNetwork = actionCreator.async<IWallet, IWallet, TPasswordPromptError>('ENABLE_WALLET_ON_NETWORK');
 export const importWallet = actionCreator.async<IImportWalletCall, IWallet, string>('IMPORT_WALLET');
 export const removeWallet = actionCreator<IAccount>('REMOVE_WALLET');
 export const selectWallet = actionCreator<IAccountContext>('SELECT_WALLET');

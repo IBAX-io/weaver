@@ -9,7 +9,7 @@ import { login, selectWallet, removeWallet, loginGuest, upgradeLegacyWallet, ena
 import { isLegacyWallet } from 'lib/crypto/legacyWallet';
 import { navigate } from 'modules/router/actions';
 import { IAccount } from 'ibax/api';
-import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
+import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE, isSupportedCryptoSuite } from 'lib/crypto/suites';
 import { walletAccount } from 'modules/auth/util/walletAccount';
 import { modalShow } from 'modules/modal/actions';
 
@@ -46,11 +46,12 @@ const memoized = <A extends unknown[], R>(compute: (...inputs: A) => R) => {
     };
 };
 
+const sortedWallets = memoized((wallets: IRootState['storage']['wallets']) => [...wallets].sort((a, b) => a.id > b.id ? 1 : -1));
+
 // Stored wallets as accounts of the current network (its crypto suite decides the identity);
 // details loaded from the node replace the placeholders once available
 const walletAccounts = memoized((wallets: IRootState['storage']['wallets'], accounts: IAccount[], suite: typeof DEFAULT_CRYPTO_SUITE): IAccount[] =>
-    [...wallets]
-        .sort((a, b) => a.id > b.id ? 1 : -1)
+    wallets
         .filter(wallet => !!wallet.identities[cryptoSuiteKey(suite)])
         .map(wallet => (accounts || []).find(l => l.walletID === wallet.id)
             || walletAccount(wallet, suite, { account: '', ecosystems: [] }))
@@ -59,14 +60,21 @@ const walletAccounts = memoized((wallets: IRootState['storage']['wallets'], acco
 const currentSuite = (state: IRootState) => state.engine.guestSession ? state.engine.guestSession.cryptoSuite : DEFAULT_CRYPTO_SUITE;
 
 const selectWalletAccounts = (state: IRootState): IAccount[] =>
-    walletAccounts(state.storage.wallets, state.auth.wallets, currentSuite(state));
+    walletAccounts(sortedWallets(state.storage.wallets), state.auth.wallets, currentSuite(state));
 
-// Stored wallets without an identity on the current network's suite: stored before the client
-// supported it. Listed so they can be set up for it with their password, never left out unseen.
+// Stored wallets with no identity computed for the current network's suite: stored before the
+// client supported it (not those whose key the suite's curve does not take: no password helps). Listed so they can be set up for it with their password, never left out unseen.
+// None on a network whose suite the client cannot use (no password would set them up).
 const walletsToEnable = memoized((wallets: IRootState['storage']['wallets'], suite: typeof DEFAULT_CRYPTO_SUITE) =>
-    [...wallets]
-        .sort((a, b) => a.id > b.id ? 1 : -1)
-        .filter(wallet => !wallet.identities[cryptoSuiteKey(suite)]));
+    isSupportedCryptoSuite(suite) ? wallets.filter(wallet => undefined === wallet.identities[cryptoSuiteKey(suite)]) : []);
+
+// Why the user was signed out of this network, if the app did it (another network's reason is not
+// this one's)
+const signOutNotice = (state: IRootState) => {
+    const reason = state.auth.signedOutBecause;
+    const session = state.engine.guestSession;
+    return reason && session && reason.network === session.network.uuid ? reason.during : null;
+};
 
 const legacyEntries = memoized((entries: unknown[]) => ({
     legacy: entries.filter(isLegacyWallet),
@@ -77,8 +85,8 @@ const mapStateToProps = (state: IRootState) => ({
     isOffline: !state.engine.guestSession,
     pending: state.auth.isLoggingIn,
     wallets: selectWalletAccounts(state),
-    walletsToEnable: walletsToEnable(state.storage.wallets, currentSuite(state)),
-    signedOutBecause: state.auth.signedOutBecause,
+    walletsToEnable: walletsToEnable(sortedWallets(state.storage.wallets), currentSuite(state)),
+    signOutNotice: signOutNotice(state),
     notifications: state.socket.notifications,
     activationEmail: selectActivationMail(state),
     demoModeEnabled: selectDemoEnabled(state),
@@ -117,7 +125,7 @@ export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: Re
     pending: state.pending,
     wallets: state.wallets,
     walletsToEnable: state.walletsToEnable,
-    signedOutBecause: state.signedOutBecause,
+    signOutNotice: state.signOutNotice,
     notifications: state.notifications,
     activationEnabled: !!state.activationEmail,
     demoModeEnabled: state.demoModeEnabled,

@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { privateKeyFromBackup } from 'lib/keyring';
-import { backup, mnemonic } from './Validators';
+import { backup, httpsUrl, mnemonic } from './Validators';
 
 // The BIP39 test vector and the key it derives (public, see lib/keyring.test.ts)
 const MNEMONIC = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
@@ -29,5 +29,16 @@ describe('wallet backup validators', () => {
     it('keeps creating a wallet to recovery phrases (negative control)', () => {
         expect(mnemonic.validate(MNEMONIC)).toBe(true);
         expect(mnemonic.validate(PRIVATE_KEY)).toBe(false);
+    });
+});
+
+describe('a network\'s block explorer', () => {
+    it('is optional, and https when given', () => {
+        for (const value of ['', 'https://scan.ibax.network:8800/api/v2', ' https://scan.example/api ']) {
+            expect([value, httpsUrl.validate(value)]).toEqual([value, true]);
+        }
+        for (const value of ['http://scan.example/api', 'scan.example', 'https://', 'https:// scan', 'javascript:alert(1)']) {
+            expect([value, httpsUrl.validate(value)]).toEqual([value, false]);
+        }
     });
 });

@@ -4,15 +4,21 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { useRef } from 'react';
-import { Alert, Badge, Button, Card, Spinner } from 'react-bootstrap';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { Badge, Button, Card, Spinner } from 'react-bootstrap';
+import { FormattedMessage } from 'react-intl';
 import { E_NO_EXPLORER, walletErrorCode } from 'modules/wallet/actions';
-import { IIncompleteBlock, IUncheckedTransfer, IUtxoTransfer, TUtxoHistoryEntry } from 'modules/wallet/utxoHistory';
-import { Amount, CopiedStatus, HashCopy, MINUS, useCopied, useMoreFocus } from './HistoryParts';
+import { IIncompleteBlock } from 'modules/wallet/utxoHistory';
+import { IUncheckedTransfer, IUtxoTransfer, TUtxoHistoryEntry } from 'modules/wallet/utxoTransfer';
+import {
+    Amount, CopiedStatus, directionSign, EntryMeta, HeadingSpinner, IToken, ListError, ListUpdating, MoreButton, TransferDescription, useAfterAWhile, useCopied, useFocusKept, useMoreFocus, useRetry
+} from './HistoryParts';
 
 interface Props {
     // The block explorer's host, which the account's address is sent to; null when the network has none
     explorer: string | null;
+    // Whether the user agreed to send account addresses to it (asked once for each network)
+    allowed: boolean;
+    onAllow: () => void;
     // Newest first; null until the first page is in
     entries: readonly TUtxoHistoryEntry[] | null;
     // Whether the explorer's list goes on past the transactions gone through
@@ -20,70 +26,74 @@ interface Props {
     // The account's transactions of every kind gone through in the explorer, of how many it counts
     checked: number;
     total: number;
-    // Blocks too large to be read whole
+    // Blocks no one request to the explorer could hold whole
     incomplete: readonly IIncompleteBlock[];
     pending: boolean;
+    // The page pending is an older one (not the newest, loaded again)
+    pendingMore: boolean;
     error: string | null;
-    // The ecosystem's token, as the balance gives it
-    digits: number;
-    symbol: string;
+    token: IToken | null;
     onMore: () => void;
     // Sends again the request that failed
     onRetry: () => void;
 }
 
 // Out "−", in "+"; to oneself, or a failed transfer that moved nothing, neither
-const sign = (transfer: IUtxoTransfer) => transfer.failed ? ''
-    : 'out' === transfer.direction ? MINUS : 'in' === transfer.direction ? '+' : '';
+const sign = (transfer: IUtxoTransfer) => transfer.failed ? '' : directionSign(transfer.direction);
 
 const isUnchecked = (entry: TUtxoHistoryEntry): entry is IUncheckedTransfer => 'problem' in entry;
 
-// Blocks listed in the warning itself up to this many; more go in a list to open
+// Blocks listed on a line up to this many; more go in a list to open
 const INCOMPLETE_LISTED = 3;
 
-// Inside the polite region: styled as a warning, without the alert role, so it is read once
-const Incomplete: React.FC<{ blocks: readonly IIncompleteBlock[] }> = ({ blocks }) => (
-    <div className="alert alert-warning small mb-2">
-        <FormattedMessage
-            id="wallet.utxoHistory.incomplete"
-            defaultMessage="{count, plural, =1 {Block {first} holds} other {# blocks, from {first} to {last}, hold}} more of the account's transactions than the block explorer lists at once, so some transfers in {count, plural, =1 {it} other {them}} may be missing."
-            values={{ count: blocks.length, first: blocks[0].blockID, last: blocks[blocks.length - 1].blockID }}
-        />
-        {blocks.length > INCOMPLETE_LISTED ? (
-            <details className="mt-1">
-                <summary><FormattedMessage id="wallet.utxoHistory.incomplete.blocks" defaultMessage="Blocks" /></summary>
-                <span className="font-monospace">{blocks.map(block => block.blockID).join(', ')}</span>
-            </details>
-        ) : blocks.length > 2 && (
-            <span className="font-monospace">{' ('}{blocks.map(block => block.blockID).join(', ')}{')'}</span>
-        )}
-    </div>
-);
-
-const Description: React.FC<{ transfer: IUtxoTransfer }> = ({ transfer }) => {
-    const address = <span className="font-monospace">{transfer.counterparty}</span>;
-    return 'self' === transfer.direction
-        ? <FormattedMessage id="wallet.history.transfer.self" defaultMessage="Sent to yourself" />
-        : 'out' === transfer.direction
-            ? <FormattedMessage id="wallet.history.transfer.out" defaultMessage="Sent to {address}" values={{ address }} />
-            : <FormattedMessage id="wallet.history.transfer.in" defaultMessage="Received from {address}" values={{ address }} />;
+// Blocks the explorer could not list whole, lowest first. Outside the polite region: it holds a
+// control, and a page more would read the whole warning out again.
+const Incomplete: React.FC<{ blocks: readonly IIncompleteBlock[] }> = ({ blocks }) => {
+    const ids = blocks.map(block => Number(block.blockID)).sort((a, b) => a - b);
+    const list = <span className="font-monospace">{ids.join(', ')}</span>;
+    return (
+        <div className="alert alert-warning small">
+            <FormattedMessage
+                id="wallet.utxoHistory.incomplete"
+                defaultMessage="The block explorer could not list all of the account's transactions in {count, plural, =1 {block {first}} other {# blocks between {first} and {last}}}, so some transfers in {count, plural, =1 {it} other {them}} may be missing."
+                values={{ count: ids.length, first: ids[0], last: ids[ids.length - 1] }}
+            />
+            {ids.length > INCOMPLETE_LISTED ? (
+                <details className="mt-1">
+                    <summary><FormattedMessage id="wallet.utxoHistory.incomplete.blocks" defaultMessage="Blocks" /></summary>
+                    {list}
+                </details>
+            ) : ids.length > 2 && (
+                <div className="mt-1">
+                    <FormattedMessage id="wallet.utxoHistory.incomplete.blocks" defaultMessage="Blocks" />
+                    {': '}
+                    {list}
+                </div>
+            )}
+        </div>
+    );
 };
 
 // The account's UTXO transfers between accounts, sent or received: found in the network's block
-// explorer, each one looked up in the node (modules/wallet/utxoHistory)
+// explorer, each one looked up in the node (modules/wallet/utxoHistory, utxoTransfer)
 const UtxoHistory: React.FC<Props> = props => {
-    const intl = useIntl();
     const title = useRef<HTMLHeadingElement>(null);
     const [copied, setCopied] = useCopied();
     const { list, more } = useMoreFocus(props.entries ? props.entries.length : 0, props.pending, props.onMore, title);
-    // The alert holding "Try again" goes away: the focus goes to the heading
-    const retry = () => {
-        if (title.current) {
-            title.current.focus();
-        }
-        props.onRetry();
-    };
+    useFocusKept(list, props.entries, title);
+    const retry = useRetry(title, props.onRetry);
+    // Said after the history above has said it is loading
+    const longLoad = useAfterAWhile(!props.entries && !props.error);
     const heading = <FormattedMessage id="wallet.utxoHistory" defaultMessage="UTXO transfers" />;
+    const source = (
+        <p className="wallet__hint small mb-1">
+            <FormattedMessage
+                id="wallet.utxoHistory.source"
+                defaultMessage="UTXO transfers between accounts, sent or received. The node keeps no list of them, so they are looked up in the network's block explorer, and each one it lists is looked up in the node: a sender, recipient and amount shown are the node's, and one the node does not confirm shows only its hash. A transfer the explorer does not list is not shown."
+            />
+        </p>
+    );
+    const host = <span className="text-nowrap">{props.explorer}</span>;
 
     if (E_NO_EXPLORER === props.error || null === props.explorer) {
         return (
@@ -93,9 +103,31 @@ const UtxoHistory: React.FC<Props> = props => {
                     <p className="wallet__hint mb-0">
                         <FormattedMessage
                             id="wallet.utxoHistory.noExplorer"
-                            defaultMessage="This network has no block explorer configured, and the node keeps no list of UTXO transfers, so they cannot be shown here. Keep the transaction hash of the transfers you send."
+                            defaultMessage="This network has no block explorer to look UTXO transfers up in, and the node keeps no list of them, so they cannot be shown here. Keep the transaction hash of the transfers you send."
                         />
                     </p>
+                </Card.Body>
+            </Card>
+        );
+    }
+
+    // Nothing is sent to the explorer before the user agrees
+    if (!props.allowed) {
+        return (
+            <Card className="mt-4">
+                <Card.Body>
+                    <Card.Title as="h2" className="h5">{heading}</Card.Title>
+                    {source}
+                    <p className="wallet__hint small">
+                        <FormattedMessage
+                            id="wallet.utxoHistory.ask"
+                            defaultMessage="Looking them up sends this account's address to {explorer}, which can see it together with your IP address. You are asked once for this network, and again if its block explorer changes."
+                            values={{ explorer: host }}
+                        />
+                    </p>
+                    <Button variant="outline-primary" size="sm" onClick={props.onAllow}>
+                        <FormattedMessage id="wallet.utxoHistory.allow" defaultMessage="Look up UTXO transfers" />
+                    </Button>
                 </Card.Body>
             </Card>
         );
@@ -106,40 +138,34 @@ const UtxoHistory: React.FC<Props> = props => {
             <Card.Body>
                 <Card.Title as="h2" className="h5" tabIndex={-1} ref={title}>
                     {heading}
-                    {props.pending && props.entries && (
-                        <Spinner as="span" animation="border" size="sm" className="ms-2" aria-hidden="true" />
-                    )}
+                    <HeadingSpinner shown={props.pending && !!props.entries} />
                 </Card.Title>
-                <p className="wallet__hint small mb-1">
-                    <FormattedMessage
-                        id="wallet.utxoHistory.source"
-                        defaultMessage="UTXO transfers between accounts, sent or received. The node keeps no list of them, so they are found through the network's block explorer, and the node confirms each one's sender, recipient and amount. A transfer the explorer does not list is not shown."
-                    />
-                </p>
+                {source}
                 <p className="wallet__hint small">
                     <FormattedMessage
                         id="wallet.utxoHistory.privacy"
-                        defaultMessage="To find them, this account's address is sent to {explorer}."
-                        values={{ explorer: <span className="text-nowrap">{props.explorer}</span> }}
+                        defaultMessage="This account's address is sent to {explorer} to look them up."
+                        values={{ explorer: host }}
                     />
                 </p>
 
-                {/* An alert announces itself: outside the polite region, not read twice */}
                 {props.error && (
-                    <Alert variant={props.entries ? 'warning' : 'danger'}>
-                        <FormattedMessage id={`wallet.utxoHistory.error.${walletErrorCode(props.error)}`} defaultMessage="The block explorer or the node reported an error while loading the UTXO transfers." />
-                        {' '}
-                        <Button variant="link" size="sm" className="p-0 align-baseline" onClick={retry}>
-                            <FormattedMessage id="wallet.history.retry" defaultMessage="Try again" />
-                        </Button>
-                    </Alert>
+                    <ListError
+                        shown={!!props.entries}
+                        onRetry={retry}
+                        message={<FormattedMessage id={`wallet.utxoHistory.error.${walletErrorCode(props.error)}`} defaultMessage="The block explorer or the node reported an error while loading the UTXO transfers." />}
+                    />
                 )}
+
+                {props.incomplete.length > 0 && <Incomplete blocks={props.incomplete} />}
 
                 <div role="status" aria-live="polite">
                     {!props.entries && !props.error && (
                         <p>
                             <Spinner as="span" animation="border" size="sm" className="me-2" aria-hidden="true" />
-                            <FormattedMessage id="wallet.utxoHistory.loading" defaultMessage="Looking for UTXO transfers… (this can take a few seconds when the account has many transactions)" />
+                            {longLoad && (
+                                <FormattedMessage id="wallet.utxoHistory.loading" defaultMessage="Looking for UTXO transfers… (this takes a while when the account has many transactions)" />
+                            )}
                         </p>
                     )}
                     {props.entries && 0 === props.entries.length && (
@@ -159,7 +185,7 @@ const UtxoHistory: React.FC<Props> = props => {
                             />
                         </p>
                     )}
-                    {props.incomplete.length > 0 && <Incomplete blocks={props.incomplete} />}
+                    <ListUpdating shown={props.pending && !props.pendingMore && !!props.entries} />
                     <CopiedStatus copied={null !== copied} />
                 </div>
 
@@ -171,49 +197,44 @@ const UtxoHistory: React.FC<Props> = props => {
                                     <div className="wallet__history-what">
                                         {isUnchecked(entry)
                                             ? <FormattedMessage id="wallet.utxoHistory.unchecked" defaultMessage="Listed by the block explorer" />
-                                            : <Description transfer={entry} />}
+                                            : <TransferDescription direction={entry.direction} counterparty={entry.counterparty} />}
                                     </div>
                                     {isUnchecked(entry) && (
-                                        <Badge
-                                            bg={'mismatch' === entry.problem ? 'warning' : 'secondary'}
-                                            text={'mismatch' === entry.problem ? 'dark' : undefined}
-                                            className="wallet__history-penalty"
-                                        >
-                                            {'mismatch' === entry.problem
-                                                ? <FormattedMessage id="wallet.utxoHistory.mismatch" defaultMessage="The node records it otherwise: no details shown" />
-                                                : <FormattedMessage id="wallet.utxoHistory.unconfirmed" defaultMessage="Not confirmed by the node yet" />}
-                                        </Badge>
+                                        'mismatch' === entry.problem ? (
+                                            <Badge bg="warning" text="dark" className="wallet__history-badge">
+                                                <FormattedMessage id="wallet.utxoHistory.mismatch" defaultMessage="The node records it otherwise than the block explorer: trust the node, and copy the hash to check it yourself" />
+                                            </Badge>
+                                        ) : (
+                                            <Badge bg="secondary" className="wallet__history-badge">
+                                                <FormattedMessage id="wallet.utxoHistory.unconfirmed" defaultMessage="Not confirmed by the node yet: press Refresh later to look again" />
+                                            </Badge>
+                                        )
                                     )}
                                     {!isUnchecked(entry) && entry.failed && (
-                                        <Badge bg="warning" text="dark" className="wallet__history-penalty">
+                                        <Badge bg="warning" text="dark" className="wallet__history-badge">
                                             <FormattedMessage id="wallet.utxoHistory.failed" defaultMessage="The transaction failed; no transfer took place" />
                                         </Badge>
                                     )}
+                                    {/* Written by the sender, unchecked: labelled as such, and kept from reordering what is around it */}
                                     {!isUnchecked(entry) && entry.comment && (
                                         <div className="wallet__hint small wallet__history-comment">
-                                            <FormattedMessage id="wallet.history.comment" defaultMessage="Note" />
+                                            <FormattedMessage id="wallet.utxoHistory.comment" defaultMessage="Sender's note" />
                                             {': '}
                                             <bdi>{entry.comment}</bdi>
                                         </div>
                                     )}
-                                    <div className="wallet__hint small">
-                                        {!isUnchecked(entry) && (
-                                            <>
-                                                <time dateTime={new Date(entry.time).toISOString()}>
-                                                    {intl.formatDate(entry.time, { dateStyle: 'medium', timeStyle: 'short' })}
-                                                </time>
-                                                {' · '}
-                                            </>
-                                        )}
-                                        <FormattedMessage id="wallet.history.block" defaultMessage="Block {block}" values={{ block: entry.blockID }} />
-                                        {' · '}
-                                        <HashCopy hash={entry.hash} copied={copied === entry.hash} onCopy={() => setCopied(entry.hash)} />
-                                    </div>
+                                    <EntryMeta
+                                        time={isUnchecked(entry) ? undefined : entry.time}
+                                        blockID={entry.blockID}
+                                        hash={entry.hash}
+                                        copied={copied === entry.hash}
+                                        onCopy={() => setCopied(entry.hash)}
+                                    />
                                 </div>
                                 {/* Only what the node confirmed has an amount; a failed transfer's moved nothing */}
                                 {!isUnchecked(entry) && (
                                     <div className={`wallet__history-amount${entry.failed ? ' wallet__history-amount_void' : ''}`}>
-                                        <Amount amount={entry.amount} sign={sign(entry)} digits={props.digits} symbol={props.symbol} />
+                                        <Amount amount={entry.amount} sign={sign(entry)} token={props.token} />
                                     </div>
                                 )}
                             </li>
@@ -222,18 +243,9 @@ const UtxoHistory: React.FC<Props> = props => {
                 )}
 
                 {props.entries && props.more && (
-                    <Button
-                        variant="link"
-                        size="sm"
-                        className="mt-2 px-0"
-                        aria-disabled={props.pending}
-                        aria-busy={props.pending}
-                        aria-describedby="wallet-utxo-checked"
-                        onClick={more}
-                    >
-                        {props.pending && <Spinner as="span" animation="border" size="sm" className="me-2" aria-hidden="true" />}
+                    <MoreButton pending={props.pending} pendingMore={props.pendingMore} describedBy="wallet-utxo-checked" onClick={more}>
                         <FormattedMessage id="wallet.utxoHistory.more" defaultMessage="Look further back" />
-                    </Button>
+                    </MoreButton>
                 )}
             </Card.Body>
         </Card>

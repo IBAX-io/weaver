@@ -10,9 +10,9 @@ export interface IWelcomeProps {}
 
 const Welcome: React.FC<IWelcomeProps> = (props) => (
   <div>
-    <h4 className="p0 m0">
+    <h2 className="h4 p0 m0">
       <FormattedMessage id="auth.welcome" defaultMessage="Welcome" />
-    </h4>
+    </h2>
     <p className="pv">
       <FormattedMessage
         id="auth.welcome.guide"

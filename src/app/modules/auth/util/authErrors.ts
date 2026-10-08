@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { UnsupportedCryptoSuiteError } from 'lib/crypto/suites';
+import { KeyNotUsableError, UnsupportedCryptoSuiteError } from 'lib/crypto/suites';
 import { InvalidEncryptedKeyError } from 'lib/keyring';
 import { apiErrorCode, UntrustedNodeError } from 'lib/ibaxAPI/errors';
 
@@ -11,13 +11,16 @@ import { apiErrorCode, UntrustedNodeError } from 'lib/ibaxAPI/errors';
 export const DISPLAYABLE_AUTH_ERRORS = [
     'E_INVALID_KEY', 'E_INVALID_PASSWORD', 'E_KEYNOTFOUND', 'E_DELETEDKEY',
     'E_OFFLINE', 'E_SERVER', 'E_UPDATING', 'E_TOKENEXPIRED',
-    'E_IMPORT_FAILED', 'E_UNSUPPORTED_CRYPTO', 'E_UNTRUSTED_NODE', 'E_CRYPTO_CHANGED'
+    'E_IMPORT_FAILED', 'E_UNSUPPORTED_CRYPTO', 'E_UNTRUSTED_NODE', 'E_KEY_NOT_USABLE'
 ];
 
 // The auth error code for anything signing in can throw
 export const authFailureCode = (error: unknown): string => {
     if (error instanceof UnsupportedCryptoSuiteError) {
         return 'E_UNSUPPORTED_CRYPTO';
+    }
+    if (error instanceof KeyNotUsableError) {
+        return 'E_KEY_NOT_USABLE';
     }
     if (error instanceof UntrustedNodeError) {
         return 'E_UNTRUSTED_NODE';

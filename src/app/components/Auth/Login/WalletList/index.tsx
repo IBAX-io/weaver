@@ -3,10 +3,11 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import classNames from 'classnames';
 import { FormattedMessage } from 'react-intl';
 import { IAccountContext, IWallet } from 'ibax/auth';
+import { ISignOutReason } from 'modules/auth/actions';
 import { IAccount } from 'ibax/api';
 import { INotificationsMessage } from 'ibax/socket';
 
@@ -41,15 +42,51 @@ export interface IWalletListProps {
   onUpgrade: (wallet: ILegacyWallet) => any;
   // Stored wallets not set up for this network's key algorithms yet
   walletsToEnable: IWallet[];
-  // Why the user was signed out, if the app did it
-  signedOutBecause: 'E_CRYPTO_CHANGED' | null;
+  // Why the app signed the user out of this network: its key algorithms changed, found with the
+  // session ('session') or when the node refused transactions ('send')
+  signOutNotice: ISignOutReason['during'] | null;
   onEnable: (wallet: IWallet) => any;
 }
+
+// A titled group of accounts that need something done before they can be used
+const AccountSection: React.FC<{ id: string, title: React.ReactNode, desc?: React.ReactNode, children: React.ReactNode }> = props => (
+  <section className="text-start mb-3" aria-labelledby={props.id}>
+    <h2 id={props.id} className="h6 mb-1" tabIndex={-1}>{props.title}</h2>
+    {props.desc && <p className="small mb-2">{props.desc}</p>}
+    {props.children}
+  </section>
+);
 
 const legacyAddress = (wallet: ILegacyWallet) =>
   /^-?\d+$/.test(wallet.id) ? formatAddress(wallet.id) : wallet.id;
 
-const WalletList: React.FC<IWalletListProps> = (props) => (
+const ENABLE_TITLE = 'enable-wallets-title';
+const LEGACY_TITLE = 'legacy-wallets-title';
+
+// An account set up for the network, or upgraded, leaves its list, and its button the focus: the
+// focus goes to the heading of that list, or, with the list gone, to the first button of the page
+const useFocusAfterSetUp = (waiting: { [title: string]: number }) => {
+  const page = useRef<HTMLDivElement>(null);
+  const before = useRef(waiting);
+  const counts = Object.values(waiting).join();
+  useEffect(() => {
+    const left = Object.keys(waiting).find(title => waiting[title] < (before.current[title] || 0));
+    before.current = waiting;
+    const lost = !document.activeElement || document.activeElement === document.body;
+    if (left && lost && page.current) {
+      const target = page.current.querySelector<HTMLElement>(`#${left}`) || page.current.querySelector<HTMLElement>('button');
+      if (target) {
+        target.focus();
+      }
+    }
+  // Only the counts matter, not the object holding them
+  }, [counts]);
+  return page;
+};
+
+const WalletList: React.FC<IWalletListProps> = (props) => {
+  const page = useFocusAfterSetUp({ [ENABLE_TITLE]: props.walletsToEnable.length, [LEGACY_TITLE]: props.legacyWallets.length });
+  return (
   <LocalizedDocumentTitle title="auth.login" defaultTitle="Login">
     <div
       className={classNames(
@@ -66,17 +103,27 @@ const WalletList: React.FC<IWalletListProps> = (props) => (
         <div
           className="desktop-flex-col desktop-flex-stretch"
           style={{ padding: 10 }}
+          ref={page}
         >
-          {'E_CRYPTO_CHANGED' === props.signedOutBecause && (
-            <div className="alert alert-warning text-start" role="status">
-              <FormattedMessage
-                id="auth.error.E_CRYPTO_CHANGED"
-                defaultMessage="This network now uses other key algorithms, so your account has another address on it. Please sign in again."
-              />
+          {props.signOutNotice && (
+            // Shown with the page: an alert is read out, a polite region filled from the start is not
+            <div className="alert alert-warning text-start" role="alert">
+              {'send' === props.signOutNotice ? (
+                <FormattedMessage
+                  id="auth.signedOut.send"
+                  defaultMessage="You were signed out: this network now uses other key algorithms, so the node refused your transactions, and those not sent yet were cancelled. Your account has another address on it: sign in again, after setting the account up below if it is listed there."
+                />
+              ) : (
+                <FormattedMessage
+                  id="auth.signedOut.session"
+                  defaultMessage="You were signed out: this network now uses other key algorithms, so your account has another address on it. Sign in again, after setting the account up below if it is listed there."
+                />
+              )}
             </div>
           )}
           <div className="text-center desktop-flex-stretch">
-            {0 === props.wallets.length ? (
+            {/* The welcome is for one without accounts: one whose accounts wait for a set-up has some */}
+            {0 === props.wallets.length && 0 === props.walletsToEnable.length && 0 === props.legacyWallets.length ? (
               <Welcome />
             ) : (
               props.wallets.map((wallet, index) => (
@@ -99,16 +146,16 @@ const WalletList: React.FC<IWalletListProps> = (props) => (
             )}
           </div>
           {props.walletsToEnable.length > 0 && (
-            <section className="text-start mb-3" aria-labelledby="enable-wallets-title">
-              <h2 id="enable-wallets-title" className="h6 mb-1">
-                <FormattedMessage id="auth.network.title" defaultMessage="Accounts not set up for this network yet" />
-              </h2>
-              <p className="small mb-2">
+            <AccountSection
+              id={ENABLE_TITLE}
+              title={<FormattedMessage id="auth.network.title" defaultMessage="Accounts not set up for this network yet" />}
+              desc={
                 <FormattedMessage
                   id="auth.network.desc"
-                  defaultMessage="This network uses other key algorithms, so each account has another address on it. Set each one up once with its password."
+                  defaultMessage="Your accounts are still here. This network uses other key algorithms, so each account has another address on it: set each one up once with its password."
                 />
-              </p>
+              }
+            >
               {props.walletsToEnable.map(wallet => (
                 <ContextButton
                   key={wallet.id}
@@ -117,7 +164,7 @@ const WalletList: React.FC<IWalletListProps> = (props) => (
                   description={
                     <FormattedMessage
                       id="auth.network.known"
-                      defaultMessage="Address on IBAX mainnet and testnet: {address}"
+                      defaultMessage="Its address under the default key algorithms: {address}"
                       values={{ address: <span className="font-monospace">{formatAddress(wallet.id)}</span> }}
                     />
                   }
@@ -125,21 +172,19 @@ const WalletList: React.FC<IWalletListProps> = (props) => (
                   <FormattedMessage id="auth.network.enable" defaultMessage="Set up account for this network" />
                 </ContextButton>
               ))}
-            </section>
+            </AccountSection>
           )}
           {(props.legacyWallets.length > 0 || props.damagedWallets > 0) && (
-            <section className="text-start mb-3" aria-labelledby="legacy-wallets-title">
-              <h2 id="legacy-wallets-title" className="h6 mb-1">
-                <FormattedMessage id="auth.legacy.title" defaultMessage="Accounts saved by an earlier version" />
-              </h2>
-              {props.legacyWallets.length > 0 && (
-                <p className="small mb-2">
-                  <FormattedMessage
-                    id="auth.legacy.desc"
-                    defaultMessage="Upgrade each one once with its password before using it."
-                  />
-                </p>
+            <AccountSection
+              id={LEGACY_TITLE}
+              title={<FormattedMessage id="auth.legacy.title" defaultMessage="Accounts saved by an earlier version" />}
+              desc={props.legacyWallets.length > 0 && (
+                <FormattedMessage
+                  id="auth.legacy.desc"
+                  defaultMessage="Upgrade each one once with its password before using it."
+                />
               )}
+            >
               {props.legacyWallets.map(wallet => (
                 <ContextButton
                   key={wallet.encKey}
@@ -159,7 +204,7 @@ const WalletList: React.FC<IWalletListProps> = (props) => (
                   />
                 </p>
               )}
-            </section>
+            </AccountSection>
           )}
           <div className="text-start">
             <ContextButton
@@ -197,5 +242,6 @@ const WalletList: React.FC<IWalletListProps> = (props) => (
     </div>
   </LocalizedDocumentTitle>
 );
+};
 
 export default WalletList;

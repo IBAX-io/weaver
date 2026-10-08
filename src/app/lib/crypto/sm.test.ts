@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { bytesToHex, hexToBytes, utf8ToBytes } from '@noble/hashes/utils.js';
-import { sm2PublicKey, sm2Sign, sm2SignWithNonce, sm2Verify, sm3 } from './sm';
+import { isValidSm2PrivateKey, sm2PublicKey, sm2Sign, sm2SignWithNonceForTest, sm2Verify, sm3 } from './sm';
 
 // GM/T 0003.5-2012 example on the recommended curve: key, message and nonce, with r and s
 const D = hexToBytes('3945208F7B2144B13F36E38AC6D39F95889393692860B51A42FB81EF4DF7C5B8');
@@ -41,7 +41,9 @@ describe('SM3 (GB/T 32905-2016)', () => {
 describe('SM2 signatures (GB/T 32918.2-2016, as gmsm makes them)', () => {
     it('signs the standard\'s example to its r and s, in DER', () => {
         expect(bytesToHex(sm2PublicKey(D))).toBe(PUBLIC);
-        expect(bytesToHex(sm2SignWithNonce(MESSAGE, D, () => K))).toBe(`3046022100${R}022100${S}`);
+        expect(bytesToHex(sm2SignWithNonceForTest(MESSAGE, D, () => K))).toBe(`3046022100${R}022100${S}`);
+        // A candidate out of range is passed over for the next
+        expect(bytesToHex(sm2SignWithNonceForTest(MESSAGE, D, attempt => 0 === attempt ? BigInt(0) : K))).toBe(`3046022100${R}022100${S}`);
     });
 
     it('verifies its own signatures and no others', () => {
@@ -49,14 +51,17 @@ describe('SM2 signatures (GB/T 32918.2-2016, as gmsm makes them)', () => {
         expect(sm2Verify(MESSAGE, signature, sm2PublicKey(D))).toBe(true);
         expect(sm2Verify(utf8ToBytes('message digesT'), signature, sm2PublicKey(D))).toBe(false);
         expect(sm2Verify(MESSAGE, signature, sm2PublicKey(hexToBytes('01'.padStart(64, '0'))))).toBe(false);
-        // Deterministic: the same key and message, the same signature
-        expect(bytesToHex(sm2Sign(MESSAGE, D))).toBe(bytesToHex(signature));
+        // Hedged: fresh randomness in every nonce, so the same message is never signed the same way
+        const again = sm2Sign(MESSAGE, D);
+        expect(bytesToHex(again)).not.toBe(bytesToHex(signature));
+        expect(sm2Verify(MESSAGE, again, sm2PublicKey(D))).toBe(true);
     });
 
     it('refuses what Go\'s encoding/asn1 refuses, and values out of range', () => {
         const valid = hexToBytes(`3046022100${R}022100${S}`);
         expect(sm2Verify(MESSAGE, valid, hexToBytes(PUBLIC))).toBe(true);
         for (const [what, hex] of [
+            // Stricter than the node here: Go's asn1.Unmarshal leaves bytes after the SEQUENCE unread
             ['trailing data', `3046022100${R}022100${S}00`],
             ['a wrong length', `3047022100${R}022100${S}`],
             ['a leading zero too many', `304702220000${R}022100${S}`],
@@ -74,7 +79,9 @@ describe('SM2 signatures (GB/T 32918.2-2016, as gmsm makes them)', () => {
             // Inside the SEQUENCE's length
             ['data after s', `3049022100${R}022100${S}020100`],
             // s + n: the same point, out of range
-            ['s not below n', `3046022100${R}0221${sPlusN}`]
+            ['s not below n', `3046022100${R}0221${sPlusN}`],
+            // r + s = n: t is 0, which no point multiplies by (refused, not thrown)
+            ['r + s = n', `3026020105022100${(n - BigInt(5)).toString(16)}`]
         ] as [string, string][]) {
             expect([what, sm2Verify(MESSAGE, hexToBytes(hex), hexToBytes(PUBLIC))]).toEqual([what, false]);
         }
@@ -92,6 +99,10 @@ describe('SM2 signatures (GB/T 32918.2-2016, as gmsm makes them)', () => {
     });
 
     it('refuses private keys the curve cannot use', () => {
+        // SM2's order is below secp256k1's and P-256's: n - 1 is a key on those, not on SM2
+        const n = BigInt('0xFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123');
+        expect(isValidSm2PrivateKey(hexToBytes((n - BigInt(2)).toString(16)))).toBe(true);
+        expect(isValidSm2PrivateKey(hexToBytes((n - BigInt(1)).toString(16)))).toBe(false);
         expect(() => sm2PublicKey(new Uint8Array(32))).toThrow();
         expect(() => sm2PublicKey(hexToBytes('FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54122'))).toThrow();
         expect(() => sm2PublicKey(new Uint8Array(31).fill(1))).toThrow();

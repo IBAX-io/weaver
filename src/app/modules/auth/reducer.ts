@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as actions from './actions';
+import { ISignOutReason } from './actions';
 import { saveWallet } from 'modules/storage/actions';
 import { reducerWithInitialState } from 'typescript-fsa-reducers';
 import { ISession, IAccountContext } from 'ibax/auth';
@@ -29,6 +30,7 @@ import loginGuestFailedHandler from './reducers/loginGuestFailedHandler';
 import acquireSessionHandler from './reducers/acquireSessionHandler';
 import acquireSessionDoneHandler from './reducers/acquireSessionDoneHandler';
 import acquireSessionFailedHandler from './reducers/acquireSessionFailedHandler';
+import cryptoChangedHandler from './reducers/cryptoChangedHandler';
 
 export type State = {
     readonly isAcquired: boolean;
@@ -44,8 +46,8 @@ export type State = {
     readonly wallet: IAccountContext;
     readonly wallets: IAccount[];
     readonly privateKey: string;
-    // Why the user was signed out, shown on the sign-in page until the next sign-in
-    readonly signedOutBecause: 'E_CRYPTO_CHANGED' | null;
+    // Why the user was signed out of which network, shown on its sign-in page until the next sign-in
+    readonly signedOutBecause: ISignOutReason | null;
 };
 
 export const initialState: State = {
@@ -87,7 +89,7 @@ export default reducerWithInitialState<State>(initialState)
     .case(actions.acquireSession.started, acquireSessionHandler)
     .case(actions.acquireSession.done, acquireSessionDoneHandler)
     .case(actions.acquireSession.failed, acquireSessionFailedHandler)
-    .case(actions.cryptoChanged, state => ({ ...state, signedOutBecause: 'E_CRYPTO_CHANGED' }))
+    .case(actions.cryptoChanged, cryptoChangedHandler)
     // The signed-in wallet stored again (a new password): unlocking from now on uses the new key
     .case(saveWallet, (state, wallet) => state.wallet?.wallet.walletID === wallet.id
         ? { ...state, wallet: { ...state.wallet, wallet: { ...state.wallet.wallet, encKey: wallet.encKey } } }

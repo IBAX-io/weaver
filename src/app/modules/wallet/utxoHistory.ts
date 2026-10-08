@@ -15,22 +15,24 @@
 // next. So paging by page number alone repeats some of a block's rows and never shows others where
 // a block runs over two pages (measured on the testnet: 57 rows twice and 49 never, in an account's
 // 101,758). What does not move is where a block lies in the list: after every newer block's rows.
-// So a block read over two pages is read again in one request whose window holds all of it, and
-// going on is "the blocks older than the last one gone through", with the position only a hint (the
-// list moves when transactions are added). A block with more of the account's transactions than one
-// request holds (500; on the testnet only in a load test) cannot be read whole: it is reported.
+// So a block read over two pages is read again in one request whose window holds all of it (told by
+// the window beginning and ending with other blocks), and going on is "the blocks older than the
+// last one gone through", with the position only a hint (the list moves when transactions are
+// added). A block that no window of one request holds (more than 500 of the account's transactions,
+// on the testnet only in a load test; or, with fewer, lying across every window's edge) cannot be
+// read whole: it is reported.
 
-import { formatAddress, parseAddress } from 'lib/crypto/address';
-import { cleanComment, isInt64, MAX_TIME } from './validate';
 
 // How the explorer names a UTXO transfer between accounts (a move between the account's own
 // balances is UTXO_Transfer_Self, which the history table already has)
-export const UTXO_TRANSFER = 'UTXO_Tx';
+const UTXO_TRANSFER = 'UTXO_Tx';
 
 // Explorer rows asked for at a time
 export const EXPLORER_PAGE_SIZE = 100;
-// The most rows one explorer request holds in block order: a block is read whole up to this size
+// The most rows one explorer request holds in block order: no larger block can be read whole
 export const EXPLORER_WINDOW = 500;
+// Reads of a block across page edges at most (the list moving under it between them)
+const WINDOW_ATTEMPTS = 3;
 // Explorer requests per page of transfers at most: transfers can be few among other transactions
 export const EXPLORER_REQUESTS = 12;
 // Transfers shown at a time (each one is checked against the node)
@@ -38,8 +40,6 @@ export const UTXO_PAGE_SIZE = 25;
 // Transfers looked up in the node at a time at most: a block's transfers are gone through whole up
 // to this many; more, and the block is gone on with on the next page
 export const UTXO_LOOKUPS = 2 * UTXO_PAGE_SIZE;
-// Digits of the largest amount taken: 2^256 - 1 has 78
-const MAX_AMOUNT_DIGITS = 78;
 
 export interface IExplorerRow {
     hash: string;
@@ -61,32 +61,6 @@ export interface IExplorerCursor {
 }
 
 export type TExplorerPage = (page: number, limit: number) => Promise<{ total: number, rows: IExplorerRow[] }>;
-
-export interface IUtxoTransfer {
-    hash: string;
-    blockID: string;
-    // When the transaction was signed (ms), as the node records it
-    time: number;
-    direction: 'in' | 'out' | 'self';
-    counterparty: string | null;
-    // In base units of the ecosystem's token
-    amount: string;
-    comment: string;
-    // The node recorded the transaction as failed: nothing moved
-    failed: boolean;
-}
-
-// A transfer the explorer lists that the node does not confirm, shown with its hash and nothing the
-// node did not confirm: 'unconfirmed', the node does not know it (yet: it lags behind the explorer,
-// or the block was rolled back); 'mismatch', the node records it otherwise than the explorer lists
-// it (another block or ecosystem, or no UTXO transfer)
-export interface IUncheckedTransfer {
-    hash: string;
-    blockID: string;
-    problem: 'unconfirmed' | 'mismatch';
-}
-
-export type TUtxoHistoryEntry = IUtxoTransfer | IUncheckedTransfer;
 
 // A block the account has more transactions in than one explorer request holds: some of them may
 // not have been listed
@@ -229,9 +203,14 @@ export const findTransfers = async (read: TExplorerPage, cursor: IExplorerCursor
     let ended = answer.rows.length < size || page * size >= total;
 
     const found: IExplorerRow[] = [];
+    const foundHashes = new Set<string>();
+    const addFound = (rows: IExplorerRow[]) => rows.forEach(row => {
+        found.push(row);
+        foundHashes.add(row.hash);
+    });
     const incomplete: IIncompleteBlock[] = [];
     let checked = 0;
-    const isNew = (row: IExplorerRow) => UTXO_TRANSFER === row.contract && !found.some(other => other.hash === row.hash);
+    const isNew = (row: IExplorerRow) => UTXO_TRANSFER === row.contract && !foundHashes.has(row.hash);
     // Where a block began: the cursor's where it was found, another where it was first read
     const startOf = (block: number) => cursor && block === cursor.block ? blockStart : extents.get(block)[0];
     // The rows of one block gone through, up to UTXO_LOOKUPS transfers found in all: where to go on
@@ -243,19 +222,38 @@ export const findTransfers = async (read: TExplorerPage, cursor: IExplorerCursor
         // The block the cursor stopped inside was too large to be read whole before, and still is
         const partial = !whole || (inCursor && cursor.skip > 0);
         // Read over two requests: its rows in the order of neither. Read it again in one request
-        // whose window holds it all (the window's rows of the block are all of them).
+        // whose window holds it all: the window that it lies in as read (pages are aligned to
+        // their size, so for some extents none of up to EXPLORER_WINDOW rows does), or else the
+        // EXPLORER_WINDOW rows around its beginning. The window holds all of it when it begins
+        // with a newer block (or the list) and ends with an older one (or the list), wherever the
+        // list moved meanwhile; or, the list still, when it has as many of the block's rows as the
+        // block spanned (a block beginning at the window's first row has no newer one before it).
         let settled: IExplorerRow[] = rows.map(item => item.row);
         let complete = true;
         if (Math.floor(first / size) !== Math.floor(last / size) || partial) {
             const extent = last - first + 1;
-            const limit = !partial && extent <= EXPLORER_WINDOW
-                ? Array.from({ length: EXPLORER_WINDOW - extent + 1 }, (_, i) => extent + i).find(n => Math.floor(first / n) === Math.floor(last / n))
-                : undefined;
-            const again = undefined === limit ? null : await read(Math.floor(first / limit) + 1, limit);
-            const blockRows = again ? again.rows.filter(row => row.block === block) : [];
-            complete = !!again && blockRows.length === extent;
-            if (complete) {
-                settled = blockRows;
+            complete = false;
+            // A block's rows do not change, the list around it does: read again where the last
+            // read found it begin, a few times
+            for (let start = first, attempt = 0; !partial && extent <= EXPLORER_WINDOW && attempt < WINDOW_ATTEMPTS && !complete; attempt++) {
+                const end = start + extent - 1;
+                const limit = Array.from({ length: EXPLORER_WINDOW - extent + 1 }, (_, i) => extent + i).find(n => Math.floor(start / n) === Math.floor(end / n))
+                    || EXPLORER_WINDOW;
+                const page = Math.floor(start / limit) + 1;
+                const again = await read(page, limit);
+                const blockRows = again.rows.filter(row => row.block === block);
+                const framed = blockRows.length > 0
+                    && (1 === page || again.rows[0].block > block)
+                    && (again.rows.length < limit || page * limit >= again.total || again.rows[again.rows.length - 1].block < block);
+                complete = framed || blockRows.length === extent;
+                if (complete) {
+                    settled = blockRows;
+                }
+                const at = again.rows.findIndex(row => row.block === block);
+                if (-1 === at || (page - 1) * limit + at === start) {
+                    break;
+                }
+                start = (page - 1) * limit + at;
             }
         }
         const room = UTXO_LOOKUPS - found.length;
@@ -266,7 +264,7 @@ export const findTransfers = async (read: TExplorerPage, cursor: IExplorerCursor
             const left = settled.filter(row => row.hash > after);
             const transfers = left.filter(isNew).sort((a, b) => a.hash < b.hash ? -1 : 1);
             const cutAt = transfers.length > room ? transfers[room - 1].hash : null;
-            found.push(...(null === cutAt ? transfers : transfers.slice(0, room)));
+            addFound(null === cutAt ? transfers : transfers.slice(0, room));
             checked += null === cutAt ? left.length : left.filter(row => row.hash <= cutAt).length;
             return { block, last, cut: null === cutAt ? null : { block, position: startOf(block), skip: 0, after: cutAt } };
         }
@@ -281,7 +279,7 @@ export const findTransfers = async (read: TExplorerPage, cursor: IExplorerCursor
             }
             count++;
             if (isNew(item.row)) {
-                found.push(item.row);
+                addFound([item.row]);
             }
         }
         checked += count;
@@ -341,55 +339,4 @@ export const findTransfers = async (read: TExplorerPage, cursor: IExplorerCursor
         take(page, answer.rows);
         ended = answer.rows.length < size || page * size >= total;
     }
-};
-
-// What the node recorded under the explorer's row: the UTXO transfer from the account's side;
-// 'other' when it is a UTXO transfer between two other accounts (the explorer lists every
-// transaction the account has a part in, such as one whose fee it earned as a node); 'unknown' when
-// the node has no such transaction ({"blockid":"","confirm":0}); or 'mismatch' when the node's
-// record does not match the row: another transaction, block or ecosystem, or not a UTXO transfer
-export const verifyUtxoTransfer = (row: IExplorerRow, node: { json: unknown, text: string }, keyID: string): IUtxoTransfer | 'other' | 'unknown' | 'mismatch' => {
-    const answer = node.json as { blockid?: unknown, data?: Record<string, unknown> };
-    if (answer && 'object' === typeof answer && '' === answer.blockid && undefined === answer.data) {
-        return 'unknown';
-    }
-    const data = answer?.data;
-    if (!data || 'object' !== typeof data || data.hash !== row.hash || data.block_id !== row.block
-        || String(data.ecosystem) !== row.ecosystem || 'string' !== typeof data.address) {
-        return 'mismatch';
-    }
-    const utxo = (data.params as { utxo?: Record<string, unknown> })?.utxo;
-    // ToID is an int64 written as a bare number: read from the text, where it is exact. The response
-    // has one transaction, so one ToID key (in a comment, the quotes would be escaped). The rounded
-    // value JSON.parse gives must agree, so it is this transaction's ToID.
-    const toIDs = [...node.text.matchAll(/"ToID"\s*:\s*(-?\d+)(?=\s*[,}])/g)].map(match => match[1]);
-    const sender = parseAddress(data.address);
-    // The amount in base units, a whole number written as text: up to 78 digits (2^256), leading
-    // zeros dropped
-    const value = utxo && 'object' === typeof utxo ? utxo.Value : undefined;
-    const amount = 'string' === typeof value && /^\d+$/.test(value) ? value.replace(/^0+/, '') : null;
-    if (!utxo || 'object' !== typeof utxo || 1 !== toIDs.length || !isInt64(toIDs[0]) || Number(toIDs[0]) !== utxo.ToID
-        || null === sender || !amount || amount.length > MAX_AMOUNT_DIGITS
-        || ('string' !== typeof utxo.Comment && undefined !== utxo.Comment)
-        || !Number.isSafeInteger(data.created_at) || (data.created_at as number) < 0 || (data.created_at as number) > MAX_TIME
-        || (0 !== data.status && 1 !== data.status)) {
-        return 'mismatch';
-    }
-    const recipient = toIDs[0];
-    const fromMe = sender === keyID;
-    const toMe = recipient === keyID;
-    if (!fromMe && !toMe) {
-        return 'other';
-    }
-    const direction = fromMe && toMe ? 'self' as const : fromMe ? 'out' as const : 'in' as const;
-    return {
-        hash: row.hash,
-        blockID: String(row.block),
-        time: data.created_at as number,
-        direction,
-        counterparty: 'self' === direction ? null : formatAddress(fromMe ? recipient : sender),
-        amount,
-        comment: cleanComment((utxo.Comment as string) || ''),
-        failed: 1 === data.status
-    };
 };

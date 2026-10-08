@@ -10,7 +10,7 @@ import { ofAction } from 'lib/rx/ofAction';
 import { apiErrorCode, InvalidResponseError } from 'lib/ibaxAPI/errors';
 import { parseAddress } from 'lib/crypto/address';
 import { logout } from 'modules/auth/actions';
-import { fetchHistory, sendTransfer } from '../actions';
+import { fetchHistory, sendTransfer, E_INVALIDWALLET } from '../actions';
 import { sameOwner } from '../reducer';
 import { HISTORY_COLUMNS, HISTORY_PAGE_SIZE, historyQuery, parseHistoryPage } from '../history';
 
@@ -23,7 +23,7 @@ export const fetchHistoryEpic: Epic = (action$, state$, { api }) => action$.pipe
         const { account, ecosystem, filter, before } = action.payload;
         const keyID = parseAddress(account);
         if (null === keyID) {
-            return of(fetchHistory.failed({ params: action.payload, error: 'E_INVALIDWALLET' }));
+            return of(fetchHistory.failed({ params: action.payload, error: E_INVALIDWALLET }));
         }
         const session = state$.value.auth.session;
         const client = api({ apiHost: session.network.apiHost, sessionToken: session.sessionToken });

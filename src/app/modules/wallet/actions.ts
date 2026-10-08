@@ -8,7 +8,8 @@ import { IBalanceResponse } from 'ibax/api';
 import { ITxError, TTransferCall } from 'ibax/tx';
 import { IConfirmModalProps } from 'components/Modal/ConfirmModal';
 import { THistoryEntry, THistoryFilter } from './history';
-import { IExplorerCursor, IIncompleteBlock, TUtxoHistoryEntry } from './utxoHistory';
+import { IExplorerCursor, IIncompleteBlock } from './utxoHistory';
+import { TUtxoHistoryEntry } from './utxoTransfer';
 
 // The ecosystem whose UTXO pays the fees of UTXO transfers (go-ibax consts.DefaultTokenEcosystem)
 export const FEE_ECOSYSTEM = '1';
@@ -16,7 +17,9 @@ export const FEE_ECOSYSTEM = '1';
 // Errors loading the balance, the history or the UTXO transfers with their own explanation
 // (wallet.balance.error.<code>, wallet.history.error.<code>, wallet.utxoHistory.error.<code>);
 // others show E_SERVER's
-export const WALLET_ERRORS = ['E_OFFLINE', 'E_INVALIDWALLET', 'E_INVALID_RESPONSE', 'E_SERVER'];
+// The account's address cannot be read
+export const E_INVALIDWALLET = 'E_INVALIDWALLET';
+export const WALLET_ERRORS = ['E_OFFLINE', E_INVALIDWALLET, 'E_INVALID_RESPONSE', 'E_SERVER'];
 
 export const walletErrorCode = (error: string) => WALLET_ERRORS.includes(error) ? error : 'E_SERVER';
 
@@ -83,5 +86,8 @@ export interface IUtxoHistoryPage {
 
 // No block explorer is configured for the network: its UTXO transfers cannot be listed
 export const E_NO_EXPLORER = 'E_NO_EXPLORER';
+// The user has not agreed to send the account's address to it (the wallet page asks first, so this
+// is never shown)
+export const E_NOT_ALLOWED = 'E_NOT_ALLOWED';
 
 export const fetchUtxoHistory = actionCreator.async<IUtxoHistoryRequest, IUtxoHistoryPage, string>('FETCH_UTXO_HISTORY');
