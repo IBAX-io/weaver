@@ -69,6 +69,7 @@
     "test:watch": "vitest",
     "vectors:client": "vitest run -c vitest.vectors.config.ts",
     "vectors:sync": "node scripts/cryptovectors-sync.mjs",
+    "test:chain": "vitest run -c vitest.chain.config.ts",
     "package": "electron-builder --config electron-builder.config.mjs --dir",
     "release": "electron-builder --config electron-builder.config.mjs",
     "start-desktop": "vite build -c vite.electron.config.ts --mode main && vite build -c vite.electron.config.ts --mode preload && electron build --dev-server=http://127.0.0.1:3000",

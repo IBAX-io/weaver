@@ -3,8 +3,8 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Writes the client side of the vectors shared with go-ibax (npm run vectors:client); runs the
-// app's own signing code, so it reuses the app's module resolution
+// Chain tests (npm run test:chain): the client's own login, signing and API code against local
+// go-ibax networks of every crypto suite. Needs Go, PostgreSQL and GO_IBAX_DIR.
 import { defineConfig } from 'vitest/config';
 import viteConfig from './vite.config.ts';
 
@@ -14,9 +14,13 @@ export default defineConfig(env => {
         resolve,
         define,
         test: {
-            include: ['scripts/*.vectors.ts'],
+            include: ['e2e/chain/**/*.chain.ts'],
             environment: 'node',
-            globals: false
+            globals: false,
+            globalSetup: ['e2e/chain/globalSetup.ts'],
+            testTimeout: 120000,
+            hookTimeout: 180000,
+            fileParallelism: false
         }
     };
 });

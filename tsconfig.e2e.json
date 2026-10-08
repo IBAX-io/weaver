@@ -7,7 +7,8 @@
     "include": [
         "e2e/**/*",
         "src/defs/**/*",
-        "vitest.desktop.config.ts"
+        "vitest.desktop.config.ts",
+        "vitest.chain.config.ts"
     ],
     "exclude": []
 }
