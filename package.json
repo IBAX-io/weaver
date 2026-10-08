@@ -59,7 +59,7 @@
     "yup": "^1.7.1"
   },
   "scripts": {
-    "dev": "vite",
+    "start": "vite",
     "build": "vite build",
     "build-desktop": "vite build --mode desktop && vite build -c vite.electron.config.ts --mode main && vite build -c vite.electron.config.ts --mode preload",
     "preview": "vite preview",
@@ -68,7 +68,7 @@
     "test:watch": "vitest",
     "package": "electron-builder --config electron-builder.config.mjs --dir",
     "release": "electron-builder --config electron-builder.config.mjs",
-    "dev-desktop": "vite build -c vite.electron.config.ts --mode main && vite build -c vite.electron.config.ts --mode preload && electron build --dev-server=http://127.0.0.1:3000",
+    "start-desktop": "vite build -c vite.electron.config.ts --mode main && vite build -c vite.electron.config.ts --mode preload && electron build --dev-server=http://127.0.0.1:3000",
     "test:desktop": "npm run build-desktop && vitest run -c vitest.desktop.config.ts"
   },
   "devDependencies": {
@@ -101,7 +101,7 @@
     "centrifuge/protobufjs": "^7.6.6"
   },
   "engines": {
-    "node": ">=22.22.0"
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "type": "module",
   "description": "IBAX Weaver: IDE for IBAX ecosystems"

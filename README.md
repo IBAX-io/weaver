@@ -9,9 +9,11 @@
 
 ## Quick start
 
-> As the project is based on react, you must install Nodejs V6+ and manage the third party dependencies with 'yarn'
+> Requires Node.js 24 LTS (or 22.22.2+, or 26+; odd releases such as 23 and 25 are not supported by the test tools) and Yarn 1. With nvm, `nvm use` picks the version in `.nvmrc`.
 
-**Note: The yarn start command will bind the request server address to http://127.0.0.1:7079/api/v2 by default. You may use the yarn start-desktop command to debug the project in a desktop environment. You need to create the settings.json file at the public directory if you want to customize more API request server addresses, and an example configuration is available in the settings.json.dist at the public directory.**
+**Note: `yarn start` serves the web app at http://127.0.0.1:3000. `yarn start-desktop` opens the desktop app on that server (run `yarn start` first). On the first start `public/settings.json` is created from `public/settings.json.dist` (mainnet, testnet and a local node at http://127.0.0.1:7079); edit it to change the networks.**
+
+**Crypto: each node reports its key and hash algorithms (`/api/v2/getuid`); Weaver uses the algorithms of the network it connects to.**
 
 ### Configuration example
 
@@ -30,7 +32,8 @@
       "socketUrl": "",
       "activationEmail": "",
       "enableDemoMode": true,
-      "disableSync": false
+      "disableSync": false,
+      "explorer": "https://scan.example/api/v2"
     }
   ]
 }
@@ -46,6 +49,7 @@
 - **networks.activationEmail** - An optional parameter, to be displayed for the user for KYC when there is no activated node to be logged in.
 - **networks.enableDemoMode** - Guest authorization with private key will be enabled when set to true
 - **networks.disableSync** - An optional parameter to disable the synchronization of a full node. Please be cautious in using it for security reason
+- **networks.explorer** - An optional https address of the network's block explorer API (IBAX Scan), used to list the account's UTXO transfers in the wallet
 
 ### Get code
 
