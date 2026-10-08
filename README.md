@@ -9,7 +9,7 @@
 
 ## Quick start
 
-> Requires Node.js 24 LTS (or 22.22.2+, or 26+; odd releases such as 23 and 25 are not supported by the test tools) and Yarn 1. With nvm, `nvm use` picks the version in `.nvmrc`.
+> Requires Node.js 24 LTS (or 22.22.2+, or 26+; odd releases such as 23 and 25 are not supported by the test tools) and Yarn 1. With nvm, `nvm use` picks the version in `.nvmrc`. Install with Yarn only: the security pins in `resolutions` are Yarn's syntax, so pnpm and npm would install without them (pnpm refuses the project; `packageManager` names Yarn).
 
 **Note: `yarn start` serves the web app at http://127.0.0.1:3000. `yarn start-desktop` opens the desktop app on that server (run `yarn start` first). On the first start `public/settings.json` is created from `public/settings.json.dist` (mainnet, testnet and a local node at http://127.0.0.1:7079); edit it to change the networks.**
 
