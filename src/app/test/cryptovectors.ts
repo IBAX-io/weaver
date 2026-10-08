@@ -183,6 +183,8 @@ export interface ISuiteVector {
     publicKey: string;
     keyID: string;
     goSignature: string | null;
+    // ML-DSA only, written by the node: a signature under the empty context, refused by both sides
+    contextFreeSignature?: string;
     clientSignature?: string;
 }
 
