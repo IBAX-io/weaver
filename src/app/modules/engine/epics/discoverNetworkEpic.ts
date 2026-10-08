@@ -4,16 +4,25 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Epic } from 'modules';
-import { Observable } from 'rxjs';
+import { concat, defer, from, iif, of, throwError } from 'rxjs';
+import { catchError, defaultIfEmpty, mergeMap } from 'rxjs/operators';
+import { ofAction } from 'lib/rx/ofAction';
 import { discoverNetwork } from '../actions';
 import NodeObservable from '../util/NodeObservable';
 import { discover } from 'services/network';
 import { mergeHonorNodes } from 'modules/storage/actions';
 import NetworkError from 'services/network/errors';
 
-const setNetworkEpic: Epic = (action$, store, { api, defaultKey }) => action$.ofAction(discoverNetwork.started)
-  .flatMap(action => {
-    const network = store.getState().storage.networks.find(l => l.uuid === action.payload.uuid);
+const setNetworkEpic: Epic = (action$, state$, { api, defaultKey }) => action$.pipe(
+  ofAction(discoverNetwork.started),
+  mergeMap(action => {
+    const network = state$.value.storage.networks.find(l => l.uuid === action.payload.uuid);
+    if (!network) {
+      return of(discoverNetwork.failed({
+        params: action.payload,
+        error: NetworkError.NotFound
+      }));
+    }
 
     return NodeObservable({
       nodes: network.honorNodes,
@@ -22,36 +31,42 @@ const setNetworkEpic: Epic = (action$, store, { api, defaultKey }) => action$.of
       concurrency: 10,
       api
 
-    }).defaultIfEmpty(null).flatMap(node =>
-      Observable.if(
-        () => null !== node,
-        Observable.defer(() => Observable.from(discover({ uuid: network.uuid, apiHost: node }, defaultKey, network.id))
-          .flatMap(result => Observable.concat(
-            Observable.of(discoverNetwork.done({
-              params: action.payload,
-              result: {
-                session: {
-                  network: {
-                    uuid: network.uuid,
-                    apiHost: node
-                  },
-                  sessionToken: result.loginResult.token
+    }).pipe(
+      defaultIfEmpty(null),
+      mergeMap(node =>
+        iif(
+          () => null !== node,
+          defer(() => from(discover({ uuid: network.uuid, apiHost: node }, defaultKey, network.id)).pipe(
+            mergeMap(result => concat(
+              of(discoverNetwork.done({
+                params: action.payload,
+                result: {
+                  session: {
+                    network: {
+                      uuid: network.uuid,
+                      apiHost: node
+                    },
+                    sessionToken: result.loginResult.token,
+                    cryptoSuite: result.cryptoSuite
+                  }
                 }
-              }
-            })),
-            Observable.of(mergeHonorNodes({
-              uuid: network.uuid,
-              honorNodes: result.honorNodes
-            }))
-          ))),
-        Observable.defer(() => Observable.throw(NetworkError.Offline))
-      )
+              })),
+              of(mergeHonorNodes({
+                uuid: network.uuid,
+                honorNodes: result.honorNodes
+              }))
+            ))
+          )),
+          defer(() => throwError(() => NetworkError.Offline))
+        )
+      ),
+      catchError((error: NetworkError) => of(discoverNetwork.failed({
+        params: action.payload,
+        error
 
-    ).catch((error: NetworkError) => Observable.of(discoverNetwork.failed({
-      params: action.payload,
-      error
-
-    })));
-  });
+      })))
+    );
+  })
+);
 
 export default setNetworkEpic;

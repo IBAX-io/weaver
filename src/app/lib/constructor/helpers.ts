@@ -3,9 +3,9 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-declare const window: Window & { clipboardData: any };
 import { idGenerator } from 'lib/constructor';
 import { TProtypoElement } from 'ibax/protypo';
+declare const window: Window & { clipboardData: any };
 
 export function isSimpleBody(body: string): boolean {
     return typeof body === 'string' && body.indexOf('(') === -1;
@@ -44,12 +44,51 @@ function clearHtml(text: string): string {
     return text.replace(/&nbsp;/g, '');
 }
 
-interface IHtmlJsonNode {
-    node: string;
+export interface IHtmlJsonNode {
+    node: 'element' | 'text';
     tag?: string;
     text?: string;
-    attr?: { [key: string]: any };
+    attr?: { [key: string]: string[] };
     child?: IHtmlJsonNode[];
+}
+
+// Text is kept in its serialized form (as contenteditable innerHTML produced it), so entities
+// such as &nbsp; or &lt; survive the round trip exactly like the markup they came from.
+const serializeText = (text: string) => text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\u00a0/g, '&nbsp;');
+
+const toHtmlJsonNode = (node: Node): IHtmlJsonNode | null => {
+    if (node.nodeType === Node.TEXT_NODE) {
+        return { node: 'text', text: serializeText(node.textContent || '') };
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+        return null;
+    }
+
+    const element = node as Element;
+    const result: IHtmlJsonNode = { node: 'element', tag: element.tagName.toLowerCase() };
+    if (element.attributes.length) {
+        result.attr = {};
+        for (const attribute of Array.from(element.attributes)) {
+            result.attr[attribute.name] = attribute.value.split(' ').filter(Boolean);
+        }
+    }
+    const child = parseChildNodes(element.childNodes);
+    if (child.length) {
+        result.child = child;
+    }
+    return result;
+};
+
+const parseChildNodes = (nodes: NodeListOf<ChildNode>) =>
+    Array.from(nodes).map(toHtmlJsonNode).filter((node): node is IHtmlJsonNode => node !== null);
+
+export function parseHtmlNodes(html: string): IHtmlJsonNode[] {
+    const document = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    return parseChildNodes(document.body.childNodes);
 }
 
 function htmlJson2ProtypoElement(node: IHtmlJsonNode, index: number) {

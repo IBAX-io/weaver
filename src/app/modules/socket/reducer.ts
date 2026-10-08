@@ -7,7 +7,7 @@ import Centrifuge from 'centrifuge';
 import { reducerWithInitialState } from 'typescript-fsa-reducers';
 import * as actions from './actions';
 import { INotificationsMessage } from 'ibax/socket';
-import { IWallet } from 'ibax/auth';
+import { IAccount } from 'ibax/api';
 import connectDoneHandler from './reducers/connectDoneHandler';
 import disconnectDoneHandler from './reducers/disconnectDoneHandler';
 import subscribeDoneHandler from './reducers/subscribeDoneHandler';
@@ -22,7 +22,7 @@ export type State = {
     readonly connected: boolean;
     readonly notifications: INotificationsMessage[];
     readonly subscriptions: {
-        wallet: IWallet;
+        wallet: IAccount;
         instance: Centrifuge.Subscription;
     }[];
 };

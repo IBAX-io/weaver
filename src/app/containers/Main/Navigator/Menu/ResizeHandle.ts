@@ -4,7 +4,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { connect } from 'react-redux';
+import { connect, ResolveThunks } from 'react-redux';
 import { IRootState } from 'modules';
 import { setMenuFolded } from 'modules/storage/actions';
 
@@ -18,7 +18,7 @@ const mapDispatchToProps = {
     setMenuFolded
 };
 
-export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: any) => ({
+export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: ResolveThunks<typeof mapDispatchToProps>) => ({
   onFoldToggle: () => dispatch.setMenuFolded(!state.folded),
   folded: state.folded
 }))(ResizeHandle);

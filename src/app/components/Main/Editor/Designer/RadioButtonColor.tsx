@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import * as classnames from 'classnames';
+import classnames from 'classnames';
 import styled from 'styled-components';
 
 interface IRadioButtonColorProps {
-  src?: any;
+  children?: React.ReactNode;
   value: string;
   selectedValue?: string;
-  onClick?: any;
+  onClick: (value: string) => void;
 }
 
 interface IRadioButtonColorState {}
@@ -92,7 +92,6 @@ export default class RadioButtonColor extends React.Component<
   }
 
   render() {
-    // alert(this.props.value + ' selected: ' + this.props.selectedValue);
     const classes = classnames({
       [this.props.value]: true,
       selected: this.props.value === this.props.selectedValue
@@ -100,7 +99,7 @@ export default class RadioButtonColor extends React.Component<
     return (
       <BulletColor
         className={classes}
-        onClick={this.props.onClick.bind(this, this.props.value)}
+        onClick={() => this.props.onClick(this.props.value)}
         title={this.props.value}
       >
         {this.props.children}

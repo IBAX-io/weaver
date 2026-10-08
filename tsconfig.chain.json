@@ -1,0 +1,9 @@
+{
+    "extends": "./tsconfig.json",
+    "include": [
+        "src",
+        "e2e/chain/**/*",
+        "vitest.chain.config.ts"
+    ],
+    "exclude": ["node_modules", "public", "build", "releases", "src/electron"]
+}

@@ -14,7 +14,7 @@ export interface IFileStruct {
 export interface IFileData {
     Name: string;
     MimeType: string;
-    Body: ArrayBuffer;
+    Body: Uint8Array;
 }
 
 class File implements IField<IFileStruct, IFileData> {
@@ -28,7 +28,7 @@ class File implements IField<IFileStruct, IFileData> {
         return this._value ? {
             Name: this._value.name,
             MimeType: this._value.type,
-            Body: this._value.value
+            Body: new Uint8Array(this._value.value)
         } : null;
     }
 

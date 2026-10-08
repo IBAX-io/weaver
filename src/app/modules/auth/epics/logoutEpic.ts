@@ -4,14 +4,17 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
+import { of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { logout, deauthorize } from '../actions';
-import { Observable } from 'rxjs/Observable';
 import { closeAllEditorTabs } from 'modules/editor/actions';
 
-const logoutEpic: Epic = (action$, store) => action$.ofAction(logout.started)
-    .flatMap(action =>
-        Observable.of<Action>(
+const logoutEpic: Epic = action$ => action$.pipe(
+    ofAction(logout.started),
+    mergeMap(action =>
+        of(
             deauthorize(null),
             closeAllEditorTabs(),
             logout.done({
@@ -19,6 +22,7 @@ const logoutEpic: Epic = (action$, store) => action$.ofAction(logout.started)
                 result: null
             })
         )
-    );
+    )
+);
 
 export default logoutEpic;

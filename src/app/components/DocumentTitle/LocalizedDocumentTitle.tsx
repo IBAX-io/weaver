@@ -4,24 +4,25 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import { injectIntl, InjectedIntlProps } from 'react-intl';
+import { useIntl } from 'react-intl';
 import DocumentTitle, { IDocumentTitleProps } from '.';
 
 export interface ILocalizedDocumentTitleProps extends IDocumentTitleProps {
   defaultTitle?: string;
 }
 
-const LocalizedDocumentTitle: React.SFC<
-  ILocalizedDocumentTitleProps & InjectedIntlProps
-> = (props) => (
-  <DocumentTitle
-    title={props.intl.formatMessage({
-      id: props.title,
-      defaultMessage: props.defaultTitle || props.title
-    })}
-  >
-    {props.children}
-  </DocumentTitle>
-);
+const LocalizedDocumentTitle: React.FC<React.PropsWithChildren<ILocalizedDocumentTitleProps>> = (props) => {
+  const intl = useIntl();
+  return (
+    <DocumentTitle
+      title={intl.formatMessage({
+        id: props.title,
+        defaultMessage: props.defaultTitle || props.title
+      })}
+    >
+      {props.children}
+    </DocumentTitle>
+  );
+};
 
-export default injectIntl(LocalizedDocumentTitle);
+export default LocalizedDocumentTitle;

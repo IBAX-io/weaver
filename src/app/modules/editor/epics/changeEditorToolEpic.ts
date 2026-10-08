@@ -3,38 +3,50 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { from, of } from 'rxjs';
+import { catchError, map, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { changeEditorTool, getPageTree } from '../actions';
-import { Observable } from 'rxjs/Observable';
+import { signedInSession } from 'modules/auth/selectors';
+import { E_SIGNED_OUT } from 'modules/auth/actions';
 
-const changeEditorToolEpic: Epic = (action$, store, { api }) => action$.ofAction(changeEditorTool.started)
-    .flatMap(action => {
-        const state = store.getState();
+const changeEditorToolEpic: Epic = (action$, state$, { api }) => action$.pipe(
+    ofAction(changeEditorTool.started),
+    mergeMap(action => {
+        const state = state$.value;
+        const session = signedInSession(state);
+        // Signed out of since it was asked for: the node is not asked
+        if (!session) {
+            return of(changeEditorTool.failed({ params: action.payload, error: E_SIGNED_OUT }));
+        }
         const client = api({
-            apiHost: state.auth.session.network.apiHost,
-            sessionToken: state.auth.session.sessionToken
+            apiHost: session.network.apiHost,
+            sessionToken: session.sessionToken
         });
 
         switch (action.payload) {
             case 'preview':
                 const payload = state.editor.tabs[state.editor.tabIndex].value;
-                return Observable.fromPromise(client.contentTest({
+                return from(client.contentTest({
                     template: payload,
                     locale: state.storage.locale,
                     params: {}
 
-                })).map(result => changeEditorTool.done({
-                    params: action.payload,
-                    result: result.tree
+                })).pipe(
+                    map(result => changeEditorTool.done({
+                        params: action.payload,
+                        result: result.tree
 
-                })).catch(e => Observable.of(changeEditorTool.failed({
-                    params: action.payload,
-                    error: e
-                })));
+                    })),
+                    catchError(e => of(changeEditorTool.failed({
+                        params: action.payload,
+                        error: e
+                    })))
+                );
 
             case 'constructor':
-                return Observable.of<Action>(
+                return of(
                     getPageTree.started(null),
                     changeEditorTool.done({
                         params: action.payload,
@@ -42,11 +54,12 @@ const changeEditorToolEpic: Epic = (action$, store, { api }) => action$.ofAction
                     }));
 
             default:
-                return Observable.of(changeEditorTool.done({
+                return of(changeEditorTool.done({
                     params: action.payload,
                     result: null
                 }));
         }
-    });
+    })
+);
 
 export default changeEditorToolEpic;

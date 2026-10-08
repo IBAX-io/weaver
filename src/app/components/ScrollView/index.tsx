@@ -3,12 +3,9 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import classNames from 'classnames';
-import ScrollBar from 'react-custom-scrollbars';
-
-const Nop: React.SFC = () => <span />;
 
 export interface IScrollViewProps {
     className?: string;
@@ -17,60 +14,65 @@ export interface IScrollViewProps {
     hideHorizontal?: boolean;
     hideVertical?: boolean;
     horizontalWheel?: boolean;
+    children?: React.ReactNode;
 }
 
-const StyledScrollBar = styled(ScrollBar)`
-    &.disable-vertical > div {
-        overflow-y: hidden !important;
-        margin-right: 0 !important;
-    }
-    
-    &.disable-horizontal > div {
-        overflow-x: hidden !important;
-        margin-bottom: 0 !important;
+const HORIZONTAL_WHEEL_SPEED = 8;
+
+const StyledScrollView = styled.div`
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+
+    &.disable-vertical { overflow-y: hidden; }
+    &.disable-horizontal { overflow-x: hidden; }
+
+    /* Only hide the bar when the hidden axis is the only scrollable one */
+    &.hide-scrollbar {
+        scrollbar-width: none;
+        &::-webkit-scrollbar { display: none; }
     }
 `;
 
-class ScrollView extends React.Component<IScrollViewProps> {
-    private _scrollBar: ScrollBar;
+const ScrollView: React.FC<React.PropsWithChildren<IScrollViewProps>> = props => {
+    const ref = useRef<HTMLDivElement>(null);
 
-    onMouseWheel: React.EventHandler<React.WheelEvent<ScrollBar>> = e => {
-        if (!e.deltaX) {
-            e.preventDefault();
-            const currentScrollDelta = this._scrollBar.getScrollLeft();
-            this._scrollBar.scrollLeft(currentScrollDelta + (e.deltaY * 8));
-        }
-    }
-
-    calcValue = (...args: boolean[]) => {
-        if (args.find(l => l === true)) {
-            return Nop;
-        }
-        else {
+    // Vertical wheel scrolls horizontally. React's onWheel is passive, so preventDefault
+    // only works on a listener registered with { passive: false }.
+    useEffect(() => {
+        const element = ref.current;
+        if (!props.horizontalWheel || !element) {
             return undefined;
         }
-    }
 
-    render() {
-        const classes = classNames(this.props.className, {
-            'disable-vertical': this.props.disableVertical,
-            'disable-horizontal': this.props.disableHorizontal
-        });
+        const onWheel = (e: WheelEvent) => {
+            if (!e.deltaX) {
+                e.preventDefault();
+                element.scrollLeft += e.deltaY * HORIZONTAL_WHEEL_SPEED;
+            }
+        };
+        element.addEventListener('wheel', onWheel, { passive: false });
+        return () => element.removeEventListener('wheel', onWheel);
+    }, [props.horizontalWheel]);
 
-        return (
-            <StyledScrollBar
-                innerRef={l => this._scrollBar = l}
-                className={classes}
-                onWheel={this.props.horizontalWheel && this.onMouseWheel}
-                renderTrackHorizontal={this.calcValue(this.props.disableHorizontal, this.props.hideHorizontal)}
-                renderThumbHorizontal={this.calcValue(this.props.disableHorizontal, this.props.hideHorizontal)}
-                renderTrackVertical={this.calcValue(this.props.disableVertical, this.props.hideVertical)}
-                renderThumbVertical={this.calcValue(this.props.disableVertical, this.props.hideVertical)}
-            >
-                {this.props.children}
-            </StyledScrollBar>
-        );
-    }
-}
+    const hideHorizontal = props.disableHorizontal || props.hideHorizontal;
+    const hideVertical = props.disableVertical || props.hideVertical;
+
+    return (
+        <StyledScrollView
+            ref={ref}
+            className={classNames(props.className, {
+                'disable-vertical': props.disableVertical,
+                'disable-horizontal': props.disableHorizontal,
+                'hide-scrollbar': hideHorizontal && hideVertical
+                    || (hideHorizontal && props.disableVertical)
+                    || (hideVertical && props.disableHorizontal)
+            })}
+        >
+            {props.children}
+        </StyledScrollView>
+    );
+};
 
 export default ScrollView;

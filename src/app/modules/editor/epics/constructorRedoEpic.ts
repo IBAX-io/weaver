@@ -3,16 +3,17 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { EMPTY, of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import * as actions from '../actions';
-import { IRootState } from 'modules';
-import { Observable } from 'rxjs';
 
-const constructorRedoEpic: Epic<Action, IRootState> =
-    (action$, store, { constructorModule }) => action$.ofAction(actions.constructorRedo.started)
-        .flatMap(action => {
-            const state = store.getState().editor;
+const constructorRedoEpic: Epic =
+    (action$, state$, { constructorModule }) => action$.pipe(
+        ofAction(actions.constructorRedo.started),
+        mergeMap(action => {
+            const state = state$.value.editor;
 
             const tab = state.tabs[state.tabIndex].designer;
             const tabHistory = tab && tab.history || null;
@@ -29,7 +30,7 @@ const constructorRedoEpic: Epic<Action, IRootState> =
                 let jsonData = historyData[position - 1];
                 jsonData = constructorModule.updateChildrenText(jsonData);
 
-                return Observable.of(actions.constructorRedo.done({
+                return of(actions.constructorRedo.done({
                     params: action.payload,
                     result: {
                         jsonData,
@@ -41,8 +42,9 @@ const constructorRedoEpic: Epic<Action, IRootState> =
                 }));
             }
             else {
-                return Observable.empty();
+                return EMPTY;
             }
-        });
+        })
+    );
 
 export default constructorRedoEpic;

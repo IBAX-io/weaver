@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import actionCreatorFactory from 'typescript-fsa';
+import { actionCreatorFactory } from 'typescript-fsa';
 import { TProtypoElement, IButtonInteraction } from 'ibax/protypo';
 
 const actionCreator = actionCreatorFactory('content');

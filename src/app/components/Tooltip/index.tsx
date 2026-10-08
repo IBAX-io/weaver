@@ -7,8 +7,9 @@ import React from 'react';
 import themed from 'components/Theme/themed';
 
 export interface ITooltipProps {
-    title?: JSX.Element | string;
-    body?: JSX.Element | string;
+    title?: React.JSX.Element | string;
+    body?: React.JSX.Element | string;
+    children?: React.ReactNode;
 }
 
 interface ITooltipState {
@@ -41,8 +42,8 @@ const StyledTooltip = themed.div`
 `;
 
 class Tooltip extends React.Component<ITooltipProps, ITooltipState> {
-    private _container: HTMLDivElement = null;
-    private _tooltip: HTMLDivElement = null;
+    private _container = React.createRef<HTMLDivElement>();
+    private _tooltip = React.createRef<HTMLDivElement>();
 
     state: ITooltipState = {
         active: false,
@@ -52,25 +53,27 @@ class Tooltip extends React.Component<ITooltipProps, ITooltipState> {
         }
     };
 
-    onHover = (e: React.MouseEvent<HTMLDivElement>) => {
+    onHover = () => {
+        const container = this._container.current;
+        const tooltip = this._tooltip.current;
         let left = 0;
-        let top = this._container.offsetTop;
+        let top = container.offsetTop;
 
-        if ((this._container.offsetWidth / 2) + (this._tooltip.offsetWidth / 2) + this._container.offsetLeft > window.innerWidth) {
-            left = window.innerWidth - this._tooltip.offsetWidth;
+        if ((container.offsetWidth / 2) + (tooltip.offsetWidth / 2) + container.offsetLeft > window.innerWidth) {
+            left = window.innerWidth - tooltip.offsetWidth;
         }
-        else if (0 > this._container.offsetLeft + (this._container.offsetWidth / 2) - (this._tooltip.offsetWidth / 2)) {
+        else if (0 > container.offsetLeft + (container.offsetWidth / 2) - (tooltip.offsetWidth / 2)) {
             left = 0;
         }
         else {
-            left = this._container.offsetLeft - (this._tooltip.offsetWidth / 2) + (this._container.offsetWidth / 2);
+            left = container.offsetLeft - (tooltip.offsetWidth / 2) + (container.offsetWidth / 2);
         }
 
-        if (this._tooltip.offsetHeight + top + this._container.offsetHeight > window.innerHeight) {
-            top = this._container.offsetTop - this._tooltip.offsetHeight;
+        if (tooltip.offsetHeight + top + container.offsetHeight > window.innerHeight) {
+            top = container.offsetTop - tooltip.offsetHeight;
         }
         else {
-            top += this._container.offsetHeight;
+            top += container.offsetHeight;
         }
 
         this.setState({
@@ -90,12 +93,12 @@ class Tooltip extends React.Component<ITooltipProps, ITooltipState> {
 
     render() {
         return (
-            <div ref={l => this._container = l}>
+            <div ref={this._container}>
                 <div onMouseOver={this.onHover} onMouseLeave={this.onLeave}>
                     {this.props.children}
                 </div>
                 <StyledTooltip
-                    innerRef={l => this._tooltip = l}
+                    ref={this._tooltip}
                     style={{
                         top: this.state.active ? this.state.position.top : -50000,
                         left: this.state.active ? this.state.position.left : -50000

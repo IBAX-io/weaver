@@ -3,6 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { test, expect } from 'vitest';
 import CodeGenerator, { findTagById, convertToTreeData, updateChildrenText, copyObject } from 'lib/constructor';
 import { TProtypoElement } from 'ibax/protypo';
 import { TConstructorTreeElement, IFindTagResult } from 'ibax/editor';

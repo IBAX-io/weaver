@@ -4,18 +4,23 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import * as classnames from 'classnames';
-import ContentEditable from 'react-contenteditable';
+import classnames from 'classnames';
+import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
+import { ConnectDragSource } from '@nosferatu500/react-dnd';
 import TagWrapper from '../components/TagWrapper';
 import { OnPasteStripFormatting } from 'lib/constructor/helpers';
 import { IConstructorElementProps } from 'ibax/editor';
-import { TProtypoElement } from 'ibax/protypo';
 
 export interface IEditableBlockProps extends IConstructorElementProps {
+    'children'?: React.ReactNode;
     'className'?: string;
     'class'?: string;
     'childrenText'?: string;
-    'tail'?: TProtypoElement[];
+    'tail'?: React.ReactNode;
+
+    // Injected by DnDComponent
+    'dndRef'?: React.RefCallback<HTMLElement>;
+    'connectDragSource'?: ConnectDragSource;
 
     'src'?: string;
     'alt'?: string;
@@ -93,16 +98,16 @@ export default class EditableBlock extends React.Component<IEditableBlockProps, 
         return true;
     }
 
-    onPaste(e: any) {
+    onPaste(e: React.ClipboardEvent<HTMLElement>) {
         OnPasteStripFormatting(this, e);
     }
 
-    onClick(e: any) {
+    onClick(e: React.MouseEvent<HTMLElement>) {
         e.stopPropagation();
         this.props.selectTag(this.props.tag);
     }
 
-    handleChange(e: any) {
+    handleChange(e: ContentEditableEvent) {
         this._text = e.target.value;
     }
 
@@ -138,8 +143,8 @@ export default class EditableBlock extends React.Component<IEditableBlockProps, 
                 )
         );
     }
-    renderChildren(classes: string) {
-        const Tag = `${this.renderTag}`;
+    renderChildren(classes: string): React.ReactNode {
+        const Tag = this.renderTag as React.ElementType;
         return (
             <Tag
                 className={classes}
@@ -152,14 +157,13 @@ export default class EditableBlock extends React.Component<IEditableBlockProps, 
         if (this.logic && !this.props.logic) {
             return null;
         }
-        const { connectDropTarget, connectDragSource, connectDragPreview, isOver } = this.props;
+        const { dndRef, connectDragSource, isOver } = this.props;
         const style = {
             display: (this.editableDisplay === 'inline') ? 'inline-block' : ''
         };
 
-        return connectDragPreview(connectDropTarget(
-            // Only native element nodes can now be passed to React DnD connectors.You can either wrap TagWrapper into a <div>, or turn it into a drag source or a drop target itself.
-            <span style={style}>
+        return (
+            <span style={style} ref={dndRef}>
                 <TagWrapper
                     display={this.editableDisplay}
                     selected={this.props.selected}
@@ -173,6 +177,6 @@ export default class EditableBlock extends React.Component<IEditableBlockProps, 
                     {this.renderChildrenWrapper()}
                 </TagWrapper>
             </span>
-        ));
+        );
     }
 }

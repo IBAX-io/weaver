@@ -3,15 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { map } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import * as actions from '../actions';
-import { IRootState } from 'modules';
 
-const moveTagEpic: Epic<Action, IRootState> =
-  (action$, store, { constructorModule }) => action$.ofAction(actions.moveTag.started)
-    .map(action => {
-      const state = store.getState().editor;
+const moveTagEpic: Epic =
+  (action$, state$, { constructorModule }) => action$.pipe(
+    ofAction(actions.moveTag.started),
+    map(action => {
+      const state = state$.value.editor;
       const tab = state.tabs[state.tabIndex].designer;
       const tabData = tab && tab.data || null;
       let jsonData = tabData.jsonData && constructorModule.copyObject(tabData.jsonData) || null;
@@ -32,7 +33,7 @@ const moveTagEpic: Epic<Action, IRootState> =
                 const Tag = new Handler();
                 if (Tag.canHaveChildren) {
                   if (!tag.el.children) {
-                    tag.el.children = [];
+                    (tag.el as any).children = [];
                   }
                   tag.el.children.push(tagCopy);
                   moved = true;
@@ -89,6 +90,7 @@ const moveTagEpic: Epic<Action, IRootState> =
           treeData: constructorModule.convertToTreeData(jsonData)
         }
       });
-    });
+    })
+  );
 
 export default moveTagEpic;

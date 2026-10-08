@@ -6,7 +6,7 @@
 import React from 'react';
 import themed from 'components/Theme/themed';
 
-export const Filler: React.SFC = props => (
+export const Filler: React.FC<React.PropsWithChildren> = props => (
     <div className="toolbar__filler">
         {props.children}
     </div>

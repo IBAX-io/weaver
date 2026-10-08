@@ -3,17 +3,17 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { combineEpics } from 'redux-observable';
+import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
 import txCallEpic from './epics/txCallEpic';
 import txAuthorizeEpic from './epics/txAuthorizeEpic';
 import txExecEpic from './epics/txExecEpic';
 import txExecFailedEpic from './epics/txExecFailedEpic';
 import reloadStylesheetEpic from './epics/reloadStylesheetEpic';
 
-export default combineEpics(
+export default combineIsolatedEpics({
     txCallEpic,
     txAuthorizeEpic,
     txExecEpic,
     txExecFailedEpic,
     reloadStylesheetEpic
-);
+});

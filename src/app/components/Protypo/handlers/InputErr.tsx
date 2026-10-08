@@ -12,7 +12,7 @@ export interface IInputErrProps {
     [key: string]: string;
 }
 
-const InputErr: React.SFC<IInputErrProps> = (props) => (
+const InputErr: React.FC<IInputErrProps> = (props) => (
     <ValidationMessage for={props.name} messages={props} />
 );
 

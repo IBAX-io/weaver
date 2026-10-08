@@ -103,18 +103,6 @@ body {
   height: 100%;
 }
 
-.breadcrumb {
-  margin: -20px -25px 20px -20px;
-  background-color: #fafbfc;
-  border-top: 1px solid #cfdbe2;
-  border-bottom: 1px solid #cfdbe2;
-  font-weight: normal;
-  border-radius: 0;
-  color: #909fa7;
-  padding: 10px 20px;
-  list-style: none;
-}
-
 .content-wrapper {
   border-top: none;
 }

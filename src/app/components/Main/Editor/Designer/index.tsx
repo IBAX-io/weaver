@@ -15,31 +15,39 @@ import Properties from './Properties';
 import Switch from './Switch';
 import Tree from './Tree';
 
-import TreeTheme from './Tree/Theme';
+import TreeTheme, { TREE_ROW_HEIGHT } from './Tree/Theme';
+import {
+  TConstructorTreeElement,
+  IChangePageCall,
+  ISetTagCanDropPositionCall,
+  IAddTagCall,
+  IOperateTagCall,
+  IMoveTreeTag
+} from 'ibax/editor';
+import { TProtypoElement } from 'ibax/protypo';
 
 import imgGrid from 'images/constructor/grid.png';
 
 interface IConstructorProps {
   section: string;
-  pageTree: any;
-  treeData: any;
-  page?: any;
+  pageTree: TProtypoElement[];
+  treeData: TConstructorTreeElement[];
   pageTemplate: string;
-  changePage?: any;
-  setTagCanDropPosition?: any;
-  selectTag?: any;
-  addTag?: any;
-  moveTag?: any;
-  moveTreeTag?: any;
-  copyTag?: any;
-  removeTag?: any;
-  selectedTag?: any;
+  changePage?: (payload: IChangePageCall) => void;
+  setTagCanDropPosition?: (payload: ISetTagCanDropPositionCall) => void;
+  selectTag?: (tag: TProtypoElement) => void;
+  addTag?: (payload: IAddTagCall) => void;
+  moveTag?: (payload: IOperateTagCall) => void;
+  moveTreeTag?: (payload: IMoveTreeTag) => void;
+  copyTag?: (payload: IOperateTagCall) => void;
+  removeTag?: (payload: IOperateTagCall) => void;
+  selectedTag?: TProtypoElement;
   grid: boolean;
   logic: boolean;
-  toggleGrid: any;
-  toggleLogic: any;
-  undo?: any;
-  redo?: any;
+  toggleGrid: (value: string) => void;
+  toggleLogic: (value: string) => void;
+  undo?: () => void;
+  redo?: () => void;
   canUndo: boolean;
   canRedo: boolean;
 
@@ -49,7 +57,8 @@ interface IConstructorProps {
 }
 
 interface IConstructorState {
-  treeData: any;
+  treeData: TConstructorTreeElement[];
+  treeDataProp: TConstructorTreeElement[];
 }
 
 const ConstructorDiv = styled.div`
@@ -247,15 +256,22 @@ class Constructor extends React.Component<
   constructor(props: IConstructorProps) {
     super(props);
     this.state = {
-      treeData: props.treeData
+      treeData: props.treeData,
+      treeDataProp: props.treeData
     };
   }
-  componentWillReceiveProps(props: IConstructorProps) {
-    if (this.state.treeData !== props.treeData) {
-      this.setState({
-        treeData: props.treeData
-      });
+  // The tree keeps local state (expanded nodes, drag preview) until the store sends a new tree
+  static getDerivedStateFromProps(
+    props: IConstructorProps,
+    state: IConstructorState
+  ): Partial<IConstructorState> | null {
+    if (props.treeData !== state.treeDataProp) {
+      return {
+        treeData: props.treeData,
+        treeDataProp: props.treeData
+      };
     }
+    return null;
   }
   render() {
     return (
@@ -272,20 +288,22 @@ class Constructor extends React.Component<
             <SourceElements search={true} />
             <Tree
               treeData={this.state.treeData}
-              onChange={(treeData: any) => {
+              onChange={(treeData) => {
                 this.setState({ treeData });
               }}
               onMoveNode={(args) => {
+                // onChange has only queued the new tree in state (batched), so use the moved tree itself
                 this.props.moveTreeTag({
-                  treeData: this.state.treeData,
+                  treeData: args.treeData,
                   tagID: args.node.id
                 });
               }}
               scaffoldBlockPxWidth={10}
-              canDrag={(node: any) => {
+              rowHeight={TREE_ROW_HEIGHT}
+              canDrag={(node) => {
                 return node.node.canMove;
               }}
-              canDrop={(node: any) => {
+              canDrop={(node) => {
                 return node.nextParent ? node.nextParent.canDrop : true;
               }}
               innerStyle={{
@@ -294,7 +312,7 @@ class Constructor extends React.Component<
                 color: '#FFFFFF'
               }}
               theme={TreeTheme}
-              generateNodeProps={({ node, path }) => ({
+              generateNodeProps={({ node }) => ({
                 title: (
                   <span
                     onClick={() => {
@@ -321,7 +339,7 @@ class Constructor extends React.Component<
         </div>
         <div className="center-panel flex-col">
           <div className="b-instrument-panel b-panel-light">
-            <div className="b-instrument-panel__inner pull-left">
+            <div className="b-instrument-panel__inner float-start">
               <button
                 className={
                   this.props.canUndo
@@ -343,8 +361,8 @@ class Constructor extends React.Component<
                 <i className="site-icon-redo site-icon_big" />
               </button>
             </div>
-            <div className="b-instrument-panel__inner pull-right">
-              <div className="b-icon-group pull-left">
+            <div className="b-instrument-panel__inner float-end">
+              <div className="b-icon-group float-start">
                 <div className="b-switch">
                   <span>GRID</span>
                   <Switch

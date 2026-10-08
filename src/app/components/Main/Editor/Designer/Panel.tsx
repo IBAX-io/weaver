@@ -73,7 +73,7 @@ interface IConstructorPanelProps {
   title: string;
 }
 
-const ConstructorPanel: React.SFC<IConstructorPanelProps> = (props) => (
+const ConstructorPanel: React.FC<React.PropsWithChildren<IConstructorPanelProps>> = (props) => (
   <PanelDiv>
     <div className="b-panel__header">
       <div className="b-panel__header__text">{props.title}</div>

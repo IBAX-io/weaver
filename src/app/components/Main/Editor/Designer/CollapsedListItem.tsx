@@ -4,9 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import * as classnames from 'classnames';
+import classnames from 'classnames';
 
 interface ICollapsedListItemProps {
+  children?: React.ReactNode;
   text: string;
   icon?: string;
 }

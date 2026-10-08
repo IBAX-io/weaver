@@ -3,10 +3,10 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
-import { Epic } from 'redux-observable';
-import { Observable } from 'rxjs';
-import { IRootState } from 'modules';
+import { from } from 'rxjs';
+import { filter, map, mergeMap } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { txExec } from 'modules/tx/actions';
 import { reloadEditorTab } from '../actions';
 
@@ -17,18 +17,22 @@ const connections = {
     '@1EditMenu': 'menu'
 };
 
-const editEntityEpic: Epic<Action, IRootState> = (action$, store) => action$.ofAction(txExec.done)
-    .flatMap(action => Observable.from(action.payload.params.contracts)
-        .filter(l => connections[l.name])
-        .flatMap(contract => Observable.from(contract.params).map(params =>
-            reloadEditorTab({
-                type: connections[contract.name],
-                id: params.Id,
-                data: {
-                    initialValue: params.Value
-                }
-            })
+const editEntityEpic: Epic = action$ => action$.pipe(
+    ofAction(txExec.done),
+    mergeMap(action => from(action.payload.params.contracts as any[]).pipe(
+        filter((l: any) => connections[l.name]),
+        mergeMap((contract: any) => from(contract.params).pipe(
+            map((params: any) =>
+                reloadEditorTab({
+                    type: connections[contract.name],
+                    id: params.Id,
+                    data: {
+                        initialValue: params.Value
+                    }
+                })
+            )
         ))
-    );
+    ))
+);
 
 export default editEntityEpic;

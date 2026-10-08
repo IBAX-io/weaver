@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { injectIntl, FormattedMessage, InjectedIntlProps } from 'react-intl';
+import { FormattedMessage } from 'react-intl';
 import { readTextFile } from 'lib/fs';
-import keyring from 'lib/keyring';
+import { generateMnemonic } from 'lib/keyring';
 
 import LocalizedDocumentTitle from 'components/DocumentTitle/LocalizedDocumentTitle';
 import Generator from './Generator';
@@ -27,12 +27,12 @@ interface ICreateState {
 }
 
 class Create extends React.Component<
-  ICreateProps & InjectedIntlProps,
+  ICreateProps,
   ICreateState
 > {
-  private _inputFile: HTMLInputElement;
+  private _inputFile = React.createRef<HTMLInputElement>();
 
-  constructor(props: ICreateProps & InjectedIntlProps) {
+  constructor(props: ICreateProps) {
     super(props);
     this.state = {
       isConfirming: false,
@@ -65,7 +65,7 @@ class Create extends React.Component<
 
   onGenerate = () => {
     this.setState({
-      seed: keyring.generateSeed()
+      seed: generateMnemonic()
     });
   };
 
@@ -98,13 +98,13 @@ class Create extends React.Component<
   };
 
   onLoad = () => {
-    this._inputFile.click();
+    this._inputFile.current.click();
   };
 
   onLoadSuccess = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const content = await readTextFile(e.target.files[0]);
-      this._inputFile.setAttribute('value', '');
+      this._inputFile.current.setAttribute('value', '');
 
       if (this.state.isConfirming) {
         this.onSeedConfirmationChange(content);
@@ -134,9 +134,9 @@ class Create extends React.Component<
           </HeadingNetwork>
           <input
             type="file"
-            className="hidden"
+            className="d-none"
             onChange={this.onLoadSuccess}
-            ref={(l) => (this._inputFile = l)}
+            ref={this._inputFile}
           />
           <div className="text-center">
             <Validation.components.ValidatedForm
@@ -178,8 +178,8 @@ class Create extends React.Component<
                   }
                 />
               )}
-              <div className="text-right">
-                <Validation.components.ValidatedSubmit bsStyle="primary">
+              <div className="text-end">
+                <Validation.components.ValidatedSubmit variant="primary">
                   {!this.state.isConfirming && (
                     <FormattedMessage
                       id="process.continue"
@@ -202,4 +202,4 @@ class Create extends React.Component<
   }
 }
 
-export default injectIntl(Create);
+export default Create;

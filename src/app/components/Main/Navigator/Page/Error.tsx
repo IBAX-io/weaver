@@ -13,7 +13,7 @@ export interface IErrorProps {
   error: string;
 }
 
-const Error: React.SFC<IErrorProps> = (props) => (
+const Error: React.FC<IErrorProps> = (props) => (
   <LocalizedDocumentTitle title="general.error" defaultTitle="Error">
     <Center>
       <div className="text-muted">

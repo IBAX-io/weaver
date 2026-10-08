@@ -16,7 +16,7 @@ export interface INotificationProps {
     };
 }
 
-const Notification: React.SFC<INotificationProps> = props => (
+const Notification: React.FC<INotificationProps> = props => (
     <div className={props.className}>
         {props.proto.icon && (
             <div className="notification-icon">
@@ -25,10 +25,6 @@ const Notification: React.SFC<INotificationProps> = props => (
         )}
         <div className="notification-title">{typeof props.proto.title === 'function' ? props.proto.title(props.params) : props.proto.title}</div>
         <div className="notification-body">{typeof props.proto.body === 'function' ? props.proto.body(props.params) : props.proto.body}</div>
-        {/*<div className="notification-controls">
-            <NotificationButton>Confirm</NotificationButton>
-            <NotificationButton>Cancel</NotificationButton>
-    </div>*/}
     </div>
 );
 

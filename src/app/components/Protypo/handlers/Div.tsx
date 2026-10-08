@@ -13,7 +13,7 @@ export interface IDivProps {
   class?: string;
 }
 
-const Div: React.SFC<IDivProps> = (props) => (
+const Div: React.FC<React.PropsWithChildren<IDivProps>> = (props) => (
   <div className={[props.class, props.className].join(' ')}>
     {props.children}
   </div>

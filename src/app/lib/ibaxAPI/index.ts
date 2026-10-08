@@ -5,8 +5,11 @@
 
 import queryString from 'query-string';
 import urlJoin from 'url-join';
+import { cryptoSuiteFromNode } from 'lib/crypto/suites';
 import urlTemplate from 'url-template';
-import { IUIDResponse, ILoginRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo } from 'ibax/api';
+import { IUIDResponse, ILoginRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, IListWhereRequest, IListWhereResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo, IBalanceRequest, IBalanceResponse } from 'ibax/api';
+
+import { isApiError, UntrustedNodeError } from './errors';
 
 export type TRequestMethod =
   'get' |
@@ -85,7 +88,8 @@ class IbaxAPI {
         }))
 
       ).catch(e => {
-        throw e && e.response && e.response.data ? e.response.data.error : null;
+        const apiError = e && e.response && e.response.data ? e.response.data.error : null;
+        throw apiError || { error: 'E_OFFLINE' };
       }),
       apiEndpoint: 'api/v2',
       ...options
@@ -109,7 +113,10 @@ class IbaxAPI {
   protected request = async <P, R>(method: TRequestMethod, endpoint: string, requestParams: P, options: IRequestOptions<P, R> = {}) => {
     const requestEndpoint = urlTemplate.parse(endpoint).expand(requestParams);
     const requestUrl = urlJoin(this._options.apiHost, this._options.apiEndpoint, requestEndpoint);
-    const params = requestParams && options.requestTransformer ? options.requestTransformer(requestParams) : requestParams;
+    // Endpoint params are plain objects (or absent); the transformer may reshape them
+    const params: Record<string, unknown> = requestParams && options.requestTransformer
+      ? options.requestTransformer(requestParams)
+      : requestParams as unknown as Record<string, unknown>;
 
     // TODO: Set request timeout
     const requestOptions: IRequestOptions<P, R> = {
@@ -138,6 +145,10 @@ class IbaxAPI {
       // TODO: Not possible to catch with any other way
       if (!e) {
         json = { error: 'E_OFFLINE' };
+      }
+      // Already an API error (the transport's own E_OFFLINE): passed on as it is, not wrapped again
+      else if (isApiError(e)) {
+        json = e;
       }
       else if (e && e.message && ('Failed to fetch' === e.message || -1 !== e.message.indexOf('ECONNREFUSED'))) {
         json = { error: 'E_OFFLINE' };
@@ -190,11 +201,18 @@ class IbaxAPI {
   // Authorization
   public getUid = this.setEndpoint<IUIDResponse>('get', 'getuid', {
     requestTransformer: request => null,
-    responseTransformer: response => ({
-      token: response.token,
-      networkID: parseInt(response.network_id, 10),
-      uid: 'LOGIN' + response.network_id + response.uid
-    })
+    responseTransformer: response => {
+      // The login signature covers "LOGIN" + network_id + uid: only numbers may go into it
+      if (!/^\d+$/.test(String(response.network_id)) || !/^\d+$/.test(String(response.uid))) {
+        throw new UntrustedNodeError('challenge');
+      }
+      return {
+        token: response.token,
+        networkID: parseInt(response.network_id, 10),
+        uid: 'LOGIN' + response.network_id + response.uid,
+        cryptoSuite: cryptoSuiteFromNode(response.cryptoer, response.hasher)
+      };
+    }
   });
   public login = this.setSecuredEndpoint<ILoginRequest, ILoginResponse>('post', 'login', {
     requestTransformer: request => ({
@@ -227,6 +245,9 @@ class IbaxAPI {
     responseTransformer: response => response.ecosystem_name
   });
   public getConfig = this.setEndpoint<{ name: TConfigRequest }, string>('get', 'config/{name}', { requestTransformer: request => null });
+  public getBalance = this.setEndpoint<IBalanceRequest, IBalanceResponse>('get', 'balance/{wallet}', {
+    requestTransformer: request => ({ ecosystem: request.ecosystem })
+  });
   public getContract = this.setSecuredEndpoint<IContractRequest, IContractResponse>('get', 'contract/{name}', { requestTransformer: request => null });
   public getContracts = this.setSecuredEndpoint<ISegmentRequest, IContractsResponse>('get', 'contracts');
   public getParam = this.setSecuredEndpoint<IParamRequest, IParamResponse>('get', 'ecosystemparam/{name}', { requestTransformer: request => null });
@@ -249,6 +270,23 @@ class IbaxAPI {
   public getData = this.setSecuredEndpoint<IDataRequest, IDataResponse>('get', 'list/{name}', {
     requestTransformer: request => ({
       columns: (request.columns || []).join(',')
+    })
+  });
+
+  // A transaction as the node recorded it, with the response text as it came: the node writes a
+  // UTXO transfer's ToID as a bare JSON number, an int64 that JSON.parse rounds
+  public txInfo = this.setEndpoint<{ hash: string }, { json: unknown, text: string }>('get', 'txinfo/{hash}', {
+    requestTransformer: () => ({ contractinfo: 'true' }),
+    responseTransformer: (json, text) => ({ json, text })
+  });
+
+  public listWhere = this.setSecuredEndpoint<IListWhereRequest, IListWhereResponse>('post', 'listWhere/{name}', {
+    requestTransformer: request => ({
+      where: JSON.stringify(request.where),
+      order: request.order ? JSON.stringify(request.order) : undefined,
+      columns: request.columns ? request.columns.join(',') : undefined,
+      limit: request.limit,
+      offset: request.offset
     })
   });
 

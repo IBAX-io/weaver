@@ -17,6 +17,9 @@ import ValidatedRadioGroup from './ValidatedRadioGroup';
 import ValidatedSubmit from './ValidatedSubmit';
 import * as validators from './Validators';
 
+export { ValidatedFormContext } from './ValidatedForm';
+export type { IValidatedFormContext } from './ValidatedForm';
+
 export default {
     components: {
         ValidatedCheckbox,

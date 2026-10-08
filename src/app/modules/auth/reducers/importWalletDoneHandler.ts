@@ -7,9 +7,8 @@ import { State } from '../reducer';
 import { importWallet } from '../actions';
 import { Reducer } from 'modules';
 
-const importWalletDoneHandler: Reducer<typeof importWallet.done, State> = (state, payload) => ({
+const importWalletDoneHandler: Reducer<typeof importWallet.done, State> = state => ({
     ...state,
-    defaultWallet: payload.params.isDefault && payload.result[0] ? payload.result[0].id : state.defaultWallet,
     isImportingWallet: false,
     importWalletError: null
 });

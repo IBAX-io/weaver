@@ -6,11 +6,15 @@
 import React from 'react';
 import { TProtypoElement } from 'ibax/protypo';
 import { ITransaction } from 'ibax/tx';
-import { toHex } from 'lib/tx/convert';
+import { bytesToHex } from '@noble/hashes/utils.js';
+import { formatAddress } from 'lib/crypto/address';
 
 import Protypo from 'containers/Widgets/Protypo';
 import PrintZone from 'components/PrintZone';
 import { FormattedMessage } from 'react-intl';
+
+// Contract params carry int64 and address values as bigint, which JSON.stringify refuses
+const formatParams = (params: unknown) => JSON.stringify(params, (_key, value) => 'bigint' === typeof value ? value.toString() : value);
 
 export interface ITxInfoProps {
     section: string;
@@ -23,7 +27,7 @@ export interface ITxInfoProps {
     children: TProtypoElement[];
 }
 
-const TxInfo: React.SFC<ITxInfoProps> = props => (
+const TxInfo: React.FC<React.PropsWithChildren<ITxInfoProps>> = props => (
     <div className="content-wrapper">
         <PrintZone stylesheet={props.stylesheet}>
             <div style={{ padding: 20, wordBreak: 'break-all' }}>
@@ -39,7 +43,7 @@ const TxInfo: React.SFC<ITxInfoProps> = props => (
                             <FormattedMessage id="tx.report" defaultMessage="Transaction report" />
                         </div>
                         <div>{(new Date()).toISOString()}</div>
-                        <div>{process.env.REACT_APP_VERSION}</div>
+                        <div>{__APP_VERSION__}</div>
                     </div>
                 </div>
                 <hr />
@@ -66,7 +70,7 @@ const TxInfo: React.SFC<ITxInfoProps> = props => (
                                         </li>
                                         <li>
                                             <span><strong>PublicKey:</strong> </span>
-                                            <span>{toHex(tx.tx.body.Header.PublicKey)}</span>
+                                            <span>{bytesToHex(tx.tx.body.Header.PublicKey)}</span>
                                         </li>
                                         <li>
                                             <span><strong>EcosystemID:</strong> </span>
@@ -76,10 +80,24 @@ const TxInfo: React.SFC<ITxInfoProps> = props => (
                                             <span><strong>Time:</strong> </span>
                                             <span>{tx.tx.body.Header.Time}</span>
                                         </li>
-                                        <li>
-                                            <span><strong>Params</strong></span>
-                                            <span>{JSON.stringify(tx.tx.body.Params)}</span>
-                                        </li>
+                                        {tx.tx.body.Params && (
+                                            <li>
+                                                <span><strong>Params</strong></span>
+                                                <span>{formatParams(tx.tx.body.Params)}</span>
+                                            </li>
+                                        )}
+                                        {tx.tx.body.UTXO && (
+                                            <li>
+                                                <span><strong>UTXO:</strong> </span>
+                                                <span>{formatAddress(tx.tx.body.UTXO.ToID.toString())} · <FormattedMessage id="tx.info.baseUnits" defaultMessage="{value} base units" values={{ value: tx.tx.body.UTXO.Value }} /></span>
+                                            </li>
+                                        )}
+                                        {tx.tx.body.TransferSelf && (
+                                            <li>
+                                                <span><strong>TransferSelf:</strong> </span>
+                                                <span>{tx.tx.body.TransferSelf.Source} → {tx.tx.body.TransferSelf.Target} · <FormattedMessage id="tx.info.baseUnits" defaultMessage="{value} base units" values={{ value: tx.tx.body.TransferSelf.Value }} /></span>
+                                            </li>
+                                        )}
                                     </>
 
                                 ) :

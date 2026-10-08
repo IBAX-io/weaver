@@ -11,6 +11,7 @@ export interface IHintProps {
     'icon'?: string;
     'title'?: string;
     'text'?: string;
+    children?: React.ReactNode;
 }
 
 export const HintWrapper = themed.div`
@@ -26,7 +27,7 @@ export const HintWrapper = themed.div`
         font-weight: 300;
 
         em.tool-icon {
-            color: #5b97e4,
+            color: #5b97e4;
             transition: color .15s;
             vertical-align: middle;
             height: 18px;

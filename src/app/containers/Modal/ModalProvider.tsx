@@ -4,60 +4,36 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import { connect } from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
+import { useIntl } from 'react-intl';
 import { IRootState } from 'modules';
-import { IModal } from 'ibax/modal';
 import { modalClose } from 'modules/modal/actions';
 import { enqueueNotification } from 'modules/notifications/actions';
 
 import ModalProvider from 'components/Modal/ModalProvider';
-import { InjectedIntlProps, injectIntl } from 'react-intl';
-
-interface IModalProviderContainerProps {}
-
-interface IModalProviderContainerState {
-  modal: IModal;
-}
-
-interface IModalProviderContainerDispatch {
-  modalClose: typeof modalClose;
-  enqueueNotification: typeof enqueueNotification;
-}
-
-class ModalProviderContainer extends React.Component<
-  IModalProviderContainerProps &
-    IModalProviderContainerState &
-    IModalProviderContainerDispatch &
-    InjectedIntlProps
-> {
-  render() {
-    return (
-      <ModalProvider
-        modal={this.props.modal}
-        onResult={this.props.modalClose}
-        enqueueNotification={this.props.enqueueNotification}
-        intl={this.props.intl}
-      >
-        {this.props.children}
-      </ModalProvider>
-    );
-  }
-}
 
 const mapStateToProps = (state: IRootState) => ({
-  modal: state.modal
+    modal: state.modal
 });
 
 const mapDispatchToProps = {
-  modalClose: modalClose,
-  enqueueNotification: enqueueNotification
+    modalClose,
+    enqueueNotification
 };
 
-export default connect<
-  IModalProviderContainerState,
-  IModalProviderContainerDispatch,
-  IModalProviderContainerProps
->(
-  mapStateToProps,
-  mapDispatchToProps
-)(injectIntl(ModalProviderContainer));
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+const ModalProviderContainer: React.FC<ConnectedProps<typeof connector>> = props => {
+    const intl = useIntl();
+
+    return (
+        <ModalProvider
+            modal={props.modal}
+            onResult={result => props.modalClose({ ...result, id: props.modal.id })}
+            enqueueNotification={props.enqueueNotification}
+            intl={intl}
+        />
+    );
+};
+
+export default connector(ModalProviderContainer);

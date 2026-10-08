@@ -9,9 +9,15 @@
 
 ## Quick start
 
-> As the project is based on react, you must install Nodejs V6+ and manage the third party dependencies with 'yarn'
+> Requires Node.js 24 LTS (or 22.22.2+, or 26+; odd releases such as 23 and 25 are not supported by the test tools) and Yarn 1. With nvm, `nvm install && nvm use` installs and picks the version in `.nvmrc`; with Node's corepack, `corepack enable` provides the Yarn that `packageManager` names. Install with Yarn only: the security pins in `resolutions` are Yarn's syntax, so pnpm and npm would install without them (pnpm refuses the project; `packageManager` names Yarn).
 
-**Note: The yarn start command will bind the request server address to http://127.0.0.1:7079/api/v2 by default. You may use the yarn start-desktop command to debug the project in a desktop environment. You need to create the settings.json file at the public directory if you want to customize more API request server addresses, and an example configuration is available in the settings.json.dist at the public directory.**
+**Note: `yarn start` serves the web app at http://127.0.0.1:3000. `yarn start-desktop` opens the desktop app on that server (run `yarn start` first). On the first start `public/settings.json` is created from `public/settings.json.dist` (mainnet, testnet and a local node at http://127.0.0.1:7079); edit it to change the networks. It is not replaced afterwards: one created by an earlier version lacks the `explorer` of mainnet and testnet (see below), so add it from `settings.json.dist`, or delete the file to have it created again.**
+
+**Crypto: each node reports its key and hash algorithms (`/api/v2/getuid`), and everything Weaver signs for a network uses that network's algorithms, kept in the session.**
+
+- The one built-in default, `DEFAULT_CRYPTO_SUITE` (ECDSA secp256k1 with Keccak-256, what the public IBAX networks use), never decides how anything is signed. It only names a stored wallet and picks the accounts the sign-in page lists before any network was reached.
+- A node that reports no algorithms predates configurable crypto and is taken to use ECDSA P-256 with SHA-256.
+- A chain changes its algorithms only by being redeployed. A signed-in user is then signed out and told why: their account has another address under the new algorithms. The same happens, with its own notice, when the node no longer accepts the session (expired, or the node restarted).
 
 ### Configuration example
 
@@ -30,7 +36,8 @@
       "socketUrl": "",
       "activationEmail": "",
       "enableDemoMode": true,
-      "disableSync": false
+      "disableSync": false,
+      "explorer": "https://scan.example/api/v2"
     }
   ]
 }
@@ -46,6 +53,7 @@
 - **networks.activationEmail** - An optional parameter, to be displayed for the user for KYC when there is no activated node to be logged in.
 - **networks.enableDemoMode** - Guest authorization with private key will be enabled when set to true
 - **networks.disableSync** - An optional parameter to disable the synchronization of a full node. Please be cautious in using it for security reason
+- **networks.explorer** - An optional https address of the network's block explorer API (IBAX Scan), used to list the account's UTXO transfers in the wallet (only once the user agrees to send the account's address to it; changing it asks the user again). An address that is not https is left out with a warning in the console.
 
 ### Get code
 

@@ -27,11 +27,11 @@ class EditorRevertModal extends Modal<Props, void> {
                         values={{ name: this.props.params.name }}
                     />
                 </Modal.Body>
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="link" onClick={() => this.props.onCancel()}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="link" onClick={() => this.props.onCancel()}>
                         <FormattedMessage id="cancel" defaultMessage="Cancel" />
                     </Button>
-                    <Button bsStyle="primary" onClick={() => this.props.onResult(null)}>
+                    <Button variant="primary" onClick={() => this.props.onResult(null)}>
                         <FormattedMessage id="confirm" defaultMessage="Confirm" />
                     </Button>
                 </Modal.Footer>

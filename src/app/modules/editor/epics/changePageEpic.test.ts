@@ -3,25 +3,24 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import 'rxjs';
-import 'lib/external/fsa';
+import { describe, it, expect } from 'vitest';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { changePage } from '../actions';
 import changePageEpic from './changePageEpic';
 import dependencies from 'modules/dependencies';
 import { TProtypoElement } from 'ibax/protypo';
 import { TConstructorTreeElement } from 'ibax/editor';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('changeTagEpic', () => {
-    it('change tag transform props', () => {
+    it('change tag transform props', async () => {
 
-        const action$ = ActionsObservable.of<Action>(changePage.started({
+        const actions: Action[] = [changePage.started({
             attrName: 'transform',
             attrValue: 'uppercase',
             tagID: 'tag_1'
-        }));
+        })];
 
         const jsonData: TProtypoElement[] = [
             {
@@ -395,10 +394,7 @@ describe('changeTagEpic', () => {
             }
         ];
 
-        changePageEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
-            .toArray()
-            .subscribe(actualOutput => {
-                expect(actualOutput).toEqual(expectedOutput);
-            });
+        const actualOutput = await runEpic(changePageEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+            expect(actualOutput).toEqual(expectedOutput);
     });
 });

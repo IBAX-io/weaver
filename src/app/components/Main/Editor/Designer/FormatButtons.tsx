@@ -11,7 +11,7 @@ import imgBold from 'images/constructor/group-16.svg';
 
 interface IFormatButtonsProps {
   tag: string;
-  onClick?: any;
+  onClick: (format: string) => void;
 }
 
 export default class FormatButtons extends React.Component<
@@ -22,7 +22,7 @@ export default class FormatButtons extends React.Component<
       <div>
         {this.props.tag !== 'strong' && (
           <RadioButton
-            onClick={this.props.onClick.bind(this, 'bold')}
+            onClick={() => this.props.onClick('bold')}
             value="bold"
             title="make selected text bold"
           >
@@ -32,7 +32,7 @@ export default class FormatButtons extends React.Component<
 
         {this.props.tag !== 'em' && (
           <RadioButton
-            onClick={this.props.onClick.bind(this, 'italic')}
+            onClick={() => this.props.onClick('italic')}
             value="italic"
             title="make selected text italic"
           >
@@ -41,7 +41,7 @@ export default class FormatButtons extends React.Component<
         )}
 
         <RadioButton
-          onClick={this.props.onClick.bind(this, 'removeFormat')}
+          onClick={() => this.props.onClick('removeFormat')}
           value="removeFormat"
           title="remove formatting on selected text"
         >

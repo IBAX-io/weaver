@@ -7,13 +7,17 @@ import { State } from '../reducer';
 import { txExec } from '../actions';
 import { Reducer } from 'modules';
 
-const txExecFailedHandler: Reducer<typeof txExec.failed, State> = (state, payload) => ({
+// A cancelled password prompt leaves no transaction behind
+const txExecFailedHandler: Reducer<typeof txExec.failed, State> = (state, payload) => 'E_AUTH_CANCELLED' === payload.error.type ? {
+    ...state,
+    transactions: state.transactions.delete(payload.params.uuid)
+} : {
     ...state,
     transactions: state.transactions.set(payload.params.uuid, {
         status: 'error',
         error: payload.error,
         stack: []
     })
-});
+};
 
 export default txExecFailedHandler;

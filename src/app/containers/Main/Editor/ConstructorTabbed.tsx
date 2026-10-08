@@ -102,7 +102,7 @@ class ConstructorTabbedContainer extends React.Component<IConstructorTabbedConta
         this.props.setTagCanDropPosition(payload);
     }
 
-    selectTag(payload: any) {
+    selectTag(payload: TProtypoElement) {
         this.props.selectTag(payload);
     }
 

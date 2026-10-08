@@ -3,269 +3,171 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import CryptoJS from 'crypto-js';
-import KJUR from 'jsrsasign';
-import Random from 'random-js';
+// Account keys: BIP39 mnemonics derived like the official IBAX wallets (Ethereum HD path), and
+// private keys encrypted at rest with a password. Algorithms per network live in lib/crypto.
+import { generateMnemonic as bip39Generate, mnemonicToSeedSync, validateMnemonic } from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english.js';
+import { HDKey } from '@scure/bip32';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { p256 } from '@noble/curves/nist.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
+import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE, resolveCryptoSuite, SUPPORTED_CRYPTO_SUITES } from 'lib/crypto/suites';
+import { IWallet, IWalletIdentities } from 'ibax/auth';
 
-// https://github.com/bitcoin/bips/blob/master/bip-0039/bip-0039-wordlists.md
-const WORD_LIST = ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident',
-    'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual', 'adapt', 'add',
-    'addict', 'address', 'adjust', 'admit', 'adult', 'advance', 'advice', 'aerobic', 'affair', 'afford', 'afraid', 'again', 'age', 'agent',
-    'agree', 'ahead', 'aim', 'air', 'airport', 'aisle', 'alarm', 'album', 'alcohol', 'alert', 'alien', 'all', 'alley', 'allow', 'almost',
-    'alone', 'alpha', 'already', 'also', 'alter', 'always', 'amateur', 'amazing', 'among', 'amount', 'amused', 'analyst', 'anchor',
-    'ancient', 'anger', 'angle', 'angry', 'animal', 'ankle', 'announce', 'annual', 'another', 'answer', 'antenna', 'antique', 'anxiety',
-    'any', 'apart', 'apology', 'appear', 'apple', 'approve', 'april', 'arch', 'arctic', 'area', 'arena', 'argue', 'arm', 'armed', 'armor',
-    'army', 'around', 'arrange', 'arrest', 'arrive', 'arrow', 'art', 'artefact', 'artist', 'artwork', 'ask', 'aspect', 'assault', 'asset',
-    'assist', 'assume', 'asthma', 'athlete', 'atom', 'attack', 'attend', 'attitude', 'attract', 'auction', 'audit', 'august', 'aunt', 'author',
-    'auto', 'autumn', 'average', 'avocado', 'avoid', 'awake', 'aware', 'away', 'awesome', 'awful', 'awkward', 'axis', 'baby', 'bachelor',
-    'bacon', 'badge', 'bag', 'balance', 'balcony', 'ball', 'bamboo', 'banana', 'banner', 'bar', 'barely', 'bargain', 'barrel', 'base',
-    'basic', 'basket', 'battle', 'beach', 'bean', 'beauty', 'because', 'become', 'beef', 'before', 'begin', 'behave', 'behind', 'believe',
-    'below', 'belt', 'bench', 'benefit', 'best', 'betray', 'better', 'between', 'beyond', 'bicycle', 'bid', 'bike', 'bind', 'biology', 'bird',
-    'birth', 'bitter', 'black', 'blade', 'blame', 'blanket', 'blast', 'bleak', 'bless', 'blind', 'blood', 'blossom', 'blouse', 'blue', 'blur',
-    'blush', 'board', 'boat', 'body', 'boil', 'bomb', 'bone', 'bonus', 'book', 'boost', 'border', 'boring', 'borrow', 'boss', 'bottom', 'bounce',
-    'box', 'boy', 'bracket', 'brain', 'brand', 'brass', 'brave', 'bread', 'breeze', 'brick', 'bridge', 'brief', 'bright', 'bring', 'brisk',
-    'broccoli', 'broken', 'bronze', 'broom', 'brother', 'brown', 'brush', 'bubble', 'buddy', 'budget', 'buffalo', 'build', 'bulb', 'bulk',
-    'bullet', 'bundle', 'bunker', 'burden', 'burger', 'burst', 'bus', 'business', 'busy', 'butter', 'buyer', 'buzz', 'cabbage', 'cabin',
-    'cable', 'cactus', 'cage', 'cake', 'call', 'calm', 'camera', 'camp', 'can', 'canal', 'cancel', 'candy', 'cannon', 'canoe', 'canvas',
-    'canyon', 'capable', 'capital', 'captain', 'car', 'carbon', 'card', 'cargo', 'carpet', 'carry', 'cart', 'case', 'cash', 'casino',
-    'castle', 'casual', 'cat', 'catalog', 'catch', 'category', 'cattle', 'caught', 'cause', 'caution', 'cave', 'ceiling', 'celery', 'cement',
-    'census', 'century', 'cereal', 'certain', 'chair', 'chalk', 'champion', 'change', 'chaos', 'chapter', 'charge', 'chase', 'chat', 'cheap',
-    'check', 'cheese', 'chef', 'cherry', 'chest', 'chicken', 'chief', 'child', 'chimney', 'choice', 'choose', 'chronic', 'chuckle', 'chunk',
-    'churn', 'cigar', 'cinnamon', 'circle', 'citizen', 'city', 'civil', 'claim', 'clap', 'clarify', 'claw', 'clay', 'clean', 'clerk',
-    'clever', 'click', 'client', 'cliff', 'climb', 'clinic', 'clip', 'clock', 'clog', 'close', 'cloth', 'cloud', 'clown', 'club', 'clump',
-    'cluster', 'clutch', 'coach', 'coast', 'coconut', 'code', 'coffee', 'coil', 'coin', 'collect', 'color', 'column', 'combine', 'come',
-    'comfort', 'comic', 'common', 'company', 'concert', 'conduct', 'confirm', 'congress', 'connect', 'consider', 'control', 'convince',
-    'cook', 'cool', 'copper', 'copy', 'coral', 'core', 'corn', 'correct', 'cost', 'cotton', 'couch', 'country', 'couple', 'course', 'cousin',
-    'cover', 'coyote', 'crack', 'cradle', 'craft', 'cram', 'crane', 'crash', 'crater', 'crawl', 'crazy', 'cream', 'credit', 'creek', 'crew',
-    'cricket', 'crime', 'crisp', 'critic', 'crop', 'cross', 'crouch', 'crowd', 'crucial', 'cruel', 'cruise', 'crumble', 'crunch', 'crush',
-    'cry', 'crystal', 'cube', 'culture', 'cup', 'cupboard', 'curious', 'current', 'curtain', 'curve', 'cushion', 'custom', 'cute', 'cycle',
-    'dad', 'damage', 'damp', 'dance', 'danger', 'daring', 'dash', 'daughter', 'dawn', 'day', 'deal', 'debate', 'debris', 'decade', 'december',
-    'decide', 'decline', 'decorate', 'decrease', 'deer', 'defense', 'define', 'defy', 'degree', 'delay', 'deliver', 'demand', 'demise',
-    'denial', 'dentist', 'deny', 'depart', 'depend', 'deposit', 'depth', 'deputy', 'derive', 'describe', 'desert', 'design', 'desk',
-    'despair', 'destroy', 'detail', 'detect', 'develop', 'device', 'devote', 'diagram', 'dial', 'diamond', 'diary', 'dice', 'diesel', 'diet',
-    'differ', 'digital', 'dignity', 'dilemma', 'dinner', 'dinosaur', 'direct', 'dirt', 'disagree', 'discover', 'disease', 'dish', 'dismiss',
-    'disorder', 'display', 'distance', 'divert', 'divide', 'divorce', 'dizzy', 'doctor', 'document', 'dog', 'doll', 'dolphin', 'domain',
-    'donate', 'donkey', 'donor', 'door', 'dose', 'double', 'dove', 'draft', 'dragon', 'drama', 'drastic', 'draw', 'dream', 'dress', 'drift',
-    'drill', 'drink', 'drip', 'drive', 'drop', 'drum', 'dry', 'duck', 'dumb', 'dune', 'during', 'dust', 'dutch', 'duty', 'dwarf', 'dynamic',
-    'eager', 'eagle', 'early', 'earn', 'earth', 'easily', 'east', 'easy', 'echo', 'ecology', 'economy', 'edge', 'edit', 'educate', 'effort',
-    'egg', 'eight', 'either', 'elbow', 'elder', 'electric', 'elegant', 'element', 'elephant', 'elevator', 'elite', 'else', 'embark', 'embody',
-    'embrace', 'emerge', 'emotion', 'employ', 'empower', 'empty', 'enable', 'enact', 'end', 'endless', 'endorse', 'enemy', 'energy',
-    'enforce', 'engage', 'engine', 'enhance', 'enjoy', 'enlist', 'enough', 'enrich', 'enroll', 'ensure', 'enter', 'entire', 'entry',
-    'envelope', 'episode', 'equal', 'equip', 'era', 'erase', 'erode', 'erosion', 'error', 'erupt', 'escape', 'essay', 'essence', 'estate',
-    'eternal', 'ethics', 'evidence', 'evil', 'evoke', 'evolve', 'exact', 'example', 'excess', 'exchange', 'excite', 'exclude', 'excuse',
-    'execute', 'exercise', 'exhaust', 'exhibit', 'exile', 'exist', 'exit', 'exotic', 'expand', 'expect', 'expire', 'explain', 'expose',
-    'express', 'extend', 'extra', 'eye', 'eyebrow', 'fabric', 'face', 'faculty', 'fade', 'faint', 'faith', 'fall', 'false', 'fame', 'family',
-    'famous', 'fan', 'fancy', 'fantasy', 'farm', 'fashion', 'fat', 'fatal', 'father', 'fatigue', 'fault', 'favorite', 'feature', 'february',
-    'federal', 'fee', 'feed', 'feel', 'female', 'fence', 'festival', 'fetch', 'fever', 'few', 'fiber', 'fiction', 'field', 'figure', 'file',
-    'film', 'filter', 'final', 'find', 'fine', 'finger', 'finish', 'fire', 'firm', 'first', 'fiscal', 'fish', 'fit', 'fitness', 'fix', 'flag',
-    'flame', 'flash', 'flat', 'flavor', 'flee', 'flight', 'flip', 'float', 'flock', 'floor', 'flower', 'fluid', 'flush', 'fly', 'foam', 'focus',
-    'fog', 'foil', 'fold', 'follow', 'food', 'foot', 'force', 'forest', 'forget', 'fork', 'fortune', 'forum', 'forward', 'fossil', 'foster',
-    'found', 'fox', 'fragile', 'frame', 'frequent', 'fresh', 'friend', 'fringe', 'frog', 'front', 'frost', 'frown', 'frozen', 'fruit',
-    'fuel', 'fun', 'funny', 'furnace', 'fury', 'future', 'gadget', 'gain', 'galaxy', 'gallery', 'game', 'gap', 'garage', 'garbage', 'garden',
-    'garlic', 'garment', 'gas', 'gasp', 'gate', 'gather', 'gauge', 'gaze', 'general', 'genius', 'genre', 'gentle', 'genuine', 'gesture',
-    'ghost', 'giant', 'gift', 'giggle', 'ginger', 'giraffe', 'girl', 'give', 'glad', 'glance', 'glare', 'glass', 'glide', 'glimpse', 'globe',
-    'gloom', 'glory', 'glove', 'glow', 'glue', 'goat', 'goddess', 'gold', 'good', 'goose', 'gorilla', 'gospel', 'gossip', 'govern', 'gown',
-    'grab', 'grace', 'grain', 'grant', 'grape', 'grass', 'gravity', 'great', 'green', 'grid', 'grief', 'grit', 'grocery', 'group', 'grow',
-    'grunt', 'guard', 'guess', 'guide', 'guilt', 'guitar', 'gun', 'gym', 'habit', 'hair', 'half', 'hammer', 'hamster', 'hand', 'happy',
-    'harbor', 'hard', 'harsh', 'harvest', 'hat', 'have', 'hawk', 'hazard', 'head', 'health', 'heart', 'heavy', 'hedgehog', 'height', 'hello',
-    'helmet', 'help', 'hen', 'hero', 'hidden', 'high', 'hill', 'hint', 'hip', 'hire', 'history', 'hobby', 'hockey', 'hold', 'hole', 'holiday',
-    'hollow', 'home', 'honey', 'hood', 'hope', 'horn', 'horror', 'horse', 'hospital', 'host', 'hotel', 'hour', 'hover', 'hub', 'huge', 'human',
-    'humble', 'humor', 'hundred', 'hungry', 'hunt', 'hurdle', 'hurry', 'hurt', 'husband', 'hybrid', 'ice', 'icon', 'idea', 'identify',
-    'idle', 'ignore', 'ill', 'illegal', 'illness', 'image', 'imitate', 'immense', 'immune', 'impact', 'impose', 'improve', 'impulse',
-    'inch', 'include', 'income', 'increase', 'index', 'indicate', 'indoor', 'industry', 'infant', 'inflict', 'inform', 'inhale', 'inherit',
-    'initial', 'inject', 'injury', 'inmate', 'inner', 'innocent', 'input', 'inquiry', 'insane', 'insect', 'inside', 'inspire', 'install',
-    'intact', 'interest', 'into', 'invest', 'invite', 'involve', 'iron', 'island', 'isolate', 'issue', 'item', 'ivory', 'jacket', 'jaguar',
-    'jar', 'jazz', 'jealous', 'jeans', 'jelly', 'jewel', 'job', 'join', 'joke', 'journey', 'joy', 'judge', 'juice', 'jump', 'jungle',
-    'junior', 'junk', 'just', 'kangaroo', 'keen', 'keep', 'ketchup', 'key', 'kick', 'kid', 'kidney', 'kind', 'kingdom', 'kiss', 'kit',
-    'kitchen', 'kite', 'kitten', 'kiwi', 'knee', 'knife', 'knock', 'know', 'lab', 'label', 'labor', 'ladder', 'lady', 'lake', 'lamp',
-    'language', 'laptop', 'large', 'later', 'latin', 'laugh', 'laundry', 'lava', 'law', 'lawn', 'lawsuit', 'layer', 'lazy', 'leader',
-    'leaf', 'learn', 'leave', 'lecture', 'left', 'leg', 'legal', 'legend', 'leisure', 'lemon', 'lend', 'length', 'lens', 'leopard', 'lesson',
-    'letter', 'level', 'liar', 'liberty', 'library', 'license', 'life', 'lift', 'light', 'like', 'limb', 'limit', 'link', 'lion', 'liquid',
-    'list', 'little', 'live', 'lizard', 'load', 'loan', 'lobster', 'local', 'lock', 'logic', 'lonely', 'long', 'loop', 'lottery', 'loud',
-    'lounge', 'love', 'loyal', 'lucky', 'luggage', 'lumber', 'lunar', 'lunch', 'luxury', 'lyrics', 'machine', 'mad', 'magic', 'magnet',
-    'maid', 'mail', 'main', 'major', 'make', 'mammal', 'man', 'manage', 'mandate', 'mango', 'mansion', 'manual', 'maple', 'marble', 'march',
-    'margin', 'marine', 'market', 'marriage', 'mask', 'mass', 'master', 'match', 'material', 'math', 'matrix', 'matter', 'maximum', 'maze',
-    'meadow', 'mean', 'measure', 'meat', 'mechanic', 'medal', 'media', 'melody', 'melt', 'member', 'memory', 'mention', 'menu', 'mercy',
-    'merge', 'merit', 'merry', 'mesh', 'message', 'metal', 'method', 'middle', 'midnight', 'milk', 'million', 'mimic', 'mind', 'minimum',
-    'minor', 'minute', 'miracle', 'mirror', 'misery', 'miss', 'mistake', 'mix', 'mixed', 'mixture', 'mobile', 'model', 'modify', 'mom',
-    'moment', 'monitor', 'monkey', 'monster', 'month', 'moon', 'moral', 'more', 'morning', 'mosquito', 'mother', 'motion', 'motor',
-    'mountain', 'mouse', 'move', 'movie', 'much', 'muffin', 'mule', 'multiply', 'muscle', 'museum', 'mushroom', 'music', 'must', 'mutual',
-    'myself', 'mystery', 'myth', 'naive', 'name', 'napkin', 'narrow', 'nasty', 'nation', 'nature', 'near', 'neck', 'need', 'negative',
-    'neglect', 'neither', 'nephew', 'nerve', 'nest', 'net', 'network', 'neutral', 'never', 'news', 'next', 'nice', 'night', 'noble', 'noise',
-    'nominee', 'noodle', 'normal', 'north', 'nose', 'notable', 'note', 'nothing', 'notice', 'novel', 'now', 'nuclear', 'number', 'nurse',
-    'nut', 'oak', 'obey', 'object', 'oblige', 'obscure', 'observe', 'obtain', 'obvious', 'occur', 'ocean', 'october', 'odor', 'off', 'offer',
-    'office', 'often', 'oil', 'okay', 'old', 'olive', 'olympic', 'omit', 'once', 'one', 'onion', 'online', 'only', 'open', 'opera',
-    'opinion', 'oppose', 'option', 'orange', 'orbit', 'orchard', 'order', 'ordinary', 'organ', 'orient', 'original', 'orphan', 'ostrich',
-    'other', 'outdoor', 'outer', 'output', 'outside', 'oval', 'oven', 'over', 'own', 'owner', 'oxygen', 'oyster', 'ozone', 'pact', 'paddle',
-    'page', 'pair', 'palace', 'palm', 'panda', 'panel', 'panic', 'panther', 'paper', 'parade', 'parent', 'park', 'parrot', 'party', 'pass',
-    'patch', 'path', 'patient', 'patrol', 'pattern', 'pause', 'pave', 'payment', 'peace', 'peanut', 'pear', 'peasant', 'pelican', 'pen',
-    'penalty', 'pencil', 'people', 'pepper', 'perfect', 'permit', 'person', 'pet', 'phone', 'photo', 'phrase', 'physical', 'piano', 'picnic',
-    'picture', 'piece', 'pig', 'pigeon', 'pill', 'pilot', 'pink', 'pioneer', 'pipe', 'pistol', 'pitch', 'pizza', 'place', 'planet',
-    'plastic', 'plate', 'play', 'please', 'pledge', 'pluck', 'plug', 'plunge', 'poem', 'poet', 'point', 'polar', 'pole', 'police', 'pond',
-    'pony', 'pool', 'popular', 'portion', 'position', 'possible', 'post', 'potato', 'pottery', 'poverty', 'powder', 'power', 'practice',
-    'praise', 'predict', 'prefer', 'prepare', 'present', 'pretty', 'prevent', 'price', 'pride', 'primary', 'print', 'priority', 'prison',
-    'private', 'prize', 'problem', 'process', 'produce', 'profit', 'program', 'project', 'promote', 'proof', 'property', 'prosper',
-    'protect', 'proud', 'provide', 'public', 'pudding', 'pull', 'pulp', 'pulse', 'pumpkin', 'punch', 'pupil', 'puppy', 'purchase', 'purity',
-    'purpose', 'purse', 'push', 'put', 'puzzle', 'pyramid', 'quality', 'quantum', 'quarter', 'question', 'quick', 'quit', 'quiz', 'quote',
-    'rabbit', 'raccoon', 'race', 'rack', 'radar', 'radio', 'rail', 'rain', 'raise', 'rally', 'ramp', 'ranch', 'random', 'range', 'rapid',
-    'rare', 'rate', 'rather', 'raven', 'raw', 'razor', 'ready', 'real', 'reason', 'rebel', 'rebuild', 'recall', 'receive', 'recipe', 'record',
-    'recycle', 'reduce', 'reflect', 'reform', 'refuse', 'region', 'regret', 'regular', 'reject', 'relax', 'release', 'relief', 'rely',
-    'remain', 'remember', 'remind', 'remove', 'render', 'renew', 'rent', 'reopen', 'repair', 'repeat', 'replace', 'report', 'require',
-    'rescue', 'resemble', 'resist', 'resource', 'response', 'result', 'retire', 'retreat', 'return', 'reunion', 'reveal', 'review',
-    'reward', 'rhythm', 'rib', 'ribbon', 'rice', 'rich', 'ride', 'ridge', 'rifle', 'right', 'rigid', 'ring', 'riot', 'ripple', 'risk',
-    'ritual', 'rival', 'river', 'road', 'roast', 'robot', 'robust', 'rocket', 'romance', 'roof', 'rookie', 'room', 'rose', 'rotate', 'rough',
-    'round', 'route', 'royal', 'rubber', 'rude', 'rug', 'rule', 'run', 'runway', 'rural', 'sad', 'saddle', 'sadness', 'safe', 'sail', 'salad',
-    'salmon', 'salon', 'salt', 'salute', 'same', 'sample', 'sand', 'satisfy', 'satoshi', 'sauce', 'sausage', 'save', 'say', 'scale', 'scan',
-    'scare', 'scatter', 'scene', 'scheme', 'school', 'science', 'scissors', 'scorpion', 'scout', 'scrap', 'screen', 'script', 'scrub',
-    'sea', 'search', 'season', 'seat', 'second', 'secret', 'section', 'security', 'seed', 'seek', 'segment', 'select', 'sell', 'seminar',
-    'senior', 'sense', 'sentence', 'series', 'service', 'session', 'settle', 'setup', 'seven', 'shadow', 'shaft', 'shallow', 'share',
-    'shed', 'shell', 'sheriff', 'shield', 'shift', 'shine', 'ship', 'shiver', 'shock', 'shoe', 'shoot', 'shop', 'short', 'shoulder',
-    'shove', 'shrimp', 'shrug', 'shuffle', 'shy', 'sibling', 'sick', 'side', 'siege', 'sight', 'sign', 'silent', 'silk', 'silly', 'silver',
-    'similar', 'simple', 'since', 'sing', 'siren', 'sister', 'situate', 'six', 'size', 'skate', 'sketch', 'ski', 'skill', 'skin', 'skirt',
-    'skull', 'slab', 'slam', 'sleep', 'slender', 'slice', 'slide', 'slight', 'slim', 'slogan', 'slot', 'slow', 'slush', 'small', 'smart',
-    'smile', 'smoke', 'smooth', 'snack', 'snake', 'snap', 'sniff', 'snow', 'soap', 'soccer', 'social', 'sock', 'soda', 'soft', 'solar',
-    'soldier', 'solid', 'solution', 'solve', 'someone', 'song', 'soon', 'sorry', 'sort', 'soul', 'sound', 'soup', 'source', 'south',
-    'space', 'spare', 'spatial', 'spawn', 'speak', 'special', 'speed', 'spell', 'spend', 'sphere', 'spice', 'spider', 'spike', 'spin',
-    'spirit', 'split', 'spoil', 'sponsor', 'spoon', 'sport', 'spot', 'spray', 'spread', 'spring', 'spy', 'square', 'squeeze', 'squirrel',
-    'stable', 'stadium', 'staff', 'stage', 'stairs', 'stamp', 'stand', 'start', 'state', 'stay', 'steak', 'steel', 'stem', 'step', 'stereo',
-    'stick', 'still', 'sting', 'stock', 'stomach', 'stone', 'stool', 'story', 'stove', 'strategy', 'street', 'strike', 'strong',
-    'struggle', 'student', 'stuff', 'stumble', 'style', 'subject', 'submit', 'subway', 'success', 'such', 'sudden', 'suffer', 'sugar',
-    'suggest', 'suit', 'summer', 'sun', 'sunny', 'sunset', 'super', 'supply', 'supreme', 'sure', 'surface', 'surge', 'surprise',
-    'surround', 'survey', 'suspect', 'sustain', 'swallow', 'swamp', 'swap', 'swarm', 'swear', 'sweet', 'swift', 'swim', 'swing', 'switch',
-    'sword', 'symbol', 'symptom', 'syrup', 'system', 'table', 'tackle', 'tag', 'tail', 'talent', 'talk', 'tank', 'tape', 'target', 'task',
-    'taste', 'tattoo', 'taxi', 'teach', 'team', 'tell', 'ten', 'tenant', 'tennis', 'tent', 'term', 'test', 'text', 'thank', 'that', 'theme',
-    'then', 'theory', 'there', 'they', 'thing', 'this', 'thought', 'three', 'thrive', 'throw', 'thumb', 'thunder', 'ticket', 'tide',
-    'tiger', 'tilt', 'timber', 'time', 'tiny', 'tip', 'tired', 'tissue', 'title', 'toast', 'tobacco', 'today', 'toddler', 'toe', 'together',
-    'toilet', 'token', 'tomato', 'tomorrow', 'tone', 'tongue', 'tonight', 'tool', 'tooth', 'top', 'topic', 'topple', 'torch', 'tornado',
-    'tortoise', 'toss', 'total', 'tourist', 'toward', 'tower', 'town', 'toy', 'track', 'trade', 'traffic', 'tragic', 'train', 'transfer',
-    'trap', 'trash', 'travel', 'tray', 'treat', 'tree', 'trend', 'trial', 'tribe', 'trick', 'trigger', 'trim', 'trip', 'trophy', 'trouble',
-    'truck', 'true', 'truly', 'trumpet', 'trust', 'truth', 'try', 'tube', 'tuition', 'tumble', 'tuna', 'tunnel', 'turkey', 'turn', 'turtle',
-    'twelve', 'twenty', 'twice', 'twin', 'twist', 'two', 'type', 'typical', 'ugly', 'umbrella', 'unable', 'unaware', 'uncle', 'uncover',
-    'under', 'undo', 'unfair', 'unfold', 'unhappy', 'uniform', 'unique', 'unit', 'universe', 'unknown', 'unlock', 'until', 'unusual',
-    'unveil', 'update', 'upgrade', 'uphold', 'upon', 'upper', 'upset', 'urban', 'urge', 'usage', 'use', 'used', 'useful', 'useless',
-    'usual', 'utility', 'vacant', 'vacuum', 'vague', 'valid', 'valley', 'valve', 'van', 'vanish', 'vapor', 'various', 'vast', 'vault',
-    'vehicle', 'velvet', 'vendor', 'venture', 'venue', 'verb', 'verify', 'version', 'very', 'vessel', 'veteran', 'viable', 'vibrant',
-    'vicious', 'victory', 'video', 'view', 'village', 'vintage', 'violin', 'virtual', 'virus', 'visa', 'visit', 'visual', 'vital',
-    'vivid', 'vocal', 'voice', 'void', 'volcano', 'volume', 'vote', 'voyage', 'wage', 'wagon', 'wait', 'walk', 'wall', 'walnut', 'want',
-    'warfare', 'warm', 'warrior', 'wash', 'wasp', 'waste', 'water', 'wave', 'way', 'wealth', 'weapon', 'wear', 'weasel', 'weather', 'web',
-    'wedding', 'weekend', 'weird', 'welcome', 'west', 'wet', 'whale', 'what', 'wheat', 'wheel', 'when', 'where', 'whip', 'whisper', 'wide',
-    'width', 'wife', 'wild', 'will', 'win', 'window', 'wine', 'wing', 'wink', 'winner', 'winter', 'wire', 'wisdom', 'wise', 'wish', 'witness',
-    'wolf', 'woman', 'wonder', 'wood', 'wool', 'word', 'work', 'world', 'worry', 'worth', 'wrap', 'wreck', 'wrestle', 'wrist', 'write',
-    'wrong', 'yard', 'year', 'yellow', 'you', 'young', 'youth', 'zebra', 'zero', 'zone', 'zoo'];
+// Same derivation as the official IBAX wallets, so a mnemonic restores the same account
+export const HD_PATH = "m/44'/60'/0'/0/0";
+const MNEMONIC_STRENGTH = 128; // 12 words
 
-const randomEngine = Random();
-const signAlg = 'SHA256withECDSA';
-const curveName = 'secp256r1';
+// An account's key: usable on secp256k1 (every public network) and P-256 (nodes before configurable
+// crypto), as the client has always required. SM2's range is smaller: the rare key past it (about
+// one in 2^32) has no identity on SM2 networks (deriveIdentities) but stays usable everywhere else.
+export const isValidPrivateKey = (privateKey: string | null | undefined): privateKey is string => {
+    if (!privateKey || !/^[0-9a-f]{64}$/i.test(privateKey)) {
+        return false;
+    }
+    const bytes = hexToBytes(privateKey);
+    return secp256k1.utils.isValidSecretKey(bytes) && p256.utils.isValidSecretKey(bytes);
+};
 
-const keyring = {
-    MAX_KEY_SIZE: 1024 * 10, // 10 KiB
-    KEY_LENGTH: 64,
+export const generateMnemonic = () => bip39Generate(wordlist, MNEMONIC_STRENGTH);
 
-    validatePrivateKey: (privateKey: string) => {
-        if (!privateKey || keyring.KEY_LENGTH !== privateKey.length) {
-            return false;
+export const normalizeMnemonic = (mnemonic: string) => mnemonic.trim().toLowerCase().split(/\s+/).join(' ');
+
+export const isValidMnemonic = (mnemonic: string) => validateMnemonic(normalizeMnemonic(mnemonic), wordlist);
+
+export const privateKeyFromMnemonic = (mnemonic: string) => {
+    const node = HDKey.fromMasterSeed(mnemonicToSeedSync(normalizeMnemonic(mnemonic))).derive(HD_PATH);
+    if (!node.privateKey) {
+        throw new Error('HD derivation produced no private key');
+    }
+    return bytesToHex(node.privateKey);
+};
+
+// Public key and account id of the key under every supported network suite its curve takes. Computed while the
+// private key is at hand, so wallets can be listed for any network without the password.
+export const deriveIdentities = (privateKey: string): IWalletIdentities => {
+    const identities: IWalletIdentities = {};
+    // The public key depends on the curve only
+    const publicKeys = new Map<string, string>();
+    for (const suiteId of SUPPORTED_CRYPTO_SUITES) {
+        const suite = resolveCryptoSuite(suiteId);
+        if (!suite.canUsePrivateKey(privateKey)) {
+            identities[cryptoSuiteKey(suiteId)] = null;
+            continue;
         }
-        else {
-            return /[a-f0-9]/i.test(privateKey);
-        }
-    },
+        const publicKey = publicKeys.get(suiteId.cryptoer) ?? suite.publicKey(privateKey);
+        publicKeys.set(suiteId.cryptoer, publicKey);
+        identities[cryptoSuiteKey(suiteId)] = { publicKey, keyID: suite.keyID(publicKey) };
+    }
+    return identities;
+};
 
-    generateSeed: (count: number = 15) => {
-        const result: string[] = [];
-        for (let i = 0; i < count; i++) {
-            const value = randomEngine.pick(WORD_LIST);
-            result.push(value);
-        }
-        return result.join(' ');
-    },
+// ---------------------------------------------------------------------------------------------
+// Encryption at rest: PBKDF2-SHA256 + AES-GCM (WebCrypto). Format: "v1.<iterations>.<salt>.<iv>.<ciphertext>" (base64url)
 
-    generateKeyPair: (seed: string) => {
-        const seedLower = seed.toLowerCase();
-        let seedHex = '';
-        for (let i = 0; i < seedLower.length; i++) {
-            const char = seedLower[i];
-            if (('0' <= char && '9' >= char) || ('a' <= char && 'f' >= char)) {
-                seedHex += char;
-            }
-            if (64 === seedHex.length) {
-                break;
-            }
-        }
-        if (64 > seedHex.length) {
-            const hash = CryptoJS.SHA256(seed);
-            seedHex = hash.toString();
-        }
+const ENCRYPTION_VERSION = 'v1';
+const PBKDF2_ITERATIONS = 600000;
+// Accepted from stored data: fewer would weaken the key, more would make decryption hang
+const MIN_ITERATIONS = 100000;
+const MAX_ITERATIONS = 10000000;
+const SALT_BYTES = 16;
+const IV_BYTES = 12;
+// AES-GCM appends a 16 byte tag to the 32 byte key
+const CIPHERTEXT_BYTES = 32 + 16;
 
-        const curveParams = KJUR.crypto.ECParameterDB.getByName(curveName);
-        const curveG = curveParams.G;
-        const privateBig = new KJUR.BigInteger(seedHex, 16);
-        const publicBig = curveG.multiply(privateBig);
-        const valueX = publicBig.getX().toBigInteger();
-        const valueY = publicBig.getY().toBigInteger();
-        const charLen = curveParams.keylen / 4;
+export class InvalidEncryptedKeyError extends Error {
+    constructor() {
+        super('Unrecognized encrypted key format');
+        this.name = 'InvalidEncryptedKeyError';
+    }
+}
 
-        const privateHex = ('0000000000' + privateBig.toString(16)).slice(-charLen);
-        const xHex = ('0000000000' + valueX.toString(16)).slice(-charLen);
-        const yHex = ('0000000000' + valueY.toString(16)).slice(-charLen);
-        const publicHex = '04' + xHex + yHex;
+const subtle = () => {
+    const source = globalThis.crypto;
+    if (!source || !source.subtle || typeof source.getRandomValues !== 'function') {
+        throw new Error('WebCrypto is unavailable');
+    }
+    return source;
+};
 
-        return {
-            private: privateHex,
-            public: publicHex
-        };
-    },
-
-    generatePublicKey(privateKey: string) {
-        const curveParams = KJUR.crypto.ECParameterDB.getByName(curveName);
-        const curveG = curveParams.G;
-        const charLen = curveParams.keylen / 4;
-        const privateBig = new KJUR.BigInteger(privateKey, 16);
-        const publicBig = curveG.multiply(privateBig);
-        const valueX = publicBig.getX().toBigInteger();
-        const valueY = publicBig.getY().toBigInteger();
-        const xHex = ('0000000000' + valueX.toString(16)).slice(-charLen);
-        const yHex = ('0000000000' + valueY.toString(16)).slice(-charLen);
-        return '04' + xHex + yHex;
-    },
-
-    encryptAES: (data: string, password: string) => {
-        return CryptoJS.AES.encrypt(data, password).toString();
-    },
-
-    decryptAES: (data: string, password: string) => {
-        const decrypted = CryptoJS.AES.decrypt(data, password).toString(CryptoJS.enc.Hex);
-        let result = '';
-
-        for (let i = 0; i < decrypted.length; i += 2) {
-            const byte = parseInt(decrypted.substr(i, 2), 16);
-            result += String.fromCharCode(byte);
-        }
-
-        return result;
-    },
-
-    verify: (privateKey: string, publicKey: string, data: string = 'IBAX') => {
-        const encryptedData = keyring.sign(data, privateKey);
-        const signature = new KJUR.crypto.Signature({
-            alg: signAlg,
-            prov: 'cryptojs/jsrsa'
-        });
-
-        signature.init({ xy: publicKey, curve: curveName });
-        signature.updateString(data);
-        return signature.verify(encryptedData);
-    },
-
-    sign: (data: string, privateKey: string) => {
-        const signature = new KJUR.crypto.Signature({ alg: signAlg });
-        signature.init({ d: privateKey, curve: curveName });
-        signature.updateString(data);
-        return signature.sign();
-    },
-
-    hashData(data: string) {
-        return CryptoJS.SHA256(data).toString();
+const toBase64Url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const fromBase64Url = (value: string) => {
+    if (!/^[A-Za-z0-9_-]*$/.test(value)) {
+        throw new InvalidEncryptedKeyError();
+    }
+    const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+    try {
+        return Uint8Array.from(atob(base64 + '='.repeat((4 - base64.length % 4) % 4)), c => c.charCodeAt(0));
+    }
+    catch {
+        throw new InvalidEncryptedKeyError();
     }
 };
 
-export default keyring;
+const deriveAesKey = async (password: string, salt: Uint8Array, iterations: number) => {
+    const webcrypto = subtle();
+    const material = await webcrypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+    return webcrypto.subtle.deriveKey(
+        { name: 'PBKDF2', hash: 'SHA-256', salt: salt as Uint8Array<ArrayBuffer>, iterations },
+        material,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+};
+
+export const encryptPrivateKey = async (privateKey: string, password: string) => {
+    const webcrypto = subtle();
+    const salt = webcrypto.getRandomValues(new Uint8Array(SALT_BYTES));
+    const iv = webcrypto.getRandomValues(new Uint8Array(IV_BYTES));
+    const key = await deriveAesKey(password, salt, PBKDF2_ITERATIONS);
+    const ciphertext = new Uint8Array(await webcrypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, hexToBytes(privateKey)));
+    return [ENCRYPTION_VERSION, PBKDF2_ITERATIONS, toBase64Url(salt), toBase64Url(iv), toBase64Url(ciphertext)].join('.');
+};
+
+// Resolves with the private key, or null when the password is wrong (AES-GCM authentication
+// fails); throws InvalidEncryptedKeyError for anything that is not a key this module encrypted
+export const decryptPrivateKey = async (encKey: string, password: string): Promise<string | null> => {
+    const parts = (encKey || '').split('.');
+    if (parts.length !== 5 || parts[0] !== ENCRYPTION_VERSION || !/^\d{1,9}$/.test(parts[1])) {
+        throw new InvalidEncryptedKeyError();
+    }
+    const iterations = Number(parts[1]);
+    const [salt, iv, ciphertext] = parts.slice(2).map(fromBase64Url);
+    if (iterations < MIN_ITERATIONS || iterations > MAX_ITERATIONS || salt.length !== SALT_BYTES || iv.length !== IV_BYTES || ciphertext.length !== CIPHERTEXT_BYTES) {
+        throw new InvalidEncryptedKeyError();
+    }
+    const key = await deriveAesKey(password, salt, iterations);
+    try {
+        const plain = await subtle().subtle.decrypt({ name: 'AES-GCM', iv: iv as Uint8Array<ArrayBuffer> }, key, ciphertext as Uint8Array<ArrayBuffer>);
+        const privateKey = bytesToHex(new Uint8Array(plain));
+        return isValidPrivateKey(privateKey) ? privateKey : null;
+    }
+    catch (e) {
+        return null;
+    }
+};
+
+// A stored wallet; its id is the account id under the default network suite, so importing the
+// same key twice yields the same wallet
+export const createWallet = async (privateKey: string, password: string): Promise<IWallet> => {
+    const identities = deriveIdentities(privateKey);
+    return {
+        id: identities[cryptoSuiteKey(DEFAULT_CRYPTO_SUITE)].keyID,
+        encKey: await encryptPrivateKey(privateKey, password),
+        identities
+    };
+};
+
+// A backup the user pastes to import a wallet: a raw private key (hex) or a BIP39 mnemonic from an
+// IBAX wallet. Null for anything else.
+export const privateKeyFromBackup = (backup: string): string | null => {
+    const value = (backup || '').trim();
+    if (isValidPrivateKey(value)) {
+        return value.toLowerCase();
+    }
+    if (isValidMnemonic(value)) {
+        return privateKeyFromMnemonic(value);
+    }
+    return null;
+};

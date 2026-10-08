@@ -4,12 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import propTypes from 'prop-types';
 import { Validator } from './Validators';
 import { IMapEditorEvent, TMapType } from 'ibax/geo';
 import { IMapEditorModalProps } from 'components/Modal/MapEditorModal';
 
-import ValidatedForm, { IValidatedControl } from './ValidatedForm';
+import { IValidatedControl, ValidatedFormContext } from './ValidatedForm';
 
 export interface IValidatedMapProps {
     name: string;
@@ -26,6 +25,9 @@ interface IValidatedMapState {
 }
 
 export default class ValidatedMap extends React.Component<IValidatedMapProps, IValidatedMapState> implements IValidatedControl {
+    static contextType = ValidatedFormContext;
+    declare context: React.ContextType<typeof ValidatedFormContext>;
+
     private _value: IMapEditorEvent = {
         type: 'point',
         coords: [],
@@ -42,21 +44,21 @@ export default class ValidatedMap extends React.Component<IValidatedMapProps, IV
 
     componentDidMount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._registerElement(this);
+            this.context.form._registerElement(this);
         }
     }
 
     componentWillUnmount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._unregisterElement(this);
+            this.context.form._unregisterElement(this);
         }
     }
 
-    componentWillReceiveProps(props: IValidatedMapProps) {
-        if (props.value && this.props.value !== props.value) {
-            const address = this.state.address !== props.value.address ? props.value.address : this.state.address;
+    componentDidUpdate(prevProps: IValidatedMapProps) {
+        if (this.props.value && prevProps.value !== this.props.value) {
+            const address = this.state.address !== this.props.value.address ? this.props.value.address : this.state.address;
             this._value = {
-                ...props.value,
+                ...this.props.value,
                 address
             };
 
@@ -92,17 +94,10 @@ export default class ValidatedMap extends React.Component<IValidatedMapProps, IV
             <div className="input-group">
                 <input type="text" className="form-control" value={this.state.address} onChange={this.onChange} disabled={!this.props.value} />
 
-                <div className="group-span-filestyle input-group-btn">
-                    <button className="btn btn-default" style={{ border: 'solid 1px #dde6e9' }} type="button" onClick={this.openEditor}>
-                        <span className="text-muted icon-span-filestyle glyphicon fa fa-map-marker" />
-                        <span className="buttonText" />
-                    </button>
-                </div>
+                <button className="btn btn-secondary" style={{ border: 'solid 1px #dde6e9' }} type="button" onClick={this.openEditor}>
+                    <span className="text-muted fa fa-map-marker" />
+                </button>
             </div>
         );
     }
 }
-
-(ValidatedMap as React.ComponentClass).contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
-};

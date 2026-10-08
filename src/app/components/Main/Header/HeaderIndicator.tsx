@@ -12,14 +12,14 @@ interface Props {
   icon: string;
   className?: string;
   right?: boolean;
-  title: JSX.Element | string;
-  titleDesc: JSX.Element | string;
+  title: React.JSX.Element | string;
+  titleDesc: React.JSX.Element | string;
 }
 
-const HeaderIndicator: React.SFC<Props> = (props) => (
+const HeaderIndicator: React.FC<React.PropsWithChildren<Props>> = (props) => (
   <li
     className={props.className}
-    style={{ float: props.right ? 'right' : null }}
+    style={{ float: props.right ? 'right' : undefined }}
   >
     <Tooltip title={props.title} body={props.titleDesc}>
       <div className="tool-body">

@@ -108,14 +108,12 @@ interface Props {
   onMouseLeave?: () => void;
 }
 
-const Menu: React.SFC<Props> = (props) => (
+const Menu: React.FC<Props> = (props) => (
   <StyledNavigation
     className={classNames({
       menu_folded: props.folded,
       menu_active: props.active
     })}
-   /*  onMouseOver={props.onMouseOver}
-    onMouseLeave={props.onMouseLeave} */
   >
     <nav>
       <StyledMenu>

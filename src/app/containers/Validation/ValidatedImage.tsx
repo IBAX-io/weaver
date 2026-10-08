@@ -5,9 +5,8 @@
 
 import * as React from 'react';
 import * as uuid from 'uuid';
-import { connect } from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
 import { IRootState } from 'modules';
-import { IModal } from 'ibax/modal';
 import { modalShow } from 'modules/modal/actions';
 
 import { Validator } from 'components/Validation/Validators';
@@ -21,18 +20,22 @@ export interface IValidatedImageContainerProps {
     validators?: Validator[];
 }
 
-interface IValidatedImageContainerState {
-    modal: IModal;
-}
+const mapStateToProps = (state: IRootState) => ({
+    modal: state.modal
+});
 
-interface IValidatedImageContainerDispatch {
-    modalShow: typeof modalShow;
-}
+const mapDispatchToProps = {
+    modalShow
+};
 
-class ValidatedImageContainer extends React.Component<IValidatedImageContainerProps & IValidatedImageContainerState & IValidatedImageContainerDispatch, { result: string }> {
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+type TProps = ConnectedProps<typeof connector> & IValidatedImageContainerProps;
+
+class ValidatedImageContainer extends React.Component<TProps, { result: string }> {
     private _id: string = uuid.v4();
 
-    constructor(props: any) {
+    constructor(props: TProps) {
         super(props);
         this.state = {
             result: null
@@ -47,8 +50,12 @@ class ValidatedImageContainer extends React.Component<IValidatedImageContainerPr
         });
     }
 
-    componentWillReceiveProps(props: IValidatedImageContainerProps & IValidatedImageContainerState & IValidatedImageContainerDispatch) {
-        const result = props.modal && this._id === props.modal.id && props.modal.result;
+    componentDidUpdate(prevProps: TProps) {
+        if (prevProps.modal === this.props.modal) {
+            return;
+        }
+
+        const result = this.props.modal && this._id === this.props.modal.id && this.props.modal.result;
         if (result && 'RESULT' === result.reason) {
             this.setState({
                 result: result.data
@@ -71,12 +78,4 @@ class ValidatedImageContainer extends React.Component<IValidatedImageContainerPr
     }
 }
 
-const mapStateToProps = (state: IRootState) => ({
-    modal: state.modal
-});
-
-const mapDispatchToProps = {
-    modalShow: modalShow
-};
-
-export default connect<IValidatedImageContainerState, IValidatedImageContainerDispatch, IValidatedImageContainerProps>(mapStateToProps, mapDispatchToProps)(ValidatedImageContainer);
+export default connector(ValidatedImageContainer);

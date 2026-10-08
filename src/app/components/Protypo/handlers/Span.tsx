@@ -9,6 +9,7 @@ import StyledComponent from './StyledComponent';
 export interface ISpanProps {
     'className'?: string;
     'class'?: string;
+    children?: React.ReactNode;
 }
 
 class Span extends React.Component<ISpanProps> {

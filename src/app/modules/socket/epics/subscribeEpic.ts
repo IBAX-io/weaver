@@ -4,36 +4,38 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Observable } from 'rxjs/Observable';
+import { Observable, Observer, of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { Observer } from 'rxjs';
+import { ofAction } from 'lib/rx/ofAction';
 import { subscribe, setNotificationsCount } from '../actions';
 import { fetchNotifications } from 'modules/content/actions';
 import findNotificationsCount from '../util/findNotificationsCount';
-import platform from 'lib/platform';
+import desktop from 'lib/desktop';
 
-const subscribeEpic: Epic = (action$, store) => action$.ofAction(subscribe.started)
-    .flatMap(action => {
-        const state = store.getState();
+const subscribeEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(subscribe.started),
+    mergeMap(action => {
+        const state = state$.value;
         if (state.socket.subscriptions.find(l => l.wallet.id === action.payload.id)) {
-            return Observable.of(subscribe.failed({
+            return of(subscribe.failed({
                 params: action.payload,
                 error: 'E_ALREADY_SUBSCRIBED'
             }));
         }
         else if (!state.socket.socket) {
-            return Observable.of(subscribe.failed({
+            return of(subscribe.failed({
                 params: action.payload,
                 error: 'E_SOCKET_OFFLINE'
             }));
         }
         else {
-            return Observable.create((observer: Observer<Action>) => {
+            return new Observable((observer: Observer<Action>) => {
                 const sub = state.socket.socket.subscribe('client' + action.payload.address, (message: { data: { role_id: string, ecosystem: string, count: number }[] }) => {
                     let count = 0;
 
                     message.data.forEach(n => {
-                        const subState = store.getState();
+                        const subState = state$.value;
                         const notifications = findNotificationsCount(subState.socket, subState.auth.wallet);
 
                         if (subState.auth.isAuthenticated &&
@@ -61,10 +63,9 @@ const subscribeEpic: Epic = (action$, store) => action$.ofAction(subscribe.start
                         }
                     });
 
-                    platform.on('desktop', () => {
-                        const Electron = require('electron');
-                        Electron.remote.app.setBadgeCount(count);
-                    });
+                    if (desktop) {
+                        desktop.setBadgeCount(count);
+                    }
                 });
 
                 observer.next(subscribe.done({
@@ -73,6 +74,7 @@ const subscribeEpic: Epic = (action$, store) => action$.ofAction(subscribe.start
                 }));
             });
         }
-    });
+    })
+);
 
 export default subscribeEpic;

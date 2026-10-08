@@ -3,27 +3,47 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { iif, merge, of } from 'rxjs';
+import { map, mergeMap, take } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { Observable } from 'rxjs';
+import { ofAction } from 'lib/rx/ofAction';
 import { txCall, txAuthorize, txExec } from '../actions';
 import { isType } from 'typescript-fsa';
-import keyring from 'lib/keyring';
+import { isValidPrivateKey } from 'lib/keyring';
 
-const txCallEpic: Epic = (action$, store) => action$.ofAction(txCall)
-    // Ask for password if there is no privateKey
-    .flatMap(action => Observable.if(
-        () => keyring.validatePrivateKey(store.getState().auth.privateKey),
-        Observable.of(txExec.started(action.payload)),
-        Observable.merge(
-            Observable.of(txAuthorize.started({})),
-            action$.filter(l => txAuthorize.done.match(l) || txAuthorize.failed.match(l))
-                .take(1)
-                .flatMap(result => Observable.if(
-                    () => isType(result, txAuthorize.done),
-                    Observable.of(txExec.started(action.payload)),
-                    Observable.empty<never>()
-                ))
-        )
-    ));
+// Every transaction of the app passes here, so this is where it is decided whether it may be
+// signed at all. Each call ends in txExec.done or txExec.failed, whatever happens.
+const txCallEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(txCall),
+    mergeMap(action => {
+        // The demo account's key is public: anything signed with it could be changed by anyone
+        if (state$.value.auth.isDefaultWallet) {
+            return of(txExec.failed({
+                params: action.payload,
+                error: { type: 'E_GUEST_VIOLATION', error: '' }
+            }));
+        }
+
+        // Ask for the password if the private key is locked
+        return iif(
+            () => isValidPrivateKey(state$.value.auth.privateKey),
+            of(txExec.started(action.payload)),
+            merge(
+                of(txAuthorize.started({})),
+                action$.pipe(
+                    ofAction(txAuthorize.done, txAuthorize.failed),
+                    take(1),
+                    map(result => isType(result, txAuthorize.done)
+                        ? txExec.started(action.payload)
+                        // Cancelled, or a wrong password (already reported by txAuthorizeEpic)
+                        : txExec.failed({
+                            params: action.payload,
+                            error: { type: 'E_AUTH_CANCELLED', error: '' }
+                        }))
+                )
+            )
+        );
+    })
+);
 
 export default txCallEpic;

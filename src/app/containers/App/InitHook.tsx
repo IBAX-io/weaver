@@ -26,7 +26,7 @@ class InitHook extends React.Component<IInitHookProps & IInitHookState & IInitHo
     }
 
     render() {
-        return null as JSX.Element;
+        return null as React.JSX.Element;
     }
 }
 

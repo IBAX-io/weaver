@@ -11,19 +11,21 @@ import Notification from './Notification';
 import TxSuccessNotification from './Types/TxSuccessNotification';
 import InvalidPasswordNotification from './Types/InvalidPasswordNotification';
 import TxBatchNotification from './Types/TxBatchNotification';
+import TxInterruptedNotification from './Types/TxInterruptedNotification';
 import EcosystemInvitedNotification from './Types/EcosystemInvitedNotification';
+import WalletEnabledNotification from './Types/WalletEnabledNotification';
 
 const definitions: { [key: string]: INotificationProto<any> } = {
     'TX_BATCH': TxBatchNotification,
     'TX_SUCCESS': TxSuccessNotification,
     'INVALID_PASSWORD': InvalidPasswordNotification,
-    'ECOSYSTEM_INVITED': EcosystemInvitedNotification
+    'TX_INTERRUPTED': TxInterruptedNotification,
+    'ECOSYSTEM_INVITED': EcosystemInvitedNotification,
+    'WALLET_ENABLED': WalletEnabledNotification
 };
 
 export interface INotificationsProviderProps {
     notifications: INotification[];
-    spawnNotification: (notification: INotification) => void;
-    destroyNotification: (id: string) => void;
 }
 
 class NotificationsProvider extends React.Component<INotificationsProviderProps> {
@@ -31,15 +33,15 @@ class NotificationsProvider extends React.Component<INotificationsProviderProps>
         return (
             <div style={{ position: 'fixed', top: '12%', left: '50%', marginLeft: '-175px', zIndex: 10000 }}>
                 <StreamGroup
-                    items={this.props.notifications.map(n => {
-                        const proto = definitions[n.type];
-                        return proto ? {
+                    // Notifications of a type the client does not know are not shown
+                    items={this.props.notifications
+                        .filter(n => !!definitions[n.type])
+                        .map(n => ({
                             key: n.id,
                             content: (
-                                <Notification proto={proto} params={n.params} />
+                                <Notification proto={definitions[n.type]} params={n.params} />
                             )
-                        } : null;
-                    })}
+                        }))}
                 />
             </div>
         );

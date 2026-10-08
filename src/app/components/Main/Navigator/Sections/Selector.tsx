@@ -30,7 +30,7 @@ const StyledSelector = themed.ul`
         list-style-type: none;
         height: 100%;
         display: inline-flex;
-        padding 0 10px;
+        padding: 0 10px;
         align-items: center;
         &:first-child {
             padding-left: 0;
@@ -42,7 +42,7 @@ const StyledSelector = themed.ul`
     }
 `;
 
-const Selector: React.SFC<ISelectorProps> = (props) => (
+const Selector: React.FC<ISelectorProps> = (props) => (
   <StyledSelector>
     {props.values.map((section) => (
       <li key={section.name}>

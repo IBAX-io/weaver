@@ -16,10 +16,12 @@ import PropertiesInput from './PropertiesInput';
 import { getInitialTagValue } from 'lib/constructor/properties';
 import resolveTagHandler from 'lib/constructor/tags';
 import { params } from 'lib/constructor/tags/params';
+import { IChangePageCall } from 'ibax/editor';
+import { TProtypoElement } from 'ibax/protypo';
 
 interface IPropertiesProps {
-  changePage?: any;
-  tag?: any;
+  changePage?: (payload: IChangePageCall) => void;
+  tag?: TProtypoElement;
 }
 
 interface IPropertiesState {}
@@ -107,7 +109,7 @@ export default class Properties extends React.Component<
       return (
         <Panel title="Properties">
           <div className="content-wrapper b-panel-light">
-            <form className="form-horizontal">
+            <form>
               <PropertiesInput
                 name="tag"
                 title="Tag"
@@ -140,7 +142,7 @@ export default class Properties extends React.Component<
           </div>
           <div className="content-wrapper" />
           <div className="content-wrapper b-panel-light">
-            <Row className="g-padding-bottom hidden">
+            <Row className="g-padding-bottom d-none">
               <Col xs={3} className="text-uppercase">
                 position
               </Col>
@@ -159,7 +161,7 @@ export default class Properties extends React.Component<
                 <div className="b-position-bullet" />
               </Col>
             </Row>
-            <form className="form-horizontal">{this.renderParams()}</form>
+            <form>{this.renderParams()}</form>
             <Row className="g-padding-bottom">
               {Tag.hasEditProp('align') && (
                 <Col xs={4} className="text-center">
@@ -202,7 +204,7 @@ export default class Properties extends React.Component<
             </Row>
             <Row className="g-padding-bottom">
               {Tag.hasEditProp('btn') && (
-                <div>
+                <>
                   <Col xs={12}>
                     <div className="text-uppercase">button</div>
                   </Col>
@@ -215,10 +217,10 @@ export default class Properties extends React.Component<
                       onSelect={this.onAttrChange.bind(this, 'btn')}
                     />
                   </Col>
-                </div>
+                </>
               )}
               {Tag.hasEditProp('color') && (
-                <div>
+                <>
                   <Col xs={12}>
                     <div className="text-uppercase">color</div>
                   </Col>
@@ -231,7 +233,7 @@ export default class Properties extends React.Component<
                       onSelect={this.onAttrChange.bind(this, 'color')}
                     />
                   </Col>
-                </div>
+                </>
               )}
             </Row>
             {this.props.tag &&

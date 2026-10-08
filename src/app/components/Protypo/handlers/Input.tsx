@@ -24,7 +24,7 @@ export interface IInputProps {
 }
 
 // TODO: type is not handled correctly
-const Input: React.SFC<IInputProps> = (props) => {
+const Input: React.FC<IInputProps> = (props) => {
     const compiledValidators: Validator[] = [];
     const className = [props.class, props.className].join(' ');
     _.forEach(props.validate, (value, name) => {

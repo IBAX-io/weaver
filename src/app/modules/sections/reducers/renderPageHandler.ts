@@ -31,9 +31,9 @@ const renderPageHandler: Reducer<typeof renderPage.started, State> = (state, pay
                 breadcrumbs: upsertSectionBreadcrumb(
                     state.sections[payload.section],
                     {
-                        caller: payload.location.state && payload.location.state.from && payload.location.state.from.name,
-                        type: (payload.location.state && payload.location.state.from) ? payload.location.state.from.type : 'IGNORE',
-                        title: payload.location.state && payload.location.state.from && payload.location.state.from.title,
+                        caller: payload.location.state && (payload.location.state as any).from && (payload.location.state as any).from.name,
+                        type: (payload.location.state && (payload.location.state as any).from) ? (payload.location.state as any).from.type : 'IGNORE',
+                        title: payload.location.state && (payload.location.state as any).from && (payload.location.state as any).from.title,
                         section: payload.section,
                         page: payload.name,
                         params: payload.params

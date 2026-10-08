@@ -4,10 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import * as propTypes from 'prop-types';
 import { FormattedMessage } from 'react-intl';
 
-import ValidatedForm from './ValidatedForm';
+import { ValidatedFormContext } from './ValidatedForm';
 
 interface IValidationMessageProps {
     className?: string;
@@ -17,15 +16,12 @@ interface IValidationMessageProps {
     };
 }
 
-interface IValidationMessageContext {
-    form: ValidatedForm;
-}
-
-const ValidationMessage: React.SFC<IValidationMessageProps> = (props, context: IValidationMessageContext) => {
+const ValidationMessage: React.FC<IValidationMessageProps> = props => {
+    const { form } = React.useContext(ValidatedFormContext);
     let result = null;
 
-    if (context.form) {
-        const value = !context.form.getState(props.for) && context.form.validate(props.for);
+    if (form) {
+        const value = !form.getState(props.for) && form.validate(props.for);
         if (value && value.error) {
             const message = props.messages && props.messages[value.validator.name];
             if (!message) {
@@ -54,10 +50,6 @@ const ValidationMessage: React.SFC<IValidationMessageProps> = (props, context: I
             )}
         </span>
     );
-};
-
-ValidationMessage.contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
 };
 
 export default ValidationMessage;

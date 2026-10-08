@@ -6,7 +6,6 @@
 import * as React from 'react';
 import { Form, FormProps } from 'react-bootstrap';
 import { Validator } from './Validators';
-import * as propTypes from 'prop-types';
 
 export interface IValidatedFormProps extends FormProps {
     pending?: boolean;
@@ -41,13 +40,19 @@ export interface IValidatedControl {
 
 interface IValidationElement {
     name: string;
-    node: React.ReactNode & IValidatedControl;
+    node: IValidatedControl;
     validators: Validator[];
 }
 
 interface IFormListener {
     (e: IValidationResult): void;
 }
+
+export interface IValidatedFormContext {
+    form: ValidatedForm | null;
+}
+
+export const ValidatedFormContext = React.createContext<IValidatedFormContext>({ form: null });
 
 export default class ValidatedForm extends React.Component<IValidatedFormProps, IValidatedFormState> {
     private _elements: {
@@ -59,12 +64,6 @@ export default class ValidatedForm extends React.Component<IValidatedFormProps, 
         super(props);
         this.state = {
             payload: {}
-        };
-    }
-
-    getChildContext() {
-        return {
-            form: this
         };
     }
 
@@ -234,22 +233,19 @@ export default class ValidatedForm extends React.Component<IValidatedFormProps, 
     }
 
     render() {
+        // A new context value on every render re-renders all consumers, so controls that read
+        // getState() pick up the form's validation state after each update.
         return (
-            <Form
-                autoComplete="off"
-                className={this.props.className}
-                onSubmit={this._onSubmit.bind(this)}
-                bsClass={this.props.bsClass}
-                componentClass={this.props.componentClass}
-                horizontal={this.props.horizontal}
-                inline={this.props.inline}
-            >
-                {this.props.children}
-            </Form>
+            <ValidatedFormContext.Provider value={{ form: this }}>
+                <Form
+                    autoComplete="off"
+                    className={this.props.className}
+                    onSubmit={this._onSubmit.bind(this)}
+                    as={this.props.as}
+                >
+                    {this.props.children}
+                </Form>
+            </ValidatedFormContext.Provider>
         );
     }
 }
-
-(ValidatedForm as React.ComponentClass).childContextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
-};

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { FormattedMessage } from 'react-intl';
 import NetworkError from 'services/network/errors';
 
@@ -14,7 +14,7 @@ export interface IOfflineProps {
   error: NetworkError;
 }
 
-const Offline: React.SFC<IOfflineProps> = (props) => (
+const Offline: React.FC<IOfflineProps> = (props) => (
   <div>
     {props.error && <Error error={props.error} />}
     {!props.error && (

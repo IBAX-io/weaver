@@ -1,7 +1,101 @@
-/* ========================================================================
-     Component: utils
- ========================================================================== */
- 
+// ========================================================================
+//   Utilities (app theme helper classes)
+// ------------------------------------------------------------------------
+// Spacing (.m/.p/-sm/-lg/-xl), borders, text/background colors, widths,
+// thumbnails and the media-box component. Used by the IDE and by protypo
+// page templates (e.g. `mt-sm`, `mr-lg`), so they stay global.
+// ========================================================================
+
+@use "sass:map";
+@use "../bootstrap" as *;
+@use "mixins" as *;
+
+$margin-base: 10px;
+$margin-sm: 5px;
+$margin-lg: 15px;
+$margin-xl: 30px;
+
+$padding-xl: 30px;
+$padding-lg: 15px;
+$padding-base: 10px;
+$padding-sm: 5px;
+
+$text-alpha: rgba(255, 255, 255, .5);
+$text-alpha-inverse: rgba(0, 0, 0, .5);
+
+$text-sm: 14px * .85;
+$text-md: 14px * 1.9;
+$text-lg: 14px * 3;
+
+$util-border-color: rgba(0, 0, 0, .12);
+
+$wd-xxs: 60px;
+$wd-xs: 90px;
+$wd-sm: 150px;
+$wd-sd: 200px; // sd == standard
+$wd-md: 240px;
+$wd-lg: 280px;
+$wd-xl: 320px;
+$wd-xxl: 360px;
+$wd-wide: 100%;
+$wd-auto: auto;
+$wd-zero: 0;
+
+// Base color of every .bg-* helper; -light / -dark variants are derived.
+$helper-colors: (
+  "primary": $primary,
+  "success": $success,
+  "info": $info,
+  "warning": $warning,
+  "danger": $danger,
+  "green": $brand-green,
+  "pink": $brand-pink,
+  "purple": $brand-purple,
+  "inverse": $brand-inverse,
+  "yellow": $brand-yellow
+);
+
+// A bg-* class on a button (the pager's first/previous buttons) is its colour in every state, faded
+// when disabled, as in Bootstrap 3: Bootstrap 5's buttons paint every state from these properties,
+// which their variant classes set. The class twice, so these come first whatever variant class the
+// button also has (.btn-default in templates and the theme's .btn-secondary are two classes deep).
+@mixin bg-button($bgcolor) {
+  @at-root #{&}#{&}:is(.btn, [class*="btn-"]) {
+    --#{$prefix}btn-bg: #{$bgcolor};
+    --#{$prefix}btn-hover-bg: #{$bgcolor};
+    --#{$prefix}btn-active-bg: #{$bgcolor};
+    --#{$prefix}btn-disabled-bg: #{$bgcolor};
+  }
+}
+
+@mixin make-bg($bgcolor, $app-text-color: #fff) {
+  background-color: $bgcolor;
+  color: $app-text-color !important;
+
+  @include bg-button($bgcolor);
+}
+
+@mixin bgcolor-variant($name, $app-text-color: #fff) {
+  $base: map.get($helper-colors, $name);
+  & {
+    @include make-bg($base, $app-text-color);
+  }
+  &-light {
+    @include make-bg(lighter($base), $app-text-color);
+  }
+  &-dark {
+    @include make-bg(darker($base), $app-text-color);
+  }
+  small {
+    color: inherit;
+  }
+}
+
+@mixin thumbnail-size($sz: 8px) {
+  width: $sz !important;
+  height: $sz !important;
+}
+
 // Margins
 // --------------------
 
@@ -104,10 +198,10 @@
 .bt0 { border-top-width: 0 !important; }
 .bb0 { border-bottom-width: 0 !important; }
 
-.br { border-right: 1px solid $border-color;}
-.bl { border-left: 1px solid $border-color;}
-.bt { border-top: 1px solid $border-color;}
-.bb { border-bottom: 1px solid $border-color;}
+.br { border-right: 1px solid $util-border-color;}
+.bl { border-left: 1px solid $util-border-color;}
+.bt { border-top: 1px solid $util-border-color;}
+.bb { border-bottom: 1px solid $util-border-color;}
 .b, .ba  { @extend .br;@extend .bl;@extend .bt;@extend .bb; } // all borders
 
 // Border Radius Clear
@@ -133,11 +227,11 @@
 .text-alpha-inverse { color: $text-alpha-inverse; }
 .text-green         { color: $brand-green; }
 .text-yellow        { color: $brand-yellow; }
-.text-gray-darker   { color: $gray-darker; }
-.text-gray-dark     { color: $gray-dark; }
-.text-gray          { color: $gray; }
-.text-gray-light    { color: $gray-light; }
-.text-gray-lighter  { color: $gray-lighter; }
+.text-gray-darker   { color: $app-gray-darker; }
+.text-gray-dark     { color: $app-gray-dark; }
+.text-gray          { color: $app-gray; }
+.text-gray-light    { color: $app-gray-light; }
+.text-gray-lighter  { color: $app-gray-lighter; }
 .text-inherit       { color: inherit; }
 // Text sizing
 
@@ -174,11 +268,11 @@
 .bg-yellow       { @include bgcolor-variant('yellow'); }
 
 .bg-white        { @include make-bg(#fff, inherit); }
-.bg-gray-darker  { @include make-bg($gray-darker); }
-.bg-gray-dark    { @include make-bg($gray-dark); }
-.bg-gray         { @include make-bg($gray, $text-color); }
-.bg-gray-light   { @include make-bg($gray-light, $text-color); }
-.bg-gray-lighter { @include make-bg($gray-lighter, $text-color); }
+.bg-gray-darker  { @include make-bg($app-gray-darker); }
+.bg-gray-dark    { @include make-bg($app-gray-dark); }
+.bg-gray         { @include make-bg($app-gray, $app-text-color); }
+.bg-gray-light   { @include make-bg($app-gray-light, $app-text-color); }
+.bg-gray-lighter { @include make-bg($app-gray-lighter, $app-text-color); }
 
 .bg-transparent  { background-color: transparent !important; }
 
@@ -188,15 +282,15 @@
 
 // Common thumbnail sizes (ideal for images)
 
-.thumb8   { @include thumnbail-size(); }
-.thumb16  { @include thumnbail-size(16px); }
-.thumb24  { @include thumnbail-size(24px); }
-.thumb32  { @include thumnbail-size(32px); }
-.thumb48  { @include thumnbail-size(48px); }
-.thumb64  { @include thumnbail-size(64px); }
-.thumb80  { @include thumnbail-size(80px); }
-.thumb96  { @include thumnbail-size(96px); }
-.thumb128 { @include thumnbail-size(128px); }
+.thumb8   { @include thumbnail-size(); }
+.thumb16  { @include thumbnail-size(16px); }
+.thumb24  { @include thumbnail-size(24px); }
+.thumb32  { @include thumbnail-size(32px); }
+.thumb48  { @include thumbnail-size(48px); }
+.thumb64  { @include thumbnail-size(64px); }
+.thumb80  { @include thumbnail-size(80px); }
+.thumb96  { @include thumbnail-size(96px); }
+.thumb128 { @include thumbnail-size(128px); }
 
 
 // Vertical align helpers
@@ -231,7 +325,7 @@
     line-height: 30px;
   }
   div:hover em {
-    @include scale(3, 3)
+    transform: scale(3, 3);
   }
 }
 
@@ -249,39 +343,12 @@
 .wd-auto { width: $wd-auto; }
 .wd-zero { width: $wd-zero; }
 
-// Extra labels
+// Extra alert colors (solid, like the theme alerts)
 
-.label-inverse {
-  @include label-variant($brand-inverse);
-}
-
-.label-green {
-  @include label-variant($brand-green);
-}
-
-.label-pink {
-  @include label-variant($brand-pink);
-}
-
-.label-purple {
-  @include label-variant($brand-purple);
-}
-
-
-// Extra alert
-
-.alert-purple {
-  @include alert-variant($brand-purple, $brand-purple, #fff);
-}
-.alert-green {
-  @include alert-variant($brand-green, $brand-green, #fff);
-}
-.alert-pink {
-  @include alert-variant($brand-pink, $brand-pink, #fff);
-}
-.alert-inverse {
-  @include alert-variant($brand-inverse, $brand-inverse, #fff);
-}
+.alert-purple { @include alert-solid($brand-purple); }
+.alert-green { @include alert-solid($brand-green); }
+.alert-pink { @include alert-solid($brand-pink); }
+.alert-inverse { @include alert-solid($brand-inverse); }
 
 // Simulate clickable element
 .clickable {

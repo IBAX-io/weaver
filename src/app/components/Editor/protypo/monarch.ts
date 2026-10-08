@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import * as monaco from 'monaco-editor';
 
 const protypoSyntax = (methods: string[], functions: string[]) => ({
   // Set defaultToken to invalid to see what you do not tokenize yet

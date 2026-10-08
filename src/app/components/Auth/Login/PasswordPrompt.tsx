@@ -5,7 +5,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import { FormattedMessage, InjectedIntlProps, injectIntl } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { ILoginCall, IAccountContext } from 'ibax/auth';
 
 import Avatar from 'containers/Avatar';
@@ -19,7 +19,8 @@ export interface IPasswordPromptProps {
     onCancel: () => void;
 }
 
-const PasswordPrompt: React.SFC<IPasswordPromptProps & InjectedIntlProps> = props => {
+const PasswordPrompt: React.FC<IPasswordPromptProps> = props => {
+    const intl = useIntl();
     const onSubmit = (values: { [key: string]: any }) =>
         props.onSubmit({
             password: values.password
@@ -27,7 +28,7 @@ const PasswordPrompt: React.SFC<IPasswordPromptProps & InjectedIntlProps> = prop
 
     return (
         <div className={props.className}>
-            <Validation.components.ValidatedForm className="form-horizontal" onSubmitSuccess={onSubmit}>
+            <Validation.components.ValidatedForm onSubmitSuccess={onSubmit}>
                 <HeadingNetwork onReturn={props.onCancel}>
                     <FormattedMessage id="auth.authentication" defaultMessage="Authentication" />
                 </HeadingNetwork>
@@ -49,9 +50,9 @@ const PasswordPrompt: React.SFC<IPasswordPromptProps & InjectedIntlProps> = prop
                         <Validation.components.ValidatedControl
                             type="password"
                             name="password"
-                            placeholder={props.intl.formatMessage({ id: 'auth.password', defaultMessage: 'Enter your password...' })}
+                            placeholder={intl.formatMessage({ id: 'auth.password', defaultMessage: 'Enter your password...' })}
                         />
-                        <Validation.components.ValidatedSubmit className="btn-block">
+                        <Validation.components.ValidatedSubmit variant="secondary">
                             <em className="icon icon-login" />
                         </Validation.components.ValidatedSubmit>
                     </div>
@@ -61,7 +62,7 @@ const PasswordPrompt: React.SFC<IPasswordPromptProps & InjectedIntlProps> = prop
     );
 };
 
-export default styled(injectIntl(PasswordPrompt))`
+export default styled(PasswordPrompt)`
     .avatar-holder {
         width: 100px;
         height: 100px;

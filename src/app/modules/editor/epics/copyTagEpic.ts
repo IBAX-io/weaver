@@ -3,15 +3,16 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { map } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import * as actions from '../actions';
-import { IRootState } from 'modules';
 
-const copyTagEpic: Epic<Action, IRootState> =
-    (action$, store, { constructorModule }) => action$.ofAction(actions.copyTag.started)
-        .map(action => {
-            const state = store.getState().editor;
+const copyTagEpic: Epic =
+    (action$, state$, { constructorModule }) => action$.pipe(
+        ofAction(actions.copyTag.started),
+        map(action => {
+            const state = state$.value.editor;
             const tab = state.tabs[state.tabIndex].designer;
             const tabData = tab && tab.data || null;
             let jsonData = tabData.jsonData && constructorModule.copyObject(tabData.jsonData) || null;
@@ -33,7 +34,7 @@ const copyTagEpic: Epic<Action, IRootState> =
                     switch (action.payload.position) {
                         case 'inside':
                             if (tag.el.children) {
-                                tag.el.children = [];
+                                (tag.el as any).children = [];
                             }
                             tag.el.children.push(tagCopy);
                             break;
@@ -73,6 +74,7 @@ const copyTagEpic: Epic<Action, IRootState> =
                     treeData: constructorModule.convertToTreeData(jsonData)
                 }
             });
-        });
+        })
+    );
 
 export default copyTagEpic;

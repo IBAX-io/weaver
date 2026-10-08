@@ -9,16 +9,20 @@ import imgLogo from 'images/logo.png';
 import { FormattedMessage } from 'react-intl';
 
 import Modal from './';
+import desktop from 'lib/desktop';
 
 class AboutModal extends Modal<void, void> {
   openWebsite = () => {
-    const electron = require('electron');
-    electron.shell.openExternal(
-      this.props.intl.formatMessage({
-        id: 'legal.homepage',
-        defaultMessage: 'https://ibax.io'
-      })
-    );
+    const url = this.props.intl.formatMessage({
+      id: 'legal.homepage',
+      defaultMessage: 'https://ibax.io'
+    });
+    if (desktop) {
+      desktop.openExternal(url);
+    }
+    else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   render() {
@@ -34,8 +38,8 @@ class AboutModal extends Modal<void, void> {
           >
             <img src={imgLogo} style={{ height: 50 }} />
             <div className="text-muted">
-              {process.env.REACT_APP_VERSION
-                ? `v${process.env.REACT_APP_VERSION}`
+              {__APP_VERSION__
+                ? `v${__APP_VERSION__}`
                 : 'DEVELOPER BUILD'}
             </div>
             <div>
@@ -44,7 +48,7 @@ class AboutModal extends Modal<void, void> {
                 defaultMessage="Molis - a software product developed by Ibax. It works with blockchain networks that are built to use Ibax Protocol"
               />
             </div>
-            <Button bsStyle="link" onClick={this.openWebsite}>
+            <Button variant="link" onClick={this.openWebsite}>
               <FormattedMessage
                 id="legal.homepage"
                 defaultMessage="https://ibax.io"
@@ -52,10 +56,10 @@ class AboutModal extends Modal<void, void> {
             </Button>
           </div>
         </Modal.Body>
-        <Modal.Footer className="text-right">
+        <Modal.Footer className="text-end">
           <Button
             type="button"
-            bsStyle="primary"
+            variant="primary"
             onClick={this.props.onCancel.bind(this)}
           >
             <FormattedMessage id="close" defaultMessage="Close" />

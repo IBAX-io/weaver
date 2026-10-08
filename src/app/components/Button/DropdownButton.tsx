@@ -4,17 +4,25 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import propTypes from 'prop-types';
-import onClickOutside, { InjectedOnClickOutProps } from 'react-onclickoutside';
 
 import Dropdown from 'components/Dropdown';
+import useOnClickOutside from 'components/Dropdown/useOnClickOutside';
 import Button from './';
 
-type ButtonComponent = React.ComponentType<{
+type ButtonComponent = React.ComponentType<React.PropsWithChildren<{
   onClick: (e: React.MouseEvent<any>) => void;
   disabled?: boolean;
   className?: string;
-}>;
+}>>;
+
+export interface IDropdownContext {
+  closeDropdown: () => void;
+}
+
+// Lets dropdown items (components/Dropdown/Item) close the menu that renders them
+export const DropdownContext = React.createContext<IDropdownContext>({
+  closeDropdown: () => undefined
+});
 
 interface Props {
   buttonComponent?: ButtonComponent;
@@ -26,63 +34,31 @@ interface Props {
   menuWidth?: number;
 }
 
-interface State {
-  active: boolean;
-}
+const DropdownButton: React.FC<React.PropsWithChildren<Props>> = (props) => {
+  const [active, setActive] = React.useState(false);
+  const rootRef = React.useRef<HTMLDivElement>(null);
 
-class DropdownButton extends React.Component<
-  Props & InjectedOnClickOutProps,
-  State
-> {
-  state: State = {
-    active: false
-  };
+  const close = React.useCallback(() => setActive(false), []);
+  const context = React.useMemo(() => ({ closeDropdown: close }), [close]);
+  useOnClickOutside(rootRef, close);
 
-  static childContextTypes = {
-    closeDropdown: propTypes.func.isRequired
-  };
-
-  getChildContext = () => ({
-    closeDropdown: () => {
-      this.setState({
-        active: false
-      });
-    }
-  });
-
-  handleClick = () => {
-    this.setState({
-      active: !this.state.active
-    });
-  };
-
-  handleClickOutside = (_event: React.MouseEvent<HTMLElement>) => {
-    this.setState({
-      active: false
-    });
-  };
-
-  render() {
-    const Component = this.props.buttonComponent || Button;
-    return (
-      <div style={{ display: 'inline-block', position: 'relative' }}>
+  const Component = props.buttonComponent || Button;
+  return (
+    <DropdownContext.Provider value={context}>
+      <div ref={rootRef} style={{ display: 'inline-block', position: 'relative' }}>
         <Component
-          disabled={this.props.disabled}
-          className={this.props.className}
-          onClick={this.handleClick}
+          disabled={props.disabled}
+          className={props.className}
+          onClick={() => setActive(!active)}
         >
-          {this.props.children}
+          {props.children}
         </Component>
-        <Dropdown
-          active={this.state.active}
-          align={this.props.align}
-          width={this.props.menuWidth}
-        >
-          {this.props.content}
+        <Dropdown active={active} align={props.align} width={props.menuWidth}>
+          {props.content}
         </Dropdown>
       </div>
-    );
-  }
-}
+    </DropdownContext.Provider>
+  );
+};
 
-export default onClickOutside(DropdownButton);
+export default DropdownButton;

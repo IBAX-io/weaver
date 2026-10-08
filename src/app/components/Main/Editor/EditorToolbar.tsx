@@ -50,7 +50,7 @@ const resolveToolIndex = (tool: string) => {
   return editorTools.findIndex((l) => l.type === tool);
 };
 
-const EditorToolbar: React.SFC<Props> = (props) => {
+const EditorToolbar: React.FC<Props> = (props) => {
   const onToolChange = (toolIndex: number) => {
     const toolDef = editorTools[toolIndex];
     if (toolDef) {

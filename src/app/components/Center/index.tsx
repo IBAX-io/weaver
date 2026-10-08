@@ -19,7 +19,7 @@ export const StyledCenterContent = styled.div`
   vertical-align: middle;
 `;
 
-const Center: React.SFC = (props) => (
+const Center: React.FC<React.PropsWithChildren> = (props) => (
   <StyledCenter>
     <StyledCenterContent>{props.children}</StyledCenterContent>
   </StyledCenter>

@@ -5,11 +5,10 @@
 
 import * as React from 'react';
 import * as uuid from 'uuid';
-import { connect } from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
 import { IRootState } from 'modules';
 import { modalShow } from 'modules/modal/actions';
 import { IMapEditorEvent, TMapEditorType, TMapType } from 'ibax/geo';
-import { IModal } from 'ibax/modal';
 
 import { Validator } from 'components/Validation/Validators';
 import ValidatedMap from 'components/Validation/ValidatedMap';
@@ -24,18 +23,22 @@ export interface IValidatedMapContainerProps {
     validators?: Validator[];
 }
 
-interface IValidatedMapContainerState {
-    modal: IModal;
-}
+const mapStateToProps = (state: IRootState) => ({
+    modal: state.modal
+});
 
-interface IValidatedMapContainerDispatch {
-    modalShow: typeof modalShow;
-}
+const mapDispatchToProps = {
+    modalShow
+};
 
-class ValidatedMapContainer extends React.Component<IValidatedMapContainerProps & IValidatedMapContainerState & IValidatedMapContainerDispatch, { result: IMapEditorEvent }> {
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+type TProps = ConnectedProps<typeof connector> & IValidatedMapContainerProps;
+
+class ValidatedMapContainer extends React.Component<TProps, { result: IMapEditorEvent }> {
     private _id: string = uuid.v4();
 
-    constructor(props: any) {
+    constructor(props: TProps) {
         super(props);
         this.state = {
             result: null
@@ -50,8 +53,12 @@ class ValidatedMapContainer extends React.Component<IValidatedMapContainerProps 
         });
     }
 
-    componentWillReceiveProps(props: IValidatedMapContainerProps & IValidatedMapContainerState & IValidatedMapContainerDispatch) {
-        const result = props.modal && this._id === props.modal.id && props.modal.result;
+    componentDidUpdate(prevProps: TProps) {
+        if (prevProps.modal === this.props.modal) {
+            return;
+        }
+
+        const result = this.props.modal && this._id === this.props.modal.id && this.props.modal.result;
         if (result && 'RESULT' === result.reason) {
             this.setState({
                 result: result.data
@@ -74,12 +81,4 @@ class ValidatedMapContainer extends React.Component<IValidatedMapContainerProps 
     }
 }
 
-const mapStateToProps = (state: IRootState) => ({
-    modal: state.modal
-});
-
-const mapDispatchToProps = {
-    modalShow: modalShow
-};
-
-export default connect<IValidatedMapContainerState, IValidatedMapContainerDispatch, IValidatedMapContainerProps>(mapStateToProps, mapDispatchToProps)(ValidatedMapContainer);
+export default connector(ValidatedMapContainer);

@@ -5,9 +5,8 @@
 
 import * as React from 'react';
 import { Validator } from './Validators';
-import * as propTypes from 'prop-types';
 
-import ValidatedForm, { IValidatedControl } from './ValidatedForm';
+import { IValidatedControl, ValidatedFormContext } from './ValidatedForm';
 
 export interface IValidatedRadioProps {
     validators?: Validator[];
@@ -30,6 +29,9 @@ interface IValidatedRadioState {
 }
 
 export default class ValidatedRadioGroup extends React.Component<IValidatedRadioProps, IValidatedRadioState> implements IValidatedControl {
+    static contextType = ValidatedFormContext;
+    declare context: React.ContextType<typeof ValidatedFormContext>;
+
     constructor(props: IValidatedRadioProps) {
         super(props);
 
@@ -40,22 +42,24 @@ export default class ValidatedRadioGroup extends React.Component<IValidatedRadio
 
     componentDidMount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._registerElement(this);
+            this.context.form._registerElement(this);
         }
     }
 
     componentWillUnmount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._unregisterElement(this);
+            this.context.form._unregisterElement(this);
         }
     }
 
-    componentWillReceiveProps(props: IValidatedRadioProps) {
-        if (this.props.checked !== props.checked) {
+    componentDidUpdate(prevProps: IValidatedRadioProps) {
+        if (prevProps.checked !== this.props.checked) {
             this.setState({
-                checked: props.checked
+                checked: this.props.checked
             });
-            (this.context.form as ValidatedForm).updateState(props.name, props.checked);
+            if (this.context.form) {
+                this.context.form.updateState(this.props.name, this.props.checked);
+            }
         }
     }
 
@@ -72,11 +76,15 @@ export default class ValidatedRadioGroup extends React.Component<IValidatedRadio
             this.props.onChange(e);
         }
 
-        (this.context.form as ValidatedForm).emitUpdate(this.props.name, (e.target as any).value);
+        if (this.context.form) {
+            this.context.form.emitUpdate(this.props.name, e.target.value);
+        }
     }
 
     onBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        (this.context.form as ValidatedForm).updateState(this.props.name);
+        if (this.context.form) {
+            this.context.form.updateState(this.props.name);
+        }
 
         if (this.props.onBlur) {
             this.props.onBlur(e);
@@ -87,7 +95,7 @@ export default class ValidatedRadioGroup extends React.Component<IValidatedRadio
         return (
             <div>
                 {this.props.values.map(value => (
-                    <div className={`radio c-radio c-radio-nofont ${this.props.className || ''}`} key={value.value}>
+                    <div className={`form-check c-radio c-radio-nofont ${this.props.className || ''}`} key={value.value}>
                         <label>
                             <input
                                 type="radio"
@@ -107,7 +115,3 @@ export default class ValidatedRadioGroup extends React.Component<IValidatedRadio
         );
     }
 }
-
-(ValidatedRadioGroup as React.ComponentClass).contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
-};

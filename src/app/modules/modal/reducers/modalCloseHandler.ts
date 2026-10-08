@@ -7,9 +7,13 @@ import { State } from '../reducer';
 import { modalClose } from '../actions';
 import { Reducer } from 'modules';
 
-const modalCloseHandler: Reducer<typeof modalClose, State> = (state, payload) => ({
+// Only the modal on screen can be closed; a secret result is not kept in state
+const modalCloseHandler: Reducer<typeof modalClose, State> = (state, payload) => payload.id !== state.id ? state : {
     ...state,
-    result: payload
-});
+    result: {
+        reason: payload.reason,
+        data: state.secret ? null : payload.data
+    }
+};
 
 export default modalCloseHandler;

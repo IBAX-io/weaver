@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { Redirect } from 'react-router';
-import { routes } from 'lib/routing';
+import { Navigate } from 'react-router';
+import { routes } from 'lib/routing/routes';
 
 import themed from 'components/Theme/themed';
 
@@ -14,16 +14,6 @@ interface Props {
   page?: string;
   action?: string;
 }
-/* const StyledLayout = themed.main`
-    background: red;
-    position: relative;
-    padding-top: ${(props) => props.theme.menubarSize}px;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    overflow: hidden;
-`; */
-
 const StyledLayout = themed.main`
     background: #fff;
     position: relative;
@@ -34,7 +24,7 @@ const StyledLayout = themed.main`
     overflow: hidden;
 `;
 
-const Main: React.SFC<Props> = (props) => {
+const Main: React.FC<Props> = (props) => {
   const Route = routes[props.app];
   const headerProps =
     Route && Route.mapHeaderParams ? Route.mapHeaderParams(props) : props;
@@ -49,7 +39,7 @@ const Main: React.SFC<Props> = (props) => {
           <Route.Content {...contentProps} />
         </>
       ) : (
-        <Redirect to="/browse" />
+        <Navigate to="/browse" replace />
       )}
     </StyledLayout>
   );

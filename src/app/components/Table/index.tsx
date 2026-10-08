@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import styled from 'styled-components';
 
 const StyledHead = styled.thead`
@@ -87,7 +87,7 @@ const StyledBody = styled.tbody`
 `;
 
 export interface ICellRenderer {
-    (value: any, rowData: IRowData): JSX.Element | any;
+    (value: any, rowData: IRowData): React.JSX.Element | any;
 }
 
 export interface IColData {

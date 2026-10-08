@@ -3,11 +3,11 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import React from 'react';
-import propTypes from 'prop-types';
-import InteractionManager, { TConditionMap, TReaction } from '../interaction';
+import React, { useContext } from 'react';
+import InteractionManager, { TReaction } from '../interaction';
+import { ProtypoFormContext } from '../handlers/Form';
 
-type TComponentConstructor<T> = React.ComponentClass<T & IInteractiveComponentProps> | React.SFC<T & IInteractiveComponentProps>;
+type TComponentConstructor<T> = React.ComponentType<T & IInteractiveComponentProps>;
 
 export interface IVisibilityCondition {
     [key: string]: string;
@@ -20,11 +20,6 @@ export interface IInteractiveComponentReactions {
 
 export interface IInteractiveComponentProps extends IInteractiveComponentReactions {
     id: string;
-}
-
-export interface IInteractiveComponentContext {
-    interactionManager: InteractionManager;
-    conditionMap: { [id: string]: TConditionMap };
 }
 
 const conditionContext: { [K in TReaction]: keyof IInteractiveComponentReactions } = {
@@ -45,8 +40,9 @@ const tryRegisterConditions = (props: IInteractiveComponentProps, interactionMan
     }
 };
 
-const bindComponent: <T>(Component: TComponentConstructor<T & IInteractiveComponentProps>) => React.SFC<IInteractiveComponentProps> = (Component) => {
-    const BoundComponent: React.SFC<IInteractiveComponentProps> = (props, context: IInteractiveComponentContext) => {
+export default function interactiveComponent<T>(Component: TComponentConstructor<T>) {
+    const InteractiveComponent: React.FC<T & IInteractiveComponentProps> = props => {
+        const context = useContext(ProtypoFormContext);
         const conditionMap = (context.conditionMap && context.conditionMap[props.id]) || {};
         tryRegisterConditions(props, context.interactionManager);
 
@@ -57,18 +53,6 @@ const bindComponent: <T>(Component: TComponentConstructor<T & IInteractiveCompon
             return <Component {...props} />;
         }
     };
-    BoundComponent.contextTypes = {
-        interactionManager: propTypes.instanceOf(InteractionManager),
-        conditionMap: propTypes.object
-    };
 
-    return BoundComponent;
-};
-
-export default function interactiveComponent<T>(Component: TComponentConstructor<T & IInteractiveComponentProps>) {
-    const BoundComponent = bindComponent<T>(Component);
-
-    return (props: T & IInteractiveComponentProps) => (
-        <BoundComponent {...props} />
-    );
+    return InteractiveComponent;
 }

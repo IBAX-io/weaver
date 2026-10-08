@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { InjectedIntl } from 'react-intl';
+import { IntlShape } from 'react-intl';
 import { IModal, TModalResultReason } from 'ibax/modal';
 import { INotification } from 'ibax/notifications';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 
 import Wrapper from 'components/Modal/Wrapper';
 import DebugContractModal from 'components/Modal/Editor/DebugContractModal';
@@ -76,7 +76,7 @@ const MODAL_COMPONENTS = {
 
 export interface IModalProviderProps {
     modal: IModal;
-    intl: InjectedIntl;
+    intl: IntlShape;
     onResult: (params: { reason: TModalResultReason, data: any }) => any;
     enqueueNotification: (params: INotification) => any;
 }

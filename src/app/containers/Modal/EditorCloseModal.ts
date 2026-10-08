@@ -40,6 +40,7 @@ export default connect(mapStateToProps, {
     },
     onResult: (_data: void) => {
         dispatch.modalClose({
+            id: props.id,
             reason: 'RESULT',
             data: null
         });

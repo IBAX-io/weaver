@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IRootState } from 'modules';
-import { connect } from 'react-redux';
+import { connect, ResolveThunks } from 'react-redux';
 import { editorSave, revertEditorTab, changeEditorTool, debugContract, createEditorTab } from 'modules/editor/actions';
 
 import EditorToolbar from 'components/Main/Editor/EditorToolbar';
@@ -29,7 +29,7 @@ const mapDispatchToProps = {
     changeEditorTool: changeEditorTool.started
 };
 
-export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: any) => ({
+export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: ResolveThunks<typeof mapDispatchToProps>) => ({
     ...state,
     onExec: () => { dispatch.debugContract(state.currentTab.name); },
     onRevert: () => { dispatch.revertEditorTab(state.currentTab.uuid); },

@@ -11,7 +11,7 @@ export interface ISecurityWarningProps {
     close: () => void;
 }
 
-const SecurityWarning: React.SFC<ISecurityWarningProps> = props => (
+const SecurityWarning: React.FC<React.PropsWithChildren<ISecurityWarningProps>> = props => (
     <div className={props.className}>
         <div>
             {props.children}

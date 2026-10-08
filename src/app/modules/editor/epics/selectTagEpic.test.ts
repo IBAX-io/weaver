@@ -3,20 +3,19 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import 'rxjs';
-import 'lib/external/fsa';
+import { describe, it, expect } from 'vitest';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { selectTag } from '../actions';
 import selectTagEpic from './selectTagEpic';
 import dependencies from 'modules/dependencies';
 import { TConstructorTreeElement } from 'ibax/editor';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('selectTagEpic', () => {
-    it('adds tag to tree json', () => {
+    it('adds tag to tree json', async () => {
 
-        const action$ = ActionsObservable.of<Action>(selectTag.started({
+        const actions: Action[] = [selectTag.started({
             tag: 'button',
             children: [
                 {
@@ -27,7 +26,7 @@ describe('selectTagEpic', () => {
             ],
             id: 'tag_11',
             childrenText: 'Submit'
-        }));
+        })];
 
         const treeData: TConstructorTreeElement[] = [
             {
@@ -318,10 +317,7 @@ describe('selectTagEpic', () => {
             }
         ];
 
-        selectTagEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
-            .toArray()
-            .subscribe(actualOutput => {
-                expect(actualOutput).toEqual(expectedOutput);
-            });
+        const actualOutput = await runEpic(selectTagEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+            expect(actualOutput).toEqual(expectedOutput);
     });
 });

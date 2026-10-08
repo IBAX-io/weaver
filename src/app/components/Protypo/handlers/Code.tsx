@@ -11,7 +11,7 @@ export interface ICodeProps {
     text: string;
 }
 
-const Code: React.SFC<ICodeProps> = props => (
+const Code: React.FC<ICodeProps> = props => (
     <span className={props.className}>
         {props.text}
     </span>

@@ -6,15 +6,19 @@
 import { Epic } from 'modules';
 import { subscribe } from '../actions';
 import { loadWallets } from 'modules/auth/actions';
-import { Observable } from 'rxjs';
+import { from } from 'rxjs';
+import { filter, map, mergeMap } from 'rxjs/operators';
+import { ofAction } from 'lib/rx/ofAction';
 
-const subscribeWalletsEpic: Epic = (action$, store) => action$.ofAction(loadWallets.done)
-    .flatMap(action =>
-        Observable.from(action.payload.result)
-    )
-    .filter(account => !!account.address)
-    .map(account =>
+const subscribeWalletsEpic: Epic = action$ => action$.pipe(
+    ofAction(loadWallets.done),
+    mergeMap(action =>
+        from(action.payload.result)
+    ),
+    filter(account => !!account.address),
+    map(account =>
         subscribe.started(account)
-    );
+    )
+);
 
 export default subscribeWalletsEpic;

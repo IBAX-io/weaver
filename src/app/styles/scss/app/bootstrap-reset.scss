@@ -1,112 +1,111 @@
-/* ========================================================================
-     Component: bootstrap-reset
- ========================================================================== */
+// ========================================================================
+//   Bootstrap 5 component adjustments for the app theme
+// ------------------------------------------------------------------------
+// Look-and-feel tweaks Bootstrap variables cannot express. Values that
+// map to a Bootstrap variable are configured in ../bootstrap.scss instead.
+// Rules here apply to the whole app; Bootstrap 3 compatibility that only
+// page templates need goes in ../protypo-content.scss.
+// ========================================================================
 
-// @import (reference) "../backend-angular/vendor/fontawesome/css/font-awesome.min.css"
-
-
-//
-// Use this file to reset simple bootstrap styles
-// instead of modifying the core files
-// Makes easy to update new framework versions
-// --------------------------------------------------
+@use "sass:color";
+@use "sass:map";
+@use "../bootstrap" as *;
+@use "mixins" as *;
 
 *:focus {
-  outline: 0 !important
+  outline: 0 !important;
+}
+
+// Keyboard focus stays visible (the rules here hide every mouse focus ring). Two tones, so the
+// ring shows on the dark header and on light content alike. Form controls have Bootstrap's own
+// focus shadow; the code editor draws its own cursor.
+:root :not(.form-control, .form-select, .monaco-editor *):focus-visible {
+  outline: 2px solid var(--bs-primary) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #fff !important;
 }
 
 a {
   outline: none !important;
+
   &.text-muted {
-    &:hover, &:focus {
-      color: darken($text-muted, 10%);
+    &:hover,
+    &:focus {
+      color: color.adjust($app-text-muted, $lightness: -10%) !important;
     }
   }
 }
-
-hr {
-  border-top: 1px solid $gray-light;
-}
-
-// custom element
-[data-now] {
-  display: inline-block;
-}
-
 
 .list-group {
   line-height: 1.3;
-  .list-group-item {
-    padding: 10px;
-    .panel > & {
-      border-top: 0;
-    }
-  }
-
 }
 
-.navbar-toggle {
-  .icon-bar {
-    background-color: #fff;
+// Cards (former panels)
+.card-header {
+  border-bottom: 0;
+  font-size: 14px;
+
+  a {
+    text-decoration: none !important;
   }
 }
 
-.page-header {
-  border-bottom-color: $gray-light;
-}
-
-.panel {
-  .panel-heading {
-    border-bottom: 0;
-    font-size: 14px;
-    a {
-      text-decoration: none !important;
-    }
-  }
-  &.panel-default {
-    border-top-width: 3px;    
-  }
-}
-
-.well {
-  border: 1px solid $gray;
-}
-
-.jumbotron {
-  border: 1px solid $gray;
-  @media only screen and (min-width: $mq-tablet) {
-    padding: $jumbotron-padding ($jumbotron-padding/2);
-  }
-}
-
-.nav-tabs > li > a {
+// Tabs
+.nav-tabs .nav-link {
   font-weight: bold;
-  color: $text-color;
-  background-color: $gray-lighter;
+  color: $app-text-color;
+  background-color: $app-gray-lighter;
   margin: 0;
-  border: 1px solid $gray;
+  border: 1px solid $app-gray;
   border-radius: 0;
   padding: 10px 20px;
-}
 
-.nav-tabs > li.active > a {
-  &, &:hover, &:focus {
-    color: inherit;
-    border-bottom-color: #fff;
+  &.active {
+    &,
+    &:hover,
+    &:focus {
+      color: inherit;
+      border-bottom-color: #fff;
+    }
   }
 }
+
 .tab-content {
   padding: 10px 20px;
   border-style: solid;
-  border-width: 0 1px 1px 1px;
-  border-color: $gray;
+  border-width: 0 1px 1px;
+  border-color: $app-gray;
+
   .nav-pills + & {
     border: 0;
     padding: 0;
   }
 }
 
+// Form controls take the text color around them, as Bootstrap 3's normalize made them do; Bootstrap
+// 5's reboot does not, so unstyled buttons (the header's icons, dropdown triggers) went back to the
+// browser's black, invisible on the dark chrome. .btn and .form-control still set their own.
+button,
+input,
+optgroup,
+select,
+textarea {
+  color: inherit;
+}
 
+// An icon class on the button itself (templates write Button(Class: btn fa fa-caret-down)): the
+// icon fonts set font-family on the element, and Bootstrap 5's .btn, loaded after them, sets its
+// own (Bootstrap 3's did not), which left such buttons blank
+.btn.fa {
+  font-family: FontAwesome;
+}
+
+.btn[class^="icon-"],
+.btn[class*=" icon-"] {
+  font-family: 'simple-line-icons';
+}
+
+// Buttons
 .btn {
   border-radius: 3px;
   font-size: 13px;
@@ -114,30 +113,25 @@ hr {
   -webkit-appearance: none;
   outline: none !important;
   @include transition(all .1s);
+
   &.btn-link {
     box-shadow: none;
     border: 0;
   }
-  &.btn-default {
-    border-color: $btn-default-border;
-  }
+
   .input-group & {
     font-size: 14px;
-    border-color: $input-border;
-  }
-  .input-group .input-sm + .input-group-btn & {
-    font-size: 13px;
+    border-color: $app-input-border;
   }
 }
 
-// FORMS
-
+// Forms
 .form-control {
   box-shadow: 0 0 0 #000 !important;
 }
 
-.input-sm,
-select.input-sm {
+.form-control-sm,
+.form-select-sm {
   height: 31px;
 }
 
@@ -145,182 +139,91 @@ fieldset {
   padding-bottom: 20px;
   border-bottom: 1px dashed #eee;
   margin-bottom: 20px;
+
   &.last-child,
   &:last-child {
     border-bottom: 0;
   }
-  .form-group {
-    margin-bottom: 0;
-  }
 }
 
-@media only screen and (max-width: $mq-up-to-tablet) {
-  // Remove Input Shadows on iPad
-  input[type="text"], input[type="email"], input[type="search"], input[type="password"] {
+@include media-breakpoint-down(md) {
+  // Remove input shadows on iPad
+  input[type="text"],
+  input[type="email"],
+  input[type="search"],
+  input[type="password"] {
     -webkit-appearance: none;
   }
 }
 
-// TABLES
-
-.table {
-
-  // Bottom align for column headings
-  > thead > tr > th {
-    border-bottom-width: 1px;
-  }
-
-  // Account for multiple tbody instances
-  > tbody + tbody {
-    border-bottom-width: 1px;
-  }
-
-}
-
-.table-bordered {
-  > thead > tr {
-    > th,
-    > td {
-      border-bottom-width: 1px;
-    }
-  }
-}
-
-
+// Progress
 .progress {
-  @include box-shadow(0 0 0 #000);
-  border-radius: $border-radius-small;
-  border: 1px solid $progress-bg;
-  background-color: #fff;
-  .progress-bar {
-    @include box-shadow(0 0 0 #000);
-  }
+  border: 1px solid #f1f1f1;
 }
 
 // Popover
-// --------------------------------------------------
-
 .popover {
-  box-shadow: 0 0 0 #000;
-  border-color: #eee;
-  border-bottom: 2px solid $gray-light;
-  border-radius: $border-radius-small;
-  .popover-title {
+  border-bottom: 2px solid $app-gray-light;
+
+  .popover-header {
     border: 0;
   }
 }
 
+// Alerts: light with dark text. White on the theme's solid colors could not be read (warning
+// #ff902b: 2.26:1, where text needs 4.5:1)
+@each $state in (success, info, warning, danger) {
+  .alert-#{$state} {
+    --#{$prefix}alert-bg: var(--#{$prefix}#{$state}-bg-subtle);
+    --#{$prefix}alert-color: var(--#{$prefix}#{$state}-text-emphasis);
+    --#{$prefix}alert-border-color: transparent;
+    --#{$prefix}alert-link-color: var(--#{$prefix}#{$state}-text-emphasis);
+  }
+}
 
-// NAV
-.nav {
-  &.nav-pills {
-    .active > a {
-      background-color: $brand-primary;
+// The designer's dark side-panel tabs (Objects / Search / Tree): Weaver 1.x theme .nav-tabs-dark,
+// on Bootstrap 5's nav markup (.nav-item > .nav-link.active instead of li.active > a). The
+// backgrounds are 1.x's; its text colours were not readable (the current tab 2.3:1, a focused tab
+// 1.6:1), so the text is dark on the light tabs and white on the current one.
+$designer-tabs-bg: #828c9e;
+$designer-tab-bg: #96a2b7;
+$designer-tab-hover-bg: #8e99ad;
+$designer-tab-color: #1f2a36;
+$designer-tab-active-bg: #3a4653;
+$designer-tab-active-color: #fff;
+
+.nav-tabs-dark.nav-justified {
+  background-color: $designer-tabs-bg;
+  border-bottom: 0;
+
+  > .nav-item > .nav-link {
+    margin: 0 1px 0 0;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 0;
+    line-height: 34px;
+    color: $designer-tab-color;
+    background-color: $designer-tab-bg;
+
+    &:hover {
+      color: $designer-tab-color;
+      background-color: $designer-tab-hover-bg;
+    }
+
+    // The tabs touch each other and the panel: the keyboard focus ring goes inside the tab, in the
+    // tab's text colour (the app's green ring does not show on the dark current tab)
+    &:focus-visible {
+      outline-color: currentcolor !important;
+      outline-offset: -4px;
+    }
+
+    &.active {
+      color: $designer-tab-active-color;
+      background-color: $designer-tab-active-bg;
     }
   }
-}
 
-// DROPDOWN
-.dropdown-menu {
-  border-radius: $border-radius-small;
-}
-
-.dropdown-header {
-  color: #a1a2a3;
-}
-
-.navbar-top .navbar-nav > .active > a {
-  color: #999;
-  &:hover, &:focus {
-    color: #d1d2d3;
+  > .nav-item:last-child > .nav-link {
+    margin-right: 0;
   }
-}
-
-
-.navbar-default .navbar-nav .open .dropdown-menu > li > a {
-  color: #666;
-  &:hover, &:focus {
-    color: #222;
-  }
-}
-
-// CAROUSEL
-
-.carousel {
-  .carousel-indicators {
-    bottom: 0;
-  }
-  .carousel-control {
-    &.left,
-    &.right {
-      background-image: none;
-    }
-    // Add support for font awesome
-    em {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      z-index: 5;
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      margin-top: -10px;
-      margin-left: -10px;
-    }
-  }
-}
-
-// allow font awesome to be placed instead of glyphicon in slider
-// .glyphicon:extend(.fa all) {
-//   &.glyphicon-chevron-right:extend(.fa-chevron-right all) {};
-//   &.glyphicon-chevron-left:extend(.fa-chevron-left all) {};
-//   &.glyphicon-chevron-up:extend(.fa-chevron-up all) {};
-//   &.glyphicon-chevron-down:extend(.fa-chevron-down all) {};
-//   &.glyphicon-folder-open:extend(.fa-folder-open all) {};
-// }
-
-
-// fix modal backdrop to work with bootstrap ui
-// standard BS js uses a calculated height
-.modal-backdrop {
-  position: fixed;
-  bottom: 0;
-}
-
-// fix for ie9 (dropdwon no showing)
-.topnavbar,
-.navbar,
-.navbar .dropdown-menu {
-  filter: none !important;
-}
-
-// allow font awesome to be placed instead of glyphicon in slider
-$fa-var-chevron-down: "\f078";
-$fa-var-chevron-left: "\f053";
-$fa-var-chevron-right: "\f054";
-$fa-var-chevron-up: "\f077";
-$fa-var-folder-open: "\f07c";
-.glyphicon {
-  display: inline-block;
-  font: normal normal normal 14px/1 FontAwesome; // shortening font declaration
-  font-size: inherit; // can't have font-size inherit on line above, so need to override
-  text-rendering: auto; // optimizelegibility throws things off #1094
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  &.glyphicon-chevron-right:before {
-    content: $fa-var-chevron-right;
-  };
-  &.glyphicon-chevron-left:before {
-    content: $fa-var-chevron-left;
-  };
-  &.glyphicon-chevron-up:before {
-    content: $fa-var-chevron-up;
-  };
-  &.glyphicon-chevron-down:before {
-    content: $fa-var-chevron-down;
-  };
-  &.glyphicon-folder-open:before {
-    content: $fa-var-folder-open;
-  };
-
 }

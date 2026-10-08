@@ -4,22 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IInferredArguments } from 'ibax/gui';
+import desktop from 'lib/desktop';
 
 export type TPlatformType =
     'desktop' | 'web' | 'win32' | 'linux' | 'darwin';
 
-const isElectron = navigator.userAgent.toLowerCase().indexOf(' electron/') > -1;
-const platform: TPlatformType = isElectron ? 'desktop' : 'web';
-
-let os: NodeJS.Platform = null;
-let args: IInferredArguments = {};
-
-if (isElectron) {
-    const electron = require('electron');
-    const process: NodeJS.Process = require('process');
-    os = process.platform;
-    args = electron.ipcRenderer.sendSync('getArgs') || {};
-}
+const platform: TPlatformType = desktop ? 'desktop' : 'web';
+const os = desktop ? desktop.platform : null;
+const args: IInferredArguments = desktop ? desktop.args : {};
 
 export default {
     // Platform.select will return only 1 value depending on which platform
@@ -32,17 +24,11 @@ export default {
         linux?: T,
         darwin?: T
     }): T {
-        if (isElectron && platforms[os]) {
-            return platforms[os];
+        if (desktop && os in platforms && platforms[os as keyof typeof platforms]) {
+            return platforms[os as keyof typeof platforms];
         }
         else {
             return platforms[platform];
-        }
-    },
-
-    on: (platformType: TPlatformType, callback: () => void) => {
-        if (platformType === platform) {
-            callback();
         }
     },
 

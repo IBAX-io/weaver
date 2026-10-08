@@ -6,7 +6,7 @@
 import React from 'react';
 import themed from 'components/Theme/themed';
 import classNames from 'classnames';
-import propTypes from 'prop-types';
+import { DropdownContext } from 'components/Button/DropdownButton';
 
 const StyledItem = themed.button`
     border-radius: 0;
@@ -67,7 +67,8 @@ interface Props {
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }
 
-const Item: React.SFC<Props> = (props, context) => {
+const Item: React.FC<React.PropsWithChildren<Props>> = (props) => {
+  const context = React.useContext(DropdownContext);
   const handleClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
     context.closeDropdown();
     if (props.onClick) {
@@ -89,10 +90,6 @@ const Item: React.SFC<Props> = (props, context) => {
       <div>{props.children}</div>
     </StyledItem>
   );
-};
-
-Item.contextTypes = {
-  closeDropdown: propTypes.func.isRequired
 };
 
 export default Item;

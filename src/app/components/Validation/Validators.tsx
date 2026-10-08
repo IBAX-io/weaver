@@ -3,6 +3,9 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { isValidMnemonic, privateKeyFromBackup } from 'lib/keyring';
+import { isHttpsUrl } from 'lib/settings/httpsUrl';
+
 export class Validator {
     public name: string;
     public params?: any;
@@ -147,6 +150,24 @@ export const password = new Validator({
             default: throw new Error(`Unrecognized value type "${typeof value}"`);
         }
     }
+});
+
+// A BIP39 recovery phrase (the IDE creates 12-word phrases; any valid length is accepted)
+export const mnemonic = new Validator({
+    name: 'mnemonic',
+    validate: (value) => 'string' === typeof value && isValidMnemonic(value)
+});
+
+// What the import accepts: a private key or a recovery phrase (lib/keyring privateKeyFromBackup)
+export const backup = new Validator({
+    name: 'backup',
+    validate: (value) => 'string' === typeof value && null !== privateKeyFromBackup(value)
+});
+
+// Empty, or an https address (a network's block explorer)
+export const httpsUrl = new Validator({
+    name: 'httpsUrl',
+    validate: (value) => !value || ('string' === typeof value && isHttpsUrl(value.trim()))
 });
 
 export const compare: IValidatorGenerator = (compareValue: any) => {

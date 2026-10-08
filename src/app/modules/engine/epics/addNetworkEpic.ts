@@ -3,32 +3,36 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { Epic } from 'modules';
-import { Observable } from 'rxjs';
-import { addNetwork, navigate } from '../actions';
+import { from, of } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
+import { ofAction } from 'lib/rx/ofAction';
+import { addNetwork } from '../actions';
+import { navigate } from 'modules/router/actions';
 import { discover } from 'services/network';
 import NetworkError from 'services/network/errors';
 import { saveNetwork } from 'modules/storage/actions';
 import { modalShow } from 'modules/modal/actions';
-import { Action } from 'redux';
 
-const addNetworkEpic: Epic = (action$, _store, { defaultKey }) => action$.ofAction(addNetwork.started)
-  .flatMap(action => {
+const addNetworkEpic: Epic = (action$, _state$, { defaultKey }) => action$.pipe(
+  ofAction(addNetwork.started),
+  mergeMap(action => {
     const uniqueID = uuid.v4();
 
-    return Observable.from(discover({ uuid: uniqueID, apiHost: action.payload.apiHost }, defaultKey, action.payload.networkID))
-      .flatMap(result => Observable.of(
-        navigate('/networks'),
+    return from(discover({ uuid: uniqueID, apiHost: action.payload.apiHost }, defaultKey, action.payload.networkID)).pipe(
+      mergeMap(result => of(
+        navigate({ to: '/networks' }),
         saveNetwork({
           uuid: uniqueID,
           id: result.networkID,
           honorNodes: result.honorNodes,
-          name: action.payload.name
+          name: action.payload.name,
+          explorer: action.payload.explorer
         }),
         addNetwork.done(null)
-      ))
-      .catch((e: NetworkError) => Observable.of<Action>(
+      )),
+      catchError((e: NetworkError) => of(
         modalShow({
           id: 'NETWORK_ERROR',
           params: {
@@ -40,7 +44,9 @@ const addNetworkEpic: Epic = (action$, _store, { defaultKey }) => action$.ofActi
           params: action.payload,
           error: e
         })
-      ));
-  });
+      ))
+    );
+  })
+);
 
 export default addNetworkEpic;

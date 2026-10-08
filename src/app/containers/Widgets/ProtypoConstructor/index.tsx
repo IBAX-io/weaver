@@ -9,11 +9,12 @@ import { IRootState } from 'modules';
 import { TProtypoElement } from 'ibax/protypo';
 
 import ProtypoConstructor from 'components/ProtypoConstructor';
+import { signedInSession } from 'modules/auth/selectors';
 
 export interface IProtypoConstructorContainerProps {
     section: string;
     editable?: boolean;
-    wrapper?: JSX.Element;
+    wrapper?: React.JSX.Element;
     context: string;
     content: TProtypoElement[];
     changePage?: any;
@@ -35,7 +36,7 @@ interface IProtypoConstructorContainerState {
 interface IProtypoConstructorContainerDispatch {
 }
 
-const ProtypoConstructorContainer: React.SFC<IProtypoConstructorContainerState & IProtypoConstructorContainerDispatch & IProtypoConstructorContainerProps> = (props) => (
+const ProtypoConstructorContainer: React.FC<IProtypoConstructorContainerState & IProtypoConstructorContainerDispatch & IProtypoConstructorContainerProps> = (props) => (
     <ProtypoConstructor {...props} />
 );
 
@@ -43,7 +44,7 @@ const mapStateToProps = (state: IRootState, props: IProtypoConstructorContainerP
     const section = state.sections.sections[props.section];
 
     return {
-        apiHost: state.auth.session && (state.auth.session.network.apiHost + '/api/v2'),
+        apiHost: signedInSession(state) && (signedInSession(state).network.apiHost + '/api/v2'),
         page: section.page && section.page.name
     };
 };

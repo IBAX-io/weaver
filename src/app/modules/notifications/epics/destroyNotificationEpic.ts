@@ -3,20 +3,24 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { EMPTY, of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { destroyNotification, spawnNotification } from '../actions';
-import { Observable } from 'rxjs/Observable';
 
-const destroyNotificationEpic: Epic = (action$, store) => action$.ofAction(destroyNotification)
-    .flatMap(action => {
-        const state = store.getState();
+const destroyNotificationEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(destroyNotification),
+    mergeMap(action => {
+        const state = state$.value;
         if (state.notifications.queue.length) {
             const queuedNotification = state.notifications.queue[0];
-            return Observable.of(spawnNotification(queuedNotification));
+            return of(spawnNotification(queuedNotification));
         }
         else {
-            return Observable.empty();
+            return EMPTY;
         }
-    });
+    })
+);
 
 export default destroyNotificationEpic;

@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as actions from '../actions';
-import uuid from 'uuid';
-import { Action } from 'redux';
-import { Epic } from 'redux-observable';
-import { IRootState } from 'modules';
+import * as uuid from 'uuid';
+import { filter, map } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { txCall } from 'modules/tx/actions';
 
 const connections = {
@@ -17,9 +17,10 @@ const connections = {
     block: '@1EditBlock',
 };
 
-const editorSaveEpic: Epic<Action, IRootState> = (action$, store) => action$.ofAction(actions.editorSave)
-    .filter(l => !l.payload.new && connections[l.payload.type])
-    .map(action =>
+const editorSaveEpic: Epic = action$ => action$.pipe(
+    ofAction(actions.editorSave),
+    filter(l => !l.payload.new && connections[l.payload.type]),
+    map(action =>
         txCall({
             uuid: uuid.v4(),
             contracts: [{
@@ -30,6 +31,7 @@ const editorSaveEpic: Epic<Action, IRootState> = (action$, store) => action$.ofA
                 }]
             }]
         })
-    );
+    )
+);
 
 export default editorSaveEpic;

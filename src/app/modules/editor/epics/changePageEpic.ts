@@ -3,20 +3,21 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
-import { Epic } from 'redux-observable';
+import { map } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import * as actions from '../actions';
-import { IRootState } from 'modules';
 
-const changePageEpic: Epic<Action, IRootState> =
-    (action$, store, { constructorModule }) => action$.ofAction(actions.changePage.started)
-        .map(action => {
-            const state = store.getState().editor;
+const changePageEpic: Epic =
+    (action$, state$, { constructorModule }) => action$.pipe(
+        ofAction(actions.changePage.started),
+        map(action => {
+            const state = state$.value.editor;
             const tabData = state.tabs[state.tabIndex].designer.data;
             let jsonData = tabData && constructorModule.copyObject(tabData.jsonData) || null;
             let selectedTag = tabData && tabData.selectedTag || null;
 
-            let tag = constructorModule.findTagById(jsonData, action.payload.tagID).el;
+            let tag: any = constructorModule.findTagById(jsonData, action.payload.tagID).el;
             if (tag) {
                 if (typeof (action.payload.text) !== 'undefined') {
                     tag.children = constructorModule.html2childrenTags(action.payload.text);
@@ -67,6 +68,7 @@ const changePageEpic: Epic<Action, IRootState> =
                 }
             });
 
-        });
+        })
+    );
 
 export default changePageEpic;

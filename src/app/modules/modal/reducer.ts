@@ -15,6 +15,7 @@ export type State =
 export const initialState: State = {
     id: null,
     type: null,
+    secret: false,
     result: null,
     params: null
 };

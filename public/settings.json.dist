@@ -1,18 +1,52 @@
 {
-    "defaultLocale": "en-US",
-    "defaultNetwork": "DEFAULT_NETWORK",
-    "networks": [
-        {
-            "key": "DEFAULT_NETWORK",
-            "name": "Default Network",
-            "networkID": 1,
-            "honorNodes": [
-                "http://127.0.0.1:7079"
-            ],
-            "socketUrl": "",
-            "activationEmail": "",
-            "enableDemoMode": true,
-            "disableSync": false
-        }
-    ]
+  "defaultLocale": "en-US",
+  "defaultNetwork": "TESTNET_NETWORK",
+  "networks": [
+    {
+      "key": "MAINNET_NETWORK",
+      "name": "Mainnet Network",
+      "networkID": 7,
+      "honorNodes": [
+        "https://mainnet-hk1.ibax.network:7079",
+        "https://mainnet-sg1.ibax.network:7079",
+        "https://mainnet-hk2.ibax.network:7079",
+        "https://mainnet-jp1.ibax.network:7079",
+        "https://mainnet-us1.ibax.network:7079"
+      ],
+      "explorer": "https://scan.ibax.network:8800/api/v2",
+      "socketUrl": "",
+      "activationEmail": "",
+      "enableDemoMode": true,
+      "disableSync": false
+    },
+    {
+      "key": "TESTNET_NETWORK",
+      "name": "Testnet Network",
+      "networkID": 5,
+      "honorNodes": [
+        "https://testnet-hk1.ibax.network:5079",
+        "https://testnet-sg1.ibax.network:5079",
+        "https://testnet-sg2.ibax.network:5079",
+        "https://testnet-jp1.ibax.network:5079",
+        "https://testnet-us1.ibax.network:5079"
+      ],
+      "explorer": "https://testscan.ibax.network:8800/api/v2",
+      "socketUrl": "",
+      "activationEmail": "",
+      "enableDemoMode": true,
+      "disableSync": false
+    },
+    {
+      "key": "LOCAL_NETWORK",
+      "name": "Local Network",
+      "networkID": 1,
+      "honorNodes": [
+        "http://127.0.0.1:7079"
+      ],
+      "socketUrl": "",
+      "activationEmail": "",
+      "enableDemoMode": true,
+      "disableSync": false
+    }
+  ]
 }

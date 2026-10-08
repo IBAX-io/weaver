@@ -164,15 +164,18 @@ declare module 'ibax/editor' {
     isOver?: boolean;
     isDragging?: boolean;
 
-    connectDropTarget?: any;
-    connectDragSource?: any;
-    connectDragPreview?: any;
   }
 
-  interface IFindTagResult {
-    el: TProtypoElement | null;
-    parent: TProtypoElement | null,
-    parentPosition: number,
-    tail: boolean
+  interface ITreeNode<T> {
+    readonly id?: string;
+    readonly children?: readonly T[] | null;
+    readonly tail?: readonly T[] | null;
+  }
+
+  interface IFindTagResult<T = TProtypoElement> {
+    el: T | null;
+    parent: T | null;
+    parentPosition: number;
+    tail: boolean;
   }
 }

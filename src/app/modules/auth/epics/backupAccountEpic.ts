@@ -3,37 +3,43 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { defer, EMPTY, iif, merge, of } from 'rxjs';
+import { mergeMap, take } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { backupAccount } from '../actions';
 import { modalShow } from 'modules/modal/actions';
-import { Observable } from 'rxjs';
 import { txAuthorize } from 'modules/tx/actions';
 import { isType } from 'typescript-fsa';
 
-const backupAccountEpic: Epic = (action$, store) => action$.ofAction(backupAccount)
-    .flatMap(action =>
-        Observable.if(
-            () => !!store.getState().auth.privateKey,
-            Observable.defer(() => Observable.of(modalShow({
+const backupAccountEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(backupAccount),
+    mergeMap(action =>
+        iif(
+            () => !!state$.value.auth.privateKey,
+            defer(() => of(modalShow({
                 id: 'BACKUP',
                 type: 'BACKUP',
                 params: {}
             }))),
-            Observable.merge(
-                Observable.of(txAuthorize.started({})),
-                action$.filter(l => txAuthorize.done.match(l) || txAuthorize.failed.match(l))
-                    .take(1)
-                    .flatMap(result => Observable.if(
+            merge(
+                of(txAuthorize.started({})),
+                action$.pipe(
+                    ofAction(txAuthorize.done, txAuthorize.failed),
+                    take(1),
+                    mergeMap(result => iif(
                         () => isType(result, txAuthorize.done),
-                        Observable.defer(() => Observable.of(modalShow({
+                        defer(() => of(modalShow({
                             id: 'BACKUP',
                             type: 'BACKUP',
                             params: {}
                         }))),
-                        Observable.empty<never>()
+                        EMPTY
                     ))
+                )
             )
         )
-    );
+    )
+);
 
 export default backupAccountEpic;

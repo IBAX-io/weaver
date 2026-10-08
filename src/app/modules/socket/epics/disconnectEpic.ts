@@ -3,14 +3,15 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
-import { Epic } from 'redux-observable';
-import { IRootState } from 'modules';
+import { map } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { disconnect } from '../actions';
 
-const disconnectEpic: Epic<Action, IRootState> = (action$, store) => action$.ofAction(disconnect.started)
-    .map(action => {
-        const socket = store.getState().socket.socket;
+const disconnectEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(disconnect.started),
+    map(action => {
+        const socket = state$.value.socket.socket;
 
         if (socket) {
             socket.disconnect();
@@ -25,6 +26,7 @@ const disconnectEpic: Epic<Action, IRootState> = (action$, store) => action$.ofA
                 error: null
             });
         }
-    });
+    })
+);
 
 export default disconnectEpic;

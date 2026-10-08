@@ -4,10 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
+import classnames from 'classnames';
 import { Validator } from './Validators';
-import * as propTypes from 'prop-types';
 
-import ValidatedForm, { IValidatedControl } from './ValidatedForm';
+import { IValidatedControl, ValidatedFormContext } from './ValidatedForm';
+import { ValidatedFormGroupContext } from './ValidatedFormGroup';
 
 export interface IValidatedTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
     name: string;
@@ -19,6 +20,9 @@ interface IValidatedTextareaState {
 }
 
 export default class ValidatedTextarea extends React.Component<IValidatedTextareaProps, IValidatedTextareaState> implements IValidatedControl {
+    static contextType = ValidatedFormContext;
+    declare context: React.ContextType<typeof ValidatedFormContext>;
+
     constructor(props: IValidatedTextareaProps) {
         super(props);
 
@@ -29,22 +33,24 @@ export default class ValidatedTextarea extends React.Component<IValidatedTextare
 
     componentDidMount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._registerElement(this);
+            this.context.form._registerElement(this);
         }
     }
 
     componentWillUnmount() {
         if (this.context.form) {
-            (this.context.form as ValidatedForm)._unregisterElement(this);
+            this.context.form._unregisterElement(this);
         }
     }
 
-    componentWillReceiveProps(props: IValidatedTextareaProps) {
-        if (this.props.value !== props.value) {
+    componentDidUpdate(prevProps: IValidatedTextareaProps) {
+        if (prevProps.value !== this.props.value) {
             this.setState({
-                value: props.value as string
+                value: this.props.value as string
             });
-            (this.context.form as ValidatedForm).updateState(props.name, props.value);
+            if (this.context.form) {
+                this.context.form.updateState(this.props.name, this.props.value);
+            }
         }
     }
 
@@ -54,18 +60,22 @@ export default class ValidatedTextarea extends React.Component<IValidatedTextare
 
     onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         this.setState({
-            value: (e.target as any).value
+            value: e.target.value
         });
 
         if (this.props.onChange) {
             this.props.onChange(e);
         }
 
-        (this.context.form as ValidatedForm).emitUpdate(this.props.name, e.target.value);
+        if (this.context.form) {
+            this.context.form.emitUpdate(this.props.name, e.target.value);
+        }
     }
 
     onBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
-        (this.context.form as ValidatedForm).updateState(this.props.name);
+        if (this.context.form) {
+            this.context.form.updateState(this.props.name);
+        }
 
         if (this.props.onBlur) {
             this.props.onBlur(e);
@@ -74,18 +84,18 @@ export default class ValidatedTextarea extends React.Component<IValidatedTextare
 
     render() {
         return (
-            <textarea
-                id={this.props.id}
-                className={`form-control ${this.props.className || ''}`}
-                placeholder={this.props.placeholder}
-                value={this.state.value}
-                onChange={this.onChange}
-                onBlur={this.onBlur}
-            />
+            <ValidatedFormGroupContext.Consumer>
+                {group => (
+                    <textarea
+                        id={this.props.id}
+                        className={classnames('form-control', this.props.className, { 'is-invalid': group.invalid })}
+                        placeholder={this.props.placeholder}
+                        value={this.state.value}
+                        onChange={this.onChange}
+                        onBlur={this.onBlur}
+                    />
+                )}
+            </ValidatedFormGroupContext.Consumer>
         );
     }
 }
-
-(ValidatedTextarea as React.ComponentClass).contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
-};

@@ -9,6 +9,7 @@ import StyledComponent from './StyledComponent';
 export interface IEmProps {
     'className'?: string;
     'class'?: string;
+    children?: React.ReactNode;
 }
 
 class Em extends React.Component<IEmProps> {

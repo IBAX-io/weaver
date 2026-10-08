@@ -3,16 +3,18 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
-import { Epic } from 'redux-observable';
-import { IRootState } from 'modules';
+import { map } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { saveWallet } from '../actions';
 import { createWallet } from 'modules/auth/actions';
 
-const saveWalletOnCreateEpic: Epic<Action, IRootState> =
-    (action$, store) => action$.ofAction(createWallet.done)
-        .map(action =>
+const saveWalletOnCreateEpic: Epic =
+    action$ => action$.pipe(
+        ofAction(createWallet.done),
+        map(action =>
             saveWallet(action.payload.result)
-        );
+        )
+    );
 
 export default saveWalletOnCreateEpic;

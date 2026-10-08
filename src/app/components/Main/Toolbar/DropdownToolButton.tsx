@@ -20,7 +20,7 @@ const DropdownChevron = themed.em`
     margin-left: 8px;
 `;
 
-const DropdownToolButton: React.SFC<Props> = props => (
+const DropdownToolButton: React.FC<React.PropsWithChildren<Props>> = props => (
     <DropdownButton
         buttonComponent={p => <ToolButton {...p} icon={props.icon} />}
         disabled={props.disabled}

@@ -5,6 +5,8 @@
 
 enum NetworkError {
     Offline = 'E_OFFLINE',
+    NotFound = 'E_NETWORK_NOT_FOUND',
+    UnsupportedCrypto = 'E_UNSUPPORTED_CRYPTO',
     IDMismatch = 'E_IDMISMATCH',
     ServerMisconfiguration = 'E_SERVER_MISCONFIGURATION'
 }

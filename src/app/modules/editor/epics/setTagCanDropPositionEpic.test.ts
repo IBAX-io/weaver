@@ -3,24 +3,23 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import 'rxjs';
-import 'lib/external/fsa';
+import { describe, it, expect } from 'vitest';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { setTagCanDropPosition } from '../actions';
 import setTagCanDropPositionEpic from './setTagCanDropPositionEpic';
 import dependencies from 'modules/dependencies';
 import { TProtypoElement } from 'ibax/protypo';
 import { TConstructorTreeElement } from 'ibax/editor';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('setTagCanDropPositionEpic', () => {
-    it('set tag CanDropPosition', () => {
+    it('set tag CanDropPosition', async () => {
 
-        const action$ = ActionsObservable.of<Action>(setTagCanDropPosition.started({
+        const actions: Action[] = [setTagCanDropPosition.started({
             position: 'after',
             tagID: 'tag_6'
-        }));
+        })];
 
         const jsonData: TProtypoElement[] = [
             {
@@ -403,10 +402,7 @@ describe('setTagCanDropPositionEpic', () => {
 
         dependencies.constructorModule.idGenerator.setCounter(14);
 
-        setTagCanDropPositionEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
-            .toArray()
-            .subscribe(actualOutput => {
-                expect(actualOutput).toEqual(expectedOutput);
-            });
+        const actualOutput = await runEpic(setTagCanDropPositionEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+            expect(actualOutput).toEqual(expectedOutput);
     });
 });

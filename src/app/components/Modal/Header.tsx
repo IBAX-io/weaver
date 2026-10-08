@@ -39,7 +39,7 @@ const StyledHeader = themed.div`
     }
 `;
 
-const Header: React.SFC<Props> = props => (
+const Header: React.FC<React.PropsWithChildren<Props>> = props => (
     <StyledHeader>
         <div className="header__title">
             {props.children}

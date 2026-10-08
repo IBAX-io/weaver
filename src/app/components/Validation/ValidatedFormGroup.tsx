@@ -4,32 +4,37 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import { FormGroup, FormGroupProps } from 'react-bootstrap';
-import * as propTypes from 'prop-types';
+import classnames from 'classnames';
+import { Form, FormGroupProps } from 'react-bootstrap';
 
-import ValidatedForm from './ValidatedForm';
+import { ValidatedFormContext } from './ValidatedForm';
 
 interface IValidatedFormGroupProps extends FormGroupProps {
     for: string;
 }
 
-export default class ValidatedFormGroup extends React.Component<IValidatedFormGroupProps> {
-    render() {
-        const valid = this.context.form ? (this.context.form as ValidatedForm).getState(this.props.for) : true;
-        return (
-            <FormGroup
-                className={this.props.className}
-                validationState={valid ? null : 'error'}
-                bsClass={this.props.bsClass}
-                bsSize={this.props.bsSize}
-                controlId={this.props.controlId}
-            >
-                {this.props.children}
-            </FormGroup >
-        );
-    }
+export interface IValidatedFormGroupContext {
+    invalid: boolean;
 }
 
-(ValidatedFormGroup as React.ComponentClass).contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
+// Lets the validated controls inside a group render the Bootstrap 5 invalid state
+// (the Bootstrap 3 group-level `has-error` styling no longer exists).
+export const ValidatedFormGroupContext = React.createContext<IValidatedFormGroupContext>({ invalid: false });
+
+const ValidatedFormGroup: React.FC<React.PropsWithChildren<IValidatedFormGroupProps>> = props => {
+    const { form } = React.useContext(ValidatedFormContext);
+    const valid = form ? form.getState(props.for) : true;
+
+    return (
+        <Form.Group
+            className={classnames('mb-3', props.className)}
+            controlId={props.controlId}
+        >
+            <ValidatedFormGroupContext.Provider value={{ invalid: !valid }}>
+                {props.children}
+            </ValidatedFormGroupContext.Provider>
+        </Form.Group>
+    );
 };
+
+export default ValidatedFormGroup;

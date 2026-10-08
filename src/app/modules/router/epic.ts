@@ -3,9 +3,11 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { combineEpics } from 'redux-observable';
+import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
 import sectionLoadEpic from './epics/sectionLoadEpic';
+import navigationEpic from './epics/navigationEpic';
 
-export default combineEpics(
-    sectionLoadEpic
-);
+export default combineIsolatedEpics({
+    sectionLoadEpic,
+    navigationEpic
+});

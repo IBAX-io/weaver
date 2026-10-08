@@ -45,7 +45,7 @@ const placeholder = (
   <FormattedMessage id="navigation.loaded_page" defaultMessage="Loaded page" />
 );
 
-const Breadcrumb: React.SFC<Props> = (props) => {
+const Breadcrumb: React.FC<React.PropsWithChildren<Props>> = (props) => {
   const titleText = props.children || placeholder;
   const title = props.home ? (
     <em className="breadcrumb__icon fa fa-home" />

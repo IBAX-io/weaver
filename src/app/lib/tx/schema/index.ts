@@ -5,8 +5,8 @@
 
 import IField from 'lib/tx/contract/field';
 
+// Converters from form values to the types a contract parameter expects
 export interface ISchema {
-    header: Uint8Array;
     fields: {
         [type: string]: new () => IField<any>;
     };

@@ -3,21 +3,20 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import 'rxjs';
-import 'lib/external/fsa';
+import { describe, it, expect } from 'vitest';
 import { Action } from 'redux';
-import { ActionsObservable } from 'redux-observable';
 import { constructorRedo } from '../actions';
 import constructorRedoEpic from './constructorRedoEpic';
 import dependencies from 'modules/dependencies';
 import { TProtypoElement } from 'ibax/protypo';
 import { TConstructorTreeElement } from 'ibax/editor';
-import mockStore from 'test/mockStore';
+import mockState from 'test/mockStore';
+import { runEpic } from 'test/runEpic';
 
 describe('constructorRedoEpic', () => {
-    it('undo test', () => {
+    it('undo test', async () => {
 
-        const action$ = ActionsObservable.of<Action>(constructorRedo.started(null));
+        const actions: Action[] = [constructorRedo.started(null)];
 
         const jsonData: TProtypoElement[] = [
             {
@@ -419,10 +418,7 @@ describe('constructorRedoEpic', () => {
             }
         ];
 
-        constructorRedoEpic(action$, mockStore, { constructorModule: dependencies.constructorModule })
-            .toArray()
-            .subscribe(actualOutput => {
-                expect(actualOutput).toEqual(expectedOutput);
-            });
+        const actualOutput = await runEpic(constructorRedoEpic, actions, mockState, { constructorModule: dependencies.constructorModule });
+            expect(actualOutput).toEqual(expectedOutput);
     });
 });

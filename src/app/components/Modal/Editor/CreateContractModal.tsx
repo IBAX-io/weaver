@@ -49,11 +49,11 @@ class CreateContractModal extends Modal<Props, { app: string, conditions: string
                         <Validation.components.ValidatedTextarea name="conditions" validators={[Validation.validators.required]} />
                     </Validation.components.ValidatedFormGroup>
                 </Modal.Body >
-                <Modal.Footer className="text-right">
-                    <Button type="button" bsStyle="link" onClick={this.props.onCancel.bind(this)}>
+                <Modal.Footer className="text-end">
+                    <Button type="button" variant="link" onClick={this.props.onCancel.bind(this)}>
                         <FormattedMessage id="cancel" defaultMessage="Cancel" />
                     </Button>
-                    <Validation.components.ValidatedSubmit bsStyle="primary">
+                    <Validation.components.ValidatedSubmit variant="primary">
                         <FormattedMessage id="confirm" defaultMessage="Confirm" />
                     </Validation.components.ValidatedSubmit>
                 </Modal.Footer>

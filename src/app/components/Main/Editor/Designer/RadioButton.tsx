@@ -4,15 +4,15 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import * as classnames from 'classnames';
+import classnames from 'classnames';
 import styled from 'styled-components';
 
 interface IRadioButtonProps {
-  src?: any;
+  children?: React.ReactNode;
   value: string;
   title?: string;
   selectedValue?: string;
-  onClick?: any;
+  onClick: (value: string) => void;
 }
 
 interface IRadioButtonState {}
@@ -67,7 +67,7 @@ export default class RadioButton extends React.Component<
       <Wrapper>
         <div
           className={classes}
-          onClick={this.props.onClick.bind(this, this.props.value)}
+          onClick={() => this.props.onClick(this.props.value)}
           title={this.props.title || ''}
         >
           {this.props.children}

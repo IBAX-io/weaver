@@ -1,23 +1,16 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "outDir": "build/electron",
-        "module": "commonjs",
-        "rootDir": "src/electron"
+        "lib": ["ES2024"],
+        "types": ["node"],
+        "noEmit": true
     },
+    "include": [
+        "src/electron/**/*",
+        "src/defs/**/*",
+        "vite.electron.config.ts"
+    ],
     "exclude": [
-        "node_modules",
-        "build",
-        "scripts",
-        "public/vs",
-        "util",
-        "acceptance-tests",
-        "webpack",
-        "jest",
-        "tests",
-        "releases",
-        "src/app/setupTests.ts",
-        "src/index.tsx",
         "src/app"
     ]
 }

@@ -4,39 +4,39 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
+import { EMPTY, from, iif, merge, Observable, of } from 'rxjs';
+import { filter, mergeMap, take } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { Observable } from 'rxjs/Observable';
+import { ofAction } from 'lib/rx/ofAction';
 import { buttonInteraction } from 'modules/content/actions';
 import { isType } from 'typescript-fsa';
 import { txCall, txExec } from 'modules/tx/actions';
-import { modalShow, modalClose } from 'modules/modal/actions';
-import { push } from 'connected-react-router';
+import { modalShow } from 'modules/modal/actions';
+import ModalObservable from 'modules/modal/util/ModalObservable';
+import { navigate } from 'modules/router/actions';
 import { renderPage } from 'modules/sections/actions';
 import { createEditorTab, loadEditorTab } from 'modules/editor/actions';
 
-const buttonInteractionEpic: Epic = (action$, store, { routerService }) => action$.ofAction(buttonInteraction)
+const buttonInteractionEpic: Epic = (action$, state$, { routerService }) => action$.pipe(
+    ofAction(buttonInteraction),
     // Show confirmation window if there is any
-    .flatMap(rootAction => {
-        return Observable.if(
-            () => !!rootAction.payload.confirm,
-            Observable.merge(
-                Observable.of(modalShow({
-                    id: rootAction.payload.uuid,
-                    type: 'TX_CONFIRM',
-                    params: rootAction.payload.confirm
-                })),
-                action$.ofAction(modalClose).take(1).flatMap(modalPayload => Observable.if(
-                    () => 'RESULT' === modalPayload.payload.reason,
-                    Observable.of(rootAction),
-                    Observable.empty<never>()
-                ))
-            ),
-            Observable.of(rootAction)
+    mergeMap(rootAction => iif(
+        () => !!rootAction.payload.confirm,
+        ModalObservable(action$, {
+            modal: {
+                id: rootAction.payload.uuid,
+                type: 'TX_CONFIRM',
+                params: rootAction.payload.confirm
+            },
+            success: () => of(rootAction)
+        }),
+        of(rootAction)
 
-        ).flatMap(action => {
+    ).pipe(
+        mergeMap((action: Action): Observable<Action> => {
             if (isType(action, buttonInteraction) && action.payload.contracts.length) {
-                if (store.getState().auth.isDefaultWallet) {
-                    return Observable.of(modalShow({
+                if (state$.value.auth.isDefaultWallet) {
+                    return of(modalShow({
                         id: 'TX_ERROR',
                         type: 'TX_ERROR',
                         params: {
@@ -45,41 +45,41 @@ const buttonInteractionEpic: Epic = (action$, store, { routerService }) => actio
                     }));
                 }
 
-                return Observable.merge(
-                    Observable.of(txCall({
+                return merge(
+                    of(txCall({
                         uuid: action.payload.uuid,
                         silent: action.payload.silent,
                         section: action.payload.from.section,
                         contracts: action.payload.contracts,
                         errorRedirects: action.payload.errorRedirects
                     })),
-                    action$.filter(l =>
-                        isType(l, txExec.done) || isType(l, txExec.failed)
-
-                    ).filter((l: ReturnType<typeof txExec.done> | ReturnType<typeof txExec.failed>) =>
-                        action.payload.uuid === l.payload.params.uuid
-
-                    ).take(1).flatMap(result => {
-                        if (isType(result, txExec.done)) {
-                            return Observable.of({
-                                ...action,
-                                meta: {
-                                    ...action.meta,
-                                    txHashes: result.payload.result.map(l => l.hash)
-                                }
-                            });
-                        }
-                        else {
-                            return Observable.empty<never>();
-                        }
-                    })
+                    action$.pipe(
+                        ofAction(txExec.done, txExec.failed),
+                        filter(l => action.payload.uuid === l.payload.params.uuid),
+                        take(1),
+                        mergeMap(result => {
+                            if (isType(result, txExec.done)) {
+                                return of({
+                                    ...action,
+                                    meta: {
+                                        ...action.meta,
+                                        txHashes: result.payload.result.map(l => l.hash)
+                                    }
+                                });
+                            }
+                            else {
+                                return EMPTY;
+                            }
+                        })
+                    )
                 );
             }
             else {
-                return Observable.of(action);
+                return of(action);
             }
 
-        }).flatMap(action => {
+        }),
+        mergeMap((action: Action): Observable<Action> => {
             if (isType(action, buttonInteraction) && action.payload.page) {
                 const params = action.payload.page.params;
                 if ('txinfo' === action.payload.page.name) {
@@ -87,7 +87,7 @@ const buttonInteractionEpic: Epic = (action$, store, { routerService }) => actio
                 }
 
                 if (action.payload.popup) {
-                    return Observable.of(renderPage.started({
+                    return of(renderPage.started({
                         location: null,
                         section: action.payload.page.section,
                         name: action.payload.page.name,
@@ -97,29 +97,33 @@ const buttonInteractionEpic: Epic = (action$, store, { routerService }) => actio
                 }
                 else {
                     const redirectUrl = routerService.generateRoute(`/browse/${action.payload.page.section}/${action.payload.page.name}`, action.payload.page.params);
-                    return Observable.of<Action>(
-                        push(redirectUrl, { from: action.payload.from })
+                    return of(
+                        navigate({ to: redirectUrl, state: { from: action.payload.from } })
                     );
                 }
             }
             else {
-                return Observable.of(action);
+                return of(action);
             }
 
-        }).flatMap(action => {
+        }),
+        mergeMap((action: Action): Observable<Action> => {
             if (isType(action, buttonInteraction)) {
-                return Observable.from(action.payload.actions).flatMap(buttonAction => {
-                    switch (buttonAction.name) {
-                        case 'CREATE': return Observable.of(createEditorTab.started(buttonAction.params.Type));
-                        case 'EDIT': return Observable.of(loadEditorTab.started({ type: buttonAction.params.Type, name: buttonAction.params.Name }));
-                        default: return Observable.empty<never>();
-                    }
-                });
+                return from(action.payload.actions).pipe(
+                    mergeMap((buttonAction): Observable<Action> => {
+                        switch (buttonAction.name) {
+                            case 'CREATE': return of(createEditorTab.started(buttonAction.params.Type));
+                            case 'EDIT': return of(loadEditorTab.started({ type: buttonAction.params.Type, name: buttonAction.params.Name }));
+                            default: return EMPTY;
+                        }
+                    })
+                );
             }
             else {
-                return Observable.of(action);
+                return of(action);
             }
-        });
-    });
+        })
+    ))
+);
 
 export default buttonInteractionEpic;

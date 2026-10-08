@@ -1,48 +1,77 @@
-
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) IBAX All rights reserved.
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as commander from 'commander';
-import { IInferredArguments } from 'ibax/gui';
+import { parseArgs } from 'node:util';
+import { IInferredArguments, ILaunchArguments } from 'ibax/gui';
+import { hasProtocol, isHttpUrl } from './util/navigation';
 
-// Normalize electron launch arguments
-const argv = process.argv.slice();
-const executable = argv.shift();
-if (!argv[0] || argv[0] && argv[0] !== '.') {
-  argv.unshift('');
-}
-argv.unshift(executable);
-
-const command = commander
-  .option('-n, --full-node <url>', null, (value, stack) => {
-    stack.push(value);
-    return stack;
-  }, [])
-  .option('-k, --private-key <key>')
-  .option('-d, --dry')
-  .option('-x, --offset-x <value>', null, parseInt)
-  .option('-y, --offset-y <value>', null, parseInt)
-  .option('-i, --network-id <value>', null, parseInt)
-  .option('-m, --network-name <value>', 'Default network')
-  .option('-s, --socket-url <url>', null)
-  .option('-u, --disable-full-nodes-sync', null)
-  .option('-g, --guest-mode')
-  .option('-e, --activation-email', null)
-  .parse(argv);
-
-const args: IInferredArguments = {
-  privateKey: command.privateKey,
-  fullNode: command.fullNode,
-  dry: command.dry,
-  offsetX: command.offsetX,
-  offsetY: command.offsetY,
-  networkID: command.networkId,
-  networkName: command.networkName,
-  socketUrl: command.socketUrl,
-  disableHonorNodesSync: command.disableHonorNodesSync,
-  guestMode: command.guestMode
+const toInteger = (value: string | undefined) => {
+    if (undefined === value || !/^-?\d+$/.test(value.trim())) {
+        return undefined;
+    }
+    return parseInt(value, 10);
 };
+
+// Launch arguments after the executable. Positionals (the app path when started through the
+// electron CLI), unknown switches (Chromium/Electron, debugger) and the process serial number
+// macOS adds when an app is opened from Finder (-psn_0_123) are ignored.
+export const parseLaunchArgs = (argv: string[]): ILaunchArguments => {
+    const { values } = parseArgs({
+        args: argv.filter(arg => !arg.startsWith('-psn_')),
+        strict: false,
+        allowPositionals: true,
+        options: {
+            'full-node': { type: 'string', short: 'n', multiple: true },
+            'private-key': { type: 'string', short: 'k' },
+            'dry': { type: 'boolean', short: 'd' },
+            'offset-x': { type: 'string', short: 'x' },
+            'offset-y': { type: 'string', short: 'y' },
+            'network-id': { type: 'string', short: 'i' },
+            'network-name': { type: 'string', short: 'm' },
+            'socket-url': { type: 'string', short: 's' },
+            'disable-full-nodes-sync': { type: 'boolean', short: 'u' },
+            'guest-mode': { type: 'boolean', short: 'g' },
+            'activation-email': { type: 'string', short: 'e' },
+            'dev-server': { type: 'string' }
+        }
+    });
+    const text = (name: string) => typeof values[name] === 'string' ? values[name] as string : undefined;
+    const flag = (name: string) => values[name] === true ? true : undefined;
+    const fullNodes = values['full-node'];
+    const dry = flag('dry');
+    const socketUrl = text('socket-url');
+
+    return {
+        // A key on the command line ends up stored with the default password: throwaway profiles only
+        privateKey: dry ? text('private-key') : undefined,
+        fullNode: Array.isArray(fullNodes) ? fullNodes.filter((node): node is string => 'string' === typeof node && isHttpUrl(node)) : undefined,
+        dry,
+        offsetX: toInteger(text('offset-x')),
+        offsetY: toInteger(text('offset-y')),
+        networkID: toInteger(text('network-id')),
+        networkName: text('network-name'),
+        socketUrl: hasProtocol(socketUrl, ['ws:', 'wss:', 'http:', 'https:']) ? socketUrl : undefined,
+        disableHonorNodesSync: flag('disable-full-nodes-sync'),
+        activationEmail: text('activation-email'),
+        guestMode: flag('guest-mode'),
+        devServer: text('dev-server')
+    };
+};
+
+// What the page may know about the launch: no key, no window placement, no dev server
+export const pageArguments = (launch: ILaunchArguments): IInferredArguments => ({
+    fullNode: launch.fullNode,
+    networkID: launch.networkID,
+    networkName: launch.networkName,
+    dry: launch.dry,
+    socketUrl: launch.socketUrl,
+    disableHonorNodesSync: launch.disableHonorNodesSync,
+    activationEmail: launch.activationEmail,
+    guestMode: launch.guestMode
+});
+
+const args = parseLaunchArgs(process.argv.slice(1));
 
 export default args;

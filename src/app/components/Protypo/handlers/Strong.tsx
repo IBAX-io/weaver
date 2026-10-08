@@ -9,6 +9,7 @@ import StyledComponent from './StyledComponent';
 export interface IStrongProps {
     'className'?: string;
     'class'?: string;
+    children?: React.ReactNode;
 }
 
 class Strong extends React.Component<IStrongProps> {

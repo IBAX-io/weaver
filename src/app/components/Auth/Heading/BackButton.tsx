@@ -5,7 +5,7 @@
 
 import * as React from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { FormattedMessage } from 'react-intl';
 
 export interface IBackButtonProps {
@@ -14,7 +14,7 @@ export interface IBackButtonProps {
   onClick?: () => void;
 }
 
-const BackButton: React.SFC<IBackButtonProps> = (props) =>
+const BackButton: React.FC<IBackButtonProps> = (props) =>
   props.returnUrl ? (
     <Link to={props.returnUrl} className={props.className}>
       <em className="button-icon icon-arrow-left" />

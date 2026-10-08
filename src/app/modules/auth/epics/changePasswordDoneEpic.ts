@@ -3,60 +3,54 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { concat, defer, Observable, of } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
+import { Action } from 'redux';
 import { Epic } from 'modules';
-import { Observable } from 'rxjs/Observable';
+import { ofAction } from 'lib/rx/ofAction';
 import { changePassword } from '../actions';
-import { modalShow, modalClose } from 'modules/modal/actions';
+import { modalShow } from 'modules/modal/actions';
+import ModalObservable from 'modules/modal/util/ModalObservable';
 import { logout } from 'modules/auth/actions';
 import { saveWallet } from 'modules/storage/actions';
-import keyring from 'lib/keyring';
+import { encryptPrivateKey, isValidPrivateKey } from 'lib/keyring';
 
-const changePasswordDoneEpic: Epic = (action$, store, { api }) => action$.ofAction(changePassword.done)
-    .flatMap(action => {
-        const auth = store.getState().auth;
-        const wallet = auth.wallet;
-        const wallets = store.getState().storage.wallets;
-        const privateKey = keyring.decryptAES(wallet.wallet.encKey, action.payload.result.oldPassword);
+// The change-password modal has decrypted the key with the old password; store it encrypted with
+// the new one, then sign out so the next login uses it
+const changePasswordDoneEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(changePassword.done),
+    mergeMap((action): Observable<Action> => {
+        const wallet = state$.value.auth.wallet;
+        const wallets = state$.value.storage.wallets;
+        const { privateKey, newPassword } = action.payload.result;
 
-        if (!keyring.validatePrivateKey(privateKey)) {
-            return Observable.concat(
-                Observable.of(changePassword.failed({
-                    params: null,
-                    error: 'E_INVALID_PASSWORD'
-                })),
-                Observable.of(modalShow({
-                    id: 'AUTH_ERROR',
-                    type: 'AUTH_ERROR',
-                    params: {
-                        error: 'E_INVALID_PASSWORD'
-                    }
-                }))
-            );
+        const fail = (error: string) => of(
+            changePassword.failed({ params: null, error }),
+            modalShow({ id: 'AUTH_ERROR', type: 'AUTH_ERROR', params: { error } })
+        );
+        const stored = wallets.find(l => l.id === wallet.wallet.walletID);
+        if (!isValidPrivateKey(privateKey)) {
+            return fail('E_INVALID_KEY');
+        }
+        // Never report a new password that was not stored anywhere
+        if (!stored) {
+            return fail('E_SERVER');
         }
 
-        const encKey = keyring.encryptAES(privateKey, action.payload.result.newPassword);
-
-        return Observable.concat(
-
-            Observable.from(wallets.filter(l => l.id === wallet.wallet.id))
-                .map(w => saveWallet({
-                    ...w,
-                    encKey
-                })),
-
-            Observable.merge(
-                Observable.of(modalShow({
-                    id: 'AUTH_PASSWORD_CHANGED',
-                    type: 'AUTH_PASSWORD_CHANGED',
-                    params: {}
-                })),
-                action$.ofAction(modalClose)
-                    .take(1)
-                    .flatMap(result => {
-                        return Observable.of(logout.started(null));
-                    })
-            )
+        return defer(() => encryptPrivateKey(privateKey, newPassword)).pipe(
+            mergeMap(encKey => concat(
+                // Also the signed-in wallet (auth reducer): the old password stops working at once
+                of(saveWallet({ ...stored, encKey })),
+                // However the notice is closed, the session ends
+                ModalObservable(action$, {
+                    modal: { id: 'AUTH_PASSWORD_CHANGED', type: 'AUTH_PASSWORD_CHANGED', params: {} },
+                    success: () => of(logout.started(null)),
+                    failure: () => of(logout.started(null))
+                })
+            )),
+            catchError(() => fail('E_SERVER'))
         );
-    });
+    })
+);
 
 export default changePasswordDoneEpic;

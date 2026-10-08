@@ -3,19 +3,15 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import msgpack from 'msgpack-lite';
-import * as convert from 'lib/tx/convert';
-import { Int64BE } from 'int64-buffer';
-import { privateToPublic, publicToID, sign, Sha256 } from 'lib/crypto';
-import { encodeLengthPlusData, concatBuffer } from '../convert';
+// A contract call: converts the parameters to the types the contract declares, then signs it as
+// a client transaction (lib/tx/transaction).
 import { ISchema } from 'lib/tx/schema';
-import IField from 'lib/tx/contract/field';
-import { ITransactionBody } from 'ibax/tx';
-export interface IContractContext {
+import IField, { InvalidFieldValueError } from 'lib/tx/contract/field';
+import { ISignedTransaction, ITxContext, signTransaction } from 'lib/tx/transaction';
+
+export interface IContractContext extends ITxContext {
     id: number;
     schema: ISchema;
-    ecosystemID: number;
-    networkID: number;
     fields: {
         [name: string]: IContractParam;
     };
@@ -23,86 +19,55 @@ export interface IContractContext {
 
 export interface IContractParam {
     type: string;
-    value: object;
+    value: unknown;
+}
+
+// A parameter the transaction cannot carry: 'invalid' value, or a type a form cannot fill in
+export class ContractParamError extends Error {
+    constructor(readonly param: string, readonly paramType: string, readonly reason: 'invalid' | 'unsupported') {
+        super(`Contract parameter '${param}' (${paramType}): ${reason}`);
+        this.name = 'ContractParamError';
+    }
 }
 
 export default class Contract {
-    private _context: IContractContext;
-    private _keyID: Int64BE;
-    private _time: number;
-    private _publicKey: ArrayBuffer;
+    private _id: number;
+    private _context: ITxContext;
     private _fields: {
-        [name: string]: IField;
+        [name: string]: IField<unknown, unknown>;
     } = {};
 
-    constructor(context: IContractContext) {
-        this._context = context;
-        this._time = Math.floor((new Date()).getTime() / 1000);
-        Object.keys(context.fields).forEach(name => {
-            const param = context.fields[name];
-            const Field = this._context.schema.fields[param.type];
+    constructor({ id, schema, fields, ...context }: IContractContext) {
+        this._id = id;
+        // One timestamp, so every signature of this call covers the same transaction
+        this._context = { ...context, time: context.time ?? Math.floor(Date.now() / 1000) };
+        Object.keys(fields).forEach(name => {
+            const param = fields[name];
+            // The type comes from the node: only the schema's own entries, never Object's ("constructor")
+            const Field = Object.hasOwn(schema.fields, param.type) ? schema.fields[param.type] : null;
+            if (!Field) {
+                throw new ContractParamError(name, param.type, 'unsupported');
+            }
             const field = new Field();
-            field.set(param.value);
+            try {
+                field.set(param.value);
+            }
+            catch (e) {
+                if (e instanceof InvalidFieldValueError) {
+                    throw new ContractParamError(name, param.type, 'invalid');
+                }
+                throw e;
+            }
             this._fields[name] = field;
         });
     }
 
-    async sign(privateKey: string) {
-        const publicKey = privateToPublic(privateKey);
-        this._publicKey = convert.toArrayBuffer(publicKey);
-        this._keyID = new Int64BE(publicToID(publicKey));
-
-        const data = this.serialize();
-        const txHash = await Sha256(data.buffer);
-        const resultHash = await Sha256(txHash);
-        const hexHash = await convert.toHex(resultHash);
-        const signature = convert.toArrayBuffer(sign(hexHash, privateKey));
-
-        return {
-            hash: hexHash,
-            header: this._context.schema.header,
-            body: data.body,
-            data: concatBuffer(
-                this._context.schema.header,
-                concatBuffer(
-                    encodeLengthPlusData(data.buffer),
-                    encodeLengthPlusData(signature)
-                )
-            )
-        };
-    }
-
-    serialize() {
-      const params: { [name: string]: object } = {};
-      /* const lang:string = JSON.parse(localStorage.getItem('persistentData')).storage.locale.substring(0, 2);
-      console.log(lang); */
-        const codec = msgpack.createCodec({
-            binarraybuffer: true,
-            preset: true
-        });
-
+    sign(privateKey: string): ISignedTransaction {
+        const params: { [name: string]: unknown } = {};
         Object.keys(this._fields).forEach(name => {
             params[name] = this._fields[name].get();
         });
 
-        const body: ITransactionBody = {
-            Header: {
-                ID: this._context.id,
-                Time: this._time,
-                EcosystemID: this._context.ecosystemID,
-                KeyID: this._keyID,
-                NetworkID: this._context.networkID,
-                PublicKey: this._publicKey
-            },
-          Params: params,
-          Lang: 'en'
-        };
-
-        const txBuffer = msgpack.encode(body, { codec });
-
-        return {
-            buffer: txBuffer,
-            body
-        };
+        return signTransaction(this._context, { type: 'contract', id: this._id, params }, privateKey);
     }
 }

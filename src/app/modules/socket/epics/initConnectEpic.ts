@@ -4,44 +4,60 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Epic } from 'modules';
-import { Observable } from 'rxjs/Observable';
+import { EMPTY, from } from 'rxjs';
+import { catchError, filter, map, mergeMap } from 'rxjs/operators';
+import { ofAction } from 'lib/rx/ofAction';
 import { discoverNetwork, initialize } from 'modules/engine/actions';
 import { connect } from '../actions';
-import keyring from 'lib/keyring';
+import { acquireSession } from 'modules/auth/actions';
+import { authenticate } from 'services/auth';
 
-const initConnectEpic: Epic = (action$, store, { api, defaultKey }) => action$.ofType(discoverNetwork.done.type, initialize.done.type)
-    .filter(() => !!store.getState().engine.guestSession)
-    .flatMap(action => {
-        const state = store.getState();
+const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.pipe(
+    ofAction(discoverNetwork.done, initialize.done, acquireSession.done),
+    filter(action => {
+        const state = state$.value;
+        if (!state.engine.guestSession) {
+            return false;
+        }
+        // Signed out, the network is discovered again at start (connectDefaultEpic): connected then
+        if (initialize.done.match(action)) {
+            return state.auth.isAuthenticated;
+        }
+        // A session restored once the node answered again, which it did not at start
+        if (acquireSession.done.match(action)) {
+            return !state.socket.socket;
+        }
+        return true;
+    }),
+    mergeMap(action => {
+        const state = state$.value;
         const network = state.storage.networks.find(n => n.uuid === state.engine.guestSession.network.uuid);
 
         if (!network) {
-            return Observable.empty<never>();
+            return EMPTY;
         }
 
-        const publicKey = keyring.generatePublicKey(defaultKey);
         const client = api({
             apiHost: state.engine.guestSession.network.apiHost
         });
 
-        return Observable.from(client.getUid())
-            .flatMap(uid => client.authorize(uid.token).login({
-                publicKey,
-                signature: keyring.sign(uid.uid, defaultKey)
-            }))
-            .flatMap(loginResult =>
-                Observable.from(client.authorize(loginResult.token).getConfig({
+        return from(authenticate(client, defaultKey, { networkID: network.id })).pipe(
+            map(({ result }) => result),
+            mergeMap(loginResult =>
+                from(client.authorize(loginResult.token).getConfig({
                     name: 'centrifugo'
 
-                })).map(centrifugo => connect.started({
+                })).pipe(map(centrifugo => connect.started({
                     wsHost: network.socketUrl || centrifugo,
                     session: loginResult.token,
                     socketToken: loginResult.notify_key,
                     timestamp: loginResult.timestamp,
                     userID: loginResult.key_id
-                }))
-            )
-            .catch((e: any) => Observable.empty<never>());
-    });
+                })))
+            ),
+            catchError(() => EMPTY)
+        );
+    })
+);
 
 export default initConnectEpic;

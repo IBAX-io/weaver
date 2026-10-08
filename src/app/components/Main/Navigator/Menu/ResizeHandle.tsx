@@ -62,15 +62,14 @@ const StyledResizeHandle = themed.button`
      @keyframes myright
      {
       from {left:2px;opacity:0;}
-      to {-10px;opacity:1;}
+      to {left:-10px;opacity:1;}
     }
     &:hover > div {
         background: ${(props) => props.theme.menuBorder};
     }
 `;
 
-const ResizeHandle: React.SFC<Props> = (props) => {
-  console.log(props);
+const ResizeHandle: React.FC<Props> = (props) => {
   return (
     <StyledResizeHandle onClick={props.onFoldToggle}>
       <div>
@@ -88,6 +87,6 @@ const ResizeHandle: React.SFC<Props> = (props) => {
       </div>
     </StyledResizeHandle>
   );
-} 
+};
 
 export default ResizeHandle;

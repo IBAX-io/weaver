@@ -3,43 +3,40 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { defer, of } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { importWallet } from '../actions';
-import { Observable } from 'rxjs/Observable';
-import { navigate } from 'modules/engine/actions';
-import { publicToID } from 'lib/crypto';
-import keyring from 'lib/keyring';
+import { navigate } from 'modules/router/actions';
+import { createWallet, privateKeyFromBackup } from 'lib/keyring';
 
-const importWalletEpic: Epic = (action$, store, { api }) => action$.ofAction(importWallet.started)
-    .flatMap(action => {
-        if (!action.payload.backup || action.payload.backup.length !== keyring.KEY_LENGTH) {
-            return Observable.of(importWallet.failed({
+const importWalletEpic: Epic = action$ => action$.pipe(
+    ofAction(importWallet.started),
+    mergeMap(action => {
+        const privateKey = privateKeyFromBackup(action.payload.backup);
+        if (!privateKey) {
+            return of(importWallet.failed({
                 params: action.payload,
                 error: 'E_INVALID_KEY'
             }));
         }
 
-        const privateKey = action.payload.backup;
-        const publicKey = keyring.generatePublicKey(action.payload.backup);
-        const encKey = keyring.encryptAES(privateKey, action.payload.password);
-        const keyID = publicToID(publicKey);
-
-        return Observable.of<Action>(
-            importWallet.done({
+        // Errors are handled per action, so one failed attempt does not end the epic
+        return defer(() => createWallet(privateKey, action.payload.password)).pipe(
+            mergeMap(wallet => of(
+                importWallet.done({
+                    params: action.payload,
+                    result: wallet
+                }),
+                navigate({ to: '/' })
+            )),
+            catchError(() => of(importWallet.failed({
                 params: action.payload,
-                result: {
-                    id: keyID,
-                    encKey,
-                    publicKey
-                }
-            }),
-            navigate('/')
+                error: 'E_IMPORT_FAILED'
+            })))
         );
-
-    }).catch(e => Observable.of(importWallet.failed({
-        params: null,
-        error: 'E_IMPORT_FAILED'
-    })));
+    })
+);
 
 export default importWalletEpic;

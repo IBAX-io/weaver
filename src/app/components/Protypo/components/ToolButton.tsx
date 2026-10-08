@@ -47,7 +47,7 @@ const StyledToolButton = themed.button`
     }
 `;
 
-const ToolButton: React.SFC<IToolButtonProps> = (props) => {
+const ToolButton: React.FC<IToolButtonProps> = (props) => {
   return (
     <StyledToolButton onClick={props.onClick}>
       <em className={classNames('toolbutton__icon', props.icon)} />

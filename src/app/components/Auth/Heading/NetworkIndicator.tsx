@@ -5,7 +5,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { FormattedMessage } from 'react-intl';
 
 export interface IOptionButtonProps {
@@ -14,7 +14,7 @@ export interface IOptionButtonProps {
   status: 'PENDING' | 'ONLINE' | 'OFFLINE';
 }
 
-const NetworkIndicator: React.SFC<IOptionButtonProps> = (props) => (
+const NetworkIndicator: React.FC<React.PropsWithChildren<IOptionButtonProps>> = (props) => (
   <Link to={props.navigateUrl} className={props.className}>
     <div className="button-title">
       {'PENDING' === props.status && (

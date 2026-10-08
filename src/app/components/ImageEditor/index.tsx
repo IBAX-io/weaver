@@ -36,21 +36,18 @@ class ImageEditor extends React.Component<
     };
   }
 
-  componentDidMount() {
-    this.onPropsUpdate(this.props);
-  }
+  componentDidUpdate(prevProps: IImageEditorProps) {
+    // Only react to prop updates; our own state updates must not re-trigger the checks
+    if (prevProps === this.props) {
+      return;
+    }
 
-  componentWillReceiveProps(props: IImageEditorProps) {
-    this.onPropsUpdate(props);
-  }
-
-  onPropsUpdate(props: IImageEditorProps) {
-    if (!this.state.active && this.props.data !== props.data) {
-      props.openEditor({
-        mime: props.mime,
-        data: props.data,
-        width: props.width,
-        aspectRatio: props.aspectRatio
+    if (!this.state.active && prevProps.data !== this.props.data) {
+      this.props.openEditor({
+        mime: this.props.mime,
+        data: this.props.data,
+        width: this.props.width,
+        aspectRatio: this.props.aspectRatio
       });
 
       this.setState({
@@ -58,8 +55,8 @@ class ImageEditor extends React.Component<
       });
     }
 
-    if (this.state.active && !props.active) {
-      props.onResult(props.result);
+    if (this.state.active && !this.props.active) {
+      this.props.onResult(this.props.result);
       this.setState({
         active: false
       });
@@ -67,7 +64,7 @@ class ImageEditor extends React.Component<
   }
 
   render() {
-    return null as JSX.Element;
+    return null as React.JSX.Element;
   }
 }
 

@@ -10,7 +10,7 @@ import imgLowercase from 'images/constructor/tt-lower.svg';
 import imgUppercase from 'images/constructor/tt-upper.svg';
 
 interface IRadioButtonsProps {
-  onSelect?: any;
+  onSelect?: (value: string) => void;
   initialValue?: string;
 }
 
@@ -26,16 +26,23 @@ export default class RadioButtons extends React.Component<
   constructor(props: IRadioButtonsProps) {
     super(props);
     this.state = {
-      value: props.initialValue || ''
+      value: props.initialValue || '',
+      initialValue: props.initialValue
     };
   }
 
-  componentWillReceiveProps(props: IRadioButtonsProps) {
-    if (this.state.value !== props.initialValue) {
-      this.setState({
-        value: props.initialValue
-      });
+  // Follow the selected tag: reset the local selection whenever the tag value changes
+  static getDerivedStateFromProps(
+    props: IRadioButtonsProps,
+    state: IRadioButtonsState
+  ): Partial<IRadioButtonsState> | null {
+    if (props.initialValue !== state.initialValue) {
+      return {
+        value: props.initialValue,
+        initialValue: props.initialValue
+      };
     }
+    return null;
   }
 
   render() {

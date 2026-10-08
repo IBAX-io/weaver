@@ -49,7 +49,7 @@ const StyledBreadcrumbs = themed.ul`
     }
 `;
 
-const Breadcrumbs: React.SFC<Props> = (props) => (
+const Breadcrumbs: React.FC<Props> = (props) => (
     <Toolbar>
         <StyledBreadcrumbs>
             {props.values.map((breadcrumb, i) => (

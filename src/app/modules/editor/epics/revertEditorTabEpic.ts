@@ -3,24 +3,25 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
-import { Epic } from 'redux-observable';
-import { IRootState } from 'modules';
+import { EMPTY, of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
 import { resetEditorTab, revertEditorTab } from '../actions';
-import { Observable } from 'rxjs';
 import { modalShow } from 'modules/modal/actions';
 
-const revertEditorTabEpic: Epic<Action, IRootState> = (action$, store) => action$.ofAction(revertEditorTab)
-    .flatMap(action => {
-        const state = store.getState();
+const revertEditorTabEpic: Epic = (action$, state$) => action$.pipe(
+    ofAction(revertEditorTab),
+    mergeMap(action => {
+        const state = state$.value;
         const tab = state.editor.tabs.find(t => t.uuid === action.payload);
 
         if (!tab) {
-            return Observable.empty();
+            return EMPTY;
         }
 
         if (tab.dirty) {
-            return Observable.of(modalShow({
+            return of(modalShow({
                 id: 'EDITOR_REVERT',
                 type: 'EDITOR_REVERT_UNSAVED',
                 params: {
@@ -29,7 +30,8 @@ const revertEditorTabEpic: Epic<Action, IRootState> = (action$, store) => action
             }));
         }
 
-        return Observable.of(resetEditorTab(tab.uuid));
-    });
+        return of(resetEditorTab(tab.uuid));
+    })
+);
 
 export default revertEditorTabEpic;

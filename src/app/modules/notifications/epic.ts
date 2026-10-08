@@ -3,13 +3,13 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { combineEpics } from 'redux-observable';
+import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
 import spawnNotificationEpic from './epics/spawnNotificationEpic';
 import enqueueNotificationEpic from './epics/enqueueNotificationEpic';
 import destroyNotificationEpic from './epics/destroyNotificationEpic';
 
-export default combineEpics(
+export default combineIsolatedEpics({
     destroyNotificationEpic,
     enqueueNotificationEpic,
     spawnNotificationEpic
-);
+});

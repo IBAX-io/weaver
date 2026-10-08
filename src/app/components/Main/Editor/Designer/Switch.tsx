@@ -8,15 +8,18 @@ import styled from 'styled-components';
 import imgSwitchOn from 'images/constructor/group-18.svg';
 import imgSwitchOff from 'images/constructor/group-29.svg';
 
+type TSwitchValue = string | boolean;
+
 interface ISwitchProps {
-  onChange?: any;
-  initialValue?: any;
-  onValue: any;
-  offValue: any;
+  onChange?: (value: TSwitchValue) => void;
+  initialValue?: TSwitchValue;
+  onValue: TSwitchValue;
+  offValue: TSwitchValue;
 }
 
 interface ISwitchState {
   on: boolean;
+  initialValue: TSwitchValue;
 }
 
 const ImgSwitch = styled.img`
@@ -30,20 +33,27 @@ export default class Switch extends React.Component<
   constructor(props: ISwitchProps) {
     super(props);
     this.state = {
-      on: this.getBoolean(props.initialValue)
+      on: Switch.isOn(props),
+      initialValue: props.initialValue
     };
   }
 
-  getBoolean(value: string): boolean {
-    return value === this.props.onValue ? true : false;
+  static isOn(props: ISwitchProps): boolean {
+    return props.initialValue === props.onValue;
   }
 
-  componentWillReceiveProps(props: ISwitchProps) {
-    if (this.state.on !== this.getBoolean(props.initialValue)) {
-      this.setState({
-        on: this.getBoolean(props.initialValue)
-      });
+  // Follow the owner: reset the switch whenever the initial value changes
+  static getDerivedStateFromProps(
+    props: ISwitchProps,
+    state: ISwitchState
+  ): Partial<ISwitchState> | null {
+    if (props.initialValue !== state.initialValue) {
+      return {
+        on: Switch.isOn(props),
+        initialValue: props.initialValue
+      };
     }
+    return null;
   }
 
   render() {

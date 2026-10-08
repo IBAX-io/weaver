@@ -4,23 +4,25 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'redux';
-import { Observable } from 'rxjs/Observable';
-import { Epic } from 'redux-observable';
-import { IRootState } from 'modules';
-import { connect, disconnect, setConnected } from '../actions';
+import { Observable, Observer, of } from 'rxjs';
+import { mergeMap, takeUntil } from 'rxjs/operators';
+import { Epic } from 'modules';
+import { ofAction } from 'lib/rx/ofAction';
+import { connect, disconnect, reconnected, setConnected } from '../actions';
 import Centrifuge from 'centrifuge';
-import { Observer } from 'rxjs';
 
-const connectEpic: Epic<Action, IRootState> =
-    (action$, store) => action$.ofAction(connect.started)
-        .flatMap(action => {
+const connectEpic: Epic =
+    action$ => action$.pipe(
+        ofAction(connect.started),
+        mergeMap(action => {
             if (action.payload.wsHost && action.payload.userID && action.payload.timestamp && action.payload.socketToken) {
-                return Observable.create((observer: Observer<Action>) => {
+                return new Observable((observer: Observer<Action>) => {
                     observer.next(disconnect.started(null));
 
                     const centrifuge = new Centrifuge(action.payload.wsHost + '/connection/websocket');
                     centrifuge.setToken(action.payload.socketToken);
 
+                    let connectedBefore = false;
                     centrifuge.on('connect', context => {
                         observer.next(connect.done({
                             params: action.payload,
@@ -29,6 +31,10 @@ const connectEpic: Epic<Action, IRootState> =
                                 instance: centrifuge
                             }
                         }));
+                        if (connectedBefore) {
+                            observer.next(reconnected());
+                        }
+                        connectedBefore = true;
                     });
 
                     centrifuge.on('disconnect', context => {
@@ -44,15 +50,22 @@ const connectEpic: Epic<Action, IRootState> =
 
                     centrifuge.connect();
 
-                }).takeUntil(action$.ofAction(connect.started));
+                    // Superseded by a newer connect: drop this client so its late events
+                    // (e.g. disconnect) cannot flip the state of the new connection
+                    return () => {
+                        centrifuge.removeAllListeners();
+                        centrifuge.disconnect();
+                    };
+                }).pipe(takeUntil(action$.pipe(ofAction(connect.started))));
             }
             else {
-                return Observable.of(connect.failed({
+                return of(connect.failed({
                     params: action.payload,
                     error: null
                 }));
             }
 
-        });
+        })
+    );
 
 export default connectEpic;

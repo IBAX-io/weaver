@@ -5,7 +5,7 @@
 
 declare module 'ibax/content' {
   import { TProtypoElement } from 'ibax/protypo';
-  import { Location } from 'history';
+  import { IRouterLocation } from 'ibax/router';
 
   interface IMenu {
     readonly name: string;
@@ -38,7 +38,7 @@ declare module 'ibax/content' {
     readonly content: TProtypoElement[];
     readonly params: TPageParams;
     readonly error?: string;
-    readonly location: Location;
+    readonly location: IRouterLocation;
   }
 
   interface ISection {

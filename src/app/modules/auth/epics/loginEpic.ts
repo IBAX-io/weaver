@@ -3,70 +3,81 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Action } from 'redux';
+import { defer, from, of } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { login, acquireSession } from '../actions';
-import { Observable } from 'rxjs/Observable';
-import keyring from 'lib/keyring';
-import { push } from 'connected-react-router';
+import { ofAction } from 'lib/rx/ofAction';
+import { login, acquireSession, cryptoChanged, E_CRYPTO_CHANGED, logout } from '../actions';
+import { sameCryptoSuite } from 'lib/crypto/suites';
+import { decryptPrivateKey } from 'lib/keyring';
+import { authenticate } from 'services/auth';
+import { navigate } from 'modules/router/actions';
+import { authFailureCode } from '../util/authErrors';
 
-const loginEpic: Epic = (action$, store, { api }) => action$.ofAction(login.started)
-    .flatMap(action => {
-        const wallet = store.getState().auth.wallet;
-        const privateKey = keyring.decryptAES(wallet.wallet.encKey, action.payload.password);
-        const state = store.getState();
-        const networkEndpoint = state.engine.guestSession.network;
-
-        if (!keyring.validatePrivateKey(privateKey)) {
-            return Observable.of(login.failed({
-                params: action.payload,
-                error: 'E_INVALID_PASSWORD'
-            }));
-        }
-
-        const publicKey = keyring.generatePublicKey(privateKey);
+const loginEpic: Epic = (action$, state$, { api }) => action$.pipe(
+    ofAction(login.started),
+    mergeMap(action => {
+        const wallet = state$.value.auth.wallet;
+        // The network as the account was listed on it: its algorithms then, whatever reconnects
+        // while signing in
+        const guest = state$.value.engine.guestSession;
+        const networkEndpoint = guest.network;
+        const network = state$.value.storage.networks.find(l => l.uuid === networkEndpoint.uuid);
         const client = api({ apiHost: networkEndpoint.apiHost });
 
-        return Observable.from(client.getUid())
-            .flatMap(uid => {
-                return client.authorize(uid.token).login({
-                    publicKey,
-                    signature: keyring.sign(uid.uid, privateKey),
+        return defer(() => decryptPrivateKey(wallet.wallet.encKey, action.payload.password)).pipe(
+            mergeMap(privateKey => {
+                if (!privateKey) {
+                    return of(login.failed({
+                        params: action.payload,
+                        error: 'E_INVALID_PASSWORD'
+                    }));
+                }
+
+                return from(authenticate(client, privateKey, {
                     ecosystem: wallet.access.ecosystem,
                     expire: 60 * 60 * 24 * 90,
-                    role: wallet.role ? Number(wallet.role.id) : null
-                });
-            })
-
-            // Successful authentication. Yield the result
-            .flatMap(response => {
-                const sessionResult = {
-                    sessionToken: response.token,
-                    network: networkEndpoint
-                };
-
-                return Observable.of<Action>(
-                    push('/'),
-                    login.done({
-                        params: action.payload,
-                        result: {
-                            session: sessionResult,
-                            privateKey,
-                            publicKey
+                    role: wallet.role ? Number(wallet.role.id) : undefined,
+                    networkID: network && network.id
+                })).pipe(
+                    mergeMap(({ result, cryptoSuite, publicKey }) => {
+                        // The account was listed under the algorithms the network had when it was
+                        // connected to: other ones now, its address is another (the node signed
+                        // the new one in). Back to the list, connected to again; the page says why.
+                        if (!sameCryptoSuite(cryptoSuite, guest.cryptoSuite)) {
+                            return of(
+                                login.failed({ params: action.payload, error: E_CRYPTO_CHANGED }),
+                                cryptoChanged({ reason: E_CRYPTO_CHANGED, network: networkEndpoint.uuid, during: 'session' }),
+                                logout.started(null)
+                            );
                         }
-                    }),
-                    acquireSession.started(sessionResult)
+                        const session = {
+                            sessionToken: result.token,
+                            network: networkEndpoint,
+                            cryptoSuite
+                        };
+
+                        return of(
+                            navigate({ to: '/' }),
+                            login.done({
+                                params: action.payload,
+                                result: {
+                                    session,
+                                    privateKey,
+                                    publicKey
+                                }
+                            }),
+                            acquireSession.started(session)
+                        );
+                    })
                 );
-            })
-
-            // Catch actual login error, yield result
-            .catch(e => Observable.of(
-                login.failed({
-                    params: action.payload,
-                    error: e.error
-                })
-            ));
-
-    });
+            }),
+            catchError(e => of(login.failed({
+                params: action.payload,
+                error: authFailureCode(e)
+            })))
+        );
+    })
+);
 
 export default loginEpic;

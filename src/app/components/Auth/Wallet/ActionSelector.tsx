@@ -15,7 +15,7 @@ export interface IActionSelectorProps {
   onCreate: () => void;
 }
 
-const ActionSelector: React.SFC<IActionSelectorProps> = (props) => (
+const ActionSelector: React.FC<IActionSelectorProps> = (props) => (
   <LocalizedDocumentTitle title="auth.wallet" defaultTitle="Wallet">
     <div>
       <HeadingNetwork returnUrl="/">
@@ -24,7 +24,7 @@ const ActionSelector: React.SFC<IActionSelectorProps> = (props) => (
           defaultMessage="Account actions"
         />
       </HeadingNetwork>
-      <div className="text-left">
+      <div className="text-start">
         <Action
           icon="icon-wallet"
           title={

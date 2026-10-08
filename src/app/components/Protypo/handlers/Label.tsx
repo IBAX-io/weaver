@@ -10,6 +10,7 @@ export interface ILabelProps {
     'className'?: string;
     'class'?: string;
     'for'?: string;
+    children?: React.ReactNode;
 }
 
 class Label extends React.Component<ILabelProps> {

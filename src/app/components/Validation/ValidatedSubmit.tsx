@@ -5,34 +5,32 @@
 
 import * as React from 'react';
 import { Button, ButtonProps } from 'react-bootstrap';
-import * as propTypes from 'prop-types';
 
-import ValidatedForm from './ValidatedForm';
+import { ValidatedFormContext } from './ValidatedForm';
 
 interface IValidatedSubmitProps extends ButtonProps {
     className?: string;
     disabled?: boolean;
 }
 
-const ValidatedSubmit: React.SFC<IValidatedSubmitProps> = (props, context: { form: ValidatedForm }) => (
-    <Button
-        type="submit"
-        onClick={props.onClick && props.onClick}
-        className={props.className}
-        bsClass={props.bsClass}
-        active={props.active}
-        block={props.block}
-        bsStyle={props.bsStyle}
-        bsSize={props.bsSize}
-        componentClass={props.componentClass}
-        disabled={(context.form ? context.form.isPending() : false) || props.disabled}
-    >
-        {props.children}
-    </Button>
-);
+// Without an explicit variant the button keeps the old Bootstrap 3 "default" look
+const ValidatedSubmit: React.FC<React.PropsWithChildren<IValidatedSubmitProps>> = props => {
+    const { form } = React.useContext(ValidatedFormContext);
 
-ValidatedSubmit.contextTypes = {
-    form: propTypes.instanceOf(ValidatedForm)
+    return (
+        <Button
+            type="submit"
+            onClick={props.onClick}
+            className={props.className}
+            active={props.active}
+            variant={props.variant ?? 'secondary'}
+            size={props.size}
+            as={props.as}
+            disabled={(form ? form.isPending() : false) || props.disabled}
+        >
+            {props.children}
+        </Button>
+    );
 };
 
 export default ValidatedSubmit;

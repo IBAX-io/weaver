@@ -3,10 +3,11 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { test, expect } from 'vitest';
 import IbaxAPI, { IRequestTransport, TRequestMethod } from '.';
 import { IContentRequest } from 'ibax/api';
 
-class FormDataMock implements FormData {
+class FormDataMock {
     private _values: { [key: string]: any } = {};
 
     public append(name: string, value: string | Blob, fileName?: string) {
@@ -202,6 +203,15 @@ test('Login', () => {
                 role_id: 123,
             }),
             roles: []
+        });
+    });
+});
+
+test('GetBalance', () => {
+    return paramTestingAPIMock().getBalance({ wallet: '0624-2890-6001-1238-3609', ecosystem: 2 }).then((response: any) => {
+        expect(response).toEqual({
+            __requestUrl: `${paramTestingAPIHost}/${paramTestingAPIEndpoint}/balance/0624-2890-6001-1238-3609?ecosystem=2`,
+            body: null
         });
     });
 });
@@ -427,4 +437,56 @@ test('ContentTest', () => {
             })
         });
     });
+});
+test('ListWhere', () => {
+    return paramTestingAPIMock().listWhere({
+        name: 'history',
+        where: { ecosystem: '1', $or: [{ sender_id: '-12' }, { recipient_id: '-12' }] },
+        order: { id: -1 },
+        columns: ['amount', 'type'],
+        limit: 25,
+        offset: 50
+    }).then((response: any) => {
+        // A form, as go-ibax listWhereForm reads it: where and order as JSON text
+        expect(response).toEqual({
+            __requestUrl: `${paramTestingAPIHost}/${paramTestingAPIEndpoint}/listWhere/history`,
+            body: mockFormData({
+                where: '{"ecosystem":"1","$or":[{"sender_id":"-12"},{"recipient_id":"-12"}]}',
+                order: '{"id":-1}',
+                columns: 'amount,type',
+                limit: 25,
+                offset: 50
+            })
+        });
+    });
+});
+
+test('TxInfo', async () => {
+    // A UTXO transfer's ToID is an int64 past 2^53: the text must come back as the node wrote it
+    const body = '{"blockid":"1606","confirm":0,"data":{"params":{"utxo":{"ToID":-868164129336259442,"Value":"1"}}}}';
+    let url: string;
+    const api = new IbaxAPI({
+        apiHost: paramTestingAPIHost,
+        apiEndpoint: paramTestingAPIEndpoint,
+        transport: async request => {
+            url = request.url;
+            return { json: JSON.parse(body), body };
+        }
+    });
+    const answer = await api.txInfo({ hash: 'ab12' });
+    expect(url).toBe(`${paramTestingAPIHost}/${paramTestingAPIEndpoint}/txinfo/ab12?contractinfo=true`);
+    expect(answer.text).toBe(body);
+    expect(answer.text).toContain('-868164129336259442');
+    expect(answer.json).toEqual(JSON.parse(body));
+});
+
+test('An error the transport already made is passed on as it is', async () => {
+    // The default transport's E_OFFLINE, for an answer that is not JSON
+    const api = new IbaxAPI({
+        apiHost: paramTestingAPIHost,
+        transport: async () => {
+            throw { error: 'E_OFFLINE' };
+        }
+    });
+    await expect(api.txInfo({ hash: 'ab12' })).rejects.toEqual({ error: 'E_OFFLINE' });
 });

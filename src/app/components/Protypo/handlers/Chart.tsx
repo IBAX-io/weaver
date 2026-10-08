@@ -5,11 +5,41 @@
 
 import * as _ from 'lodash';
 import * as React from 'react';
-import * as propTypes from 'prop-types';
 import { ISource, TChartType } from 'ibax/protypo';
-import ChartComponent, { Bar, Line, Pie } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    ArcElement,
+    BarController,
+    BarElement,
+    CategoryScale,
+    ChartData,
+    ChartOptions,
+    Legend,
+    LineController,
+    LineElement,
+    LinearScale,
+    PieController,
+    PointElement,
+    Tooltip
+} from 'chart.js';
+import { Chart as ReactChart } from 'react-chartjs-2';
 
+import { ProtypoContext } from 'components/Protypo/ProtypoContext';
 import StyledComponent from './StyledComponent';
+
+ChartJS.register(
+    ArcElement,
+    BarController,
+    BarElement,
+    CategoryScale,
+    Legend,
+    LineController,
+    LineElement,
+    LinearScale,
+    PieController,
+    PointElement,
+    Tooltip
+);
 
 export interface IChartProps {
     id: string;
@@ -20,95 +50,76 @@ export interface IChartProps {
     type?: TChartType;
 }
 
-interface IChartContext {
-    resolveSource: (name: string) => ISource;
+interface IChartViewProps extends IChartProps {
+    sourceData: ISource;
 }
 
-const chartTypes: { [K in TChartType]: new () => ChartComponent<any> } = {
-    bar: Bar,
-    line: Line,
-    pie: Pie
+const chartTypes: readonly TChartType[] = ['bar', 'line', 'pie'];
+
+// Axis options only apply to cartesian charts; Chart.js 4 would draw axes on a pie chart if given scales
+const cartesianOptions: ChartOptions<'bar' | 'line'> = {
+    scales: {
+        y: {
+            beginAtZero: true
+        }
+    }
 };
 
-class Chart extends React.Component<IChartProps> {
-    private _cachedSourceData: ISource;
+const ChartView: React.FC<IChartViewProps> = props => {
+    const { sourceData, type, colors } = props;
+    const fieldLabelRowIndex = sourceData.columns.indexOf(props.fieldlabel);
+    const fieldValueRowIndex = sourceData.columns.indexOf(props.fieldvalue);
 
-    static contextTypes = {
-        resolveSource: propTypes.func.isRequired
-    };
-
-    shouldComponentUpdate(props: IChartProps, state: never, context: IChartContext) {
-        const source = context.resolveSource(props.source);
-        return !_.isEqual(props, this.props) || !_.isEqual(this._cachedSourceData, source);
-    }
-
-    render() {
-        const context: IChartContext = this.context;
-
-        this._cachedSourceData = context.resolveSource(this.props.source);
-
-        if (!this._cachedSourceData) {
-            return null;
-        }
-
-        const fieldLabelRowIndex = this._cachedSourceData.columns.indexOf(this.props.fieldlabel);
-        const fieldValueRowIndex = this._cachedSourceData.columns.indexOf(this.props.fieldvalue);
-
-        if (fieldValueRowIndex === -1 || fieldLabelRowIndex === -1) {
-            return null;
-        }
-
-        const labels = this._cachedSourceData.data.map((row, rowIndex) => (
-            row[fieldLabelRowIndex]
-        ));
-
-        const data = this._cachedSourceData.data.map((row, rowIndex) => (
-            parseFloat(row[fieldValueRowIndex])
-        ));
-
-        let chartData: any = {
-            labels,
-            datasets: [
-                {
-                    label: '',
-                    data,
-                    borderWidth: 2,
-                    backgroundColor: this.props.colors
-                }
-            ]
-        };
-
-        if (this.props.type === 'line') {
-            if (this.props.colors && this.props.colors.length > 0) {
-                chartData.datasets[0].borderColor = this.props.colors[0];
-                chartData.datasets[0].backgroundColor = null;
-            }
-        }
-
-        const options = {
-            scales: {
-                yAxes: [{
-                    ticks: {
-                        beginAtZero: true
-                    }
-                }]
-            }
-        };
-
-        const ChartType = chartTypes[this.props.type];
-
-        if (ChartType) {
-            return (
-                <div>
-                    <ChartType
-                        data={chartData}
-                        options={options}
-                    />
-                </div>
-            );
-        }
+    if (fieldValueRowIndex === -1 || fieldLabelRowIndex === -1 || !chartTypes.includes(type)) {
         return null;
     }
-}
+
+    const labels = sourceData.data.map(row => row[fieldLabelRowIndex]);
+    const data = sourceData.data.map(row => parseFloat(row[fieldValueRowIndex]));
+    const isLineWithColors = 'line' === type && colors && colors.length > 0;
+
+    const chartData: ChartData<TChartType, number[], string> = {
+        labels,
+        datasets: [
+            isLineWithColors ? {
+                label: '',
+                data,
+                borderWidth: 2,
+                borderColor: colors[0]
+            } : {
+                label: '',
+                data,
+                borderWidth: 2,
+                backgroundColor: colors
+            }
+        ]
+    };
+
+    return (
+        <div>
+            <ReactChart
+                type={type}
+                data={chartData}
+                options={'pie' === type ? {} : cartesianOptions}
+            />
+        </div>
+    );
+};
+
+// Re-render (and re-animate) the chart only when its props or the source rows actually change
+const MemoChartView = React.memo(ChartView, _.isEqual);
+
+const Chart: React.FC<IChartProps> = props => {
+    const { resolveSource } = React.useContext(ProtypoContext);
+    const sourceData = resolveSource(props.source);
+
+    if (!sourceData) {
+        return null;
+    }
+
+    return (
+        <MemoChartView {...props} sourceData={sourceData} />
+    );
+};
 
 export default StyledComponent(Chart);

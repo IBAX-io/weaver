@@ -20,7 +20,7 @@ export interface IHeadingProps {
   option: React.ReactNode;
 }
 
-const Heading: React.SFC<IHeadingProps> = (props) => (
+const Heading: React.FC<React.PropsWithChildren<IHeadingProps>> = (props) => (
   <div className={props.className}>
     <div className="heading-content" >
       <div className="heading-left">
@@ -28,7 +28,8 @@ const Heading: React.SFC<IHeadingProps> = (props) => (
           <BackButton returnUrl={props.returnUrl} onClick={props.onReturn} />
         )}
       </div>
-      <div className="heading-title">{props.children}</div>
+      {/* The page's title: its heading of the first level, looking as before */}
+      <h1 className="heading-title">{props.children}</h1>
       {props.option && <div className="heading-right">{props.option}</div>}
     </div>
   </div >
@@ -61,6 +62,9 @@ export default themed(Heading)`
         .heading-title {
             color: ${(props) => props.theme.headerForeground};
             font-size: 18px;
+            font-weight: inherit;
+            line-height: inherit;
+            margin: 0;
         }
     }
 `;

@@ -3,7 +3,7 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { combineEpics } from 'redux-observable';
+import { combineIsolatedEpics } from 'lib/rx/combineIsolatedEpics';
 import loginEpic from './epics/loginEpic';
 import logoutEpic from './epics/logoutEpic';
 import authorizeEpic from './epics/authorizeEpic';
@@ -20,10 +20,17 @@ import loadSavedWalletEpic from './epics/loadSavedWalletEpic';
 import switchWalletEpic from './epics/switchWalletEpic';
 import loginGuestEpic from './epics/loginGuestEpic';
 import acquireSessionEpic from './epics/acquireSessionEpic';
+import acquireSessionRetryEpic from './epics/acquireSessionRetryEpic';
 import backupAccountEpic from './epics/backupAccountEpic';
+import upgradeLegacyWalletEpic from './epics/upgradeLegacyWalletEpic';
+import enableWalletOnNetworkEpic from './epics/enableWalletOnNetworkEpic';
+import reconnectOnCryptoChangeEpic from './epics/reconnectOnCryptoChangeEpic';
+import reconnectCryptoCheckEpic from './epics/reconnectCryptoCheckEpic';
 
-export default combineEpics(
+export default combineIsolatedEpics({
     acquireSessionEpic,
+    acquireSessionRetryEpic,
+    reconnectCryptoCheckEpic,
     authorizeEpic,
     createWalletEpic,
     importWalletEpic,
@@ -38,6 +45,9 @@ export default combineEpics(
     changePasswordEpic,
     changePasswordDoneEpic,
     switchWalletEpic,
+    upgradeLegacyWalletEpic,
+    enableWalletOnNetworkEpic,
+    reconnectOnCryptoChangeEpic,
     loginGuestEpic,
     backupAccountEpic
-);
+});

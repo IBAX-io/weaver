@@ -6,7 +6,8 @@
 import React from 'react';
 import styled from 'styled-components';
 import { FormattedMessage } from 'react-intl';
-import { Button, Clearfix } from 'react-bootstrap';
+import classNames from 'classnames';
+import { Button } from 'react-bootstrap';
 import { IAccount, IRoleInfo, IEcosystemInfo } from 'ibax/api';
 import { INotificationsMessage } from 'ibax/socket';
 
@@ -34,8 +35,8 @@ const getNotificationsCount = (
   return value ? value.count : 0;
 };
 
-const WalletButton: React.SFC<IWalletButtonProps> = (props) => (
-  <Clearfix componentClass="div" className={props.className}>
+const WalletButton: React.FC<IWalletButtonProps> = (props) => (
+  <div className={classNames('clearfix', props.className)}>
     <div className="wallet-icon">
       <em className="text-primary icon-wallet" />
     </div>
@@ -62,7 +63,7 @@ const WalletButton: React.SFC<IWalletButtonProps> = (props) => (
         {0 === props.wallet.access.length && props.onRegister && (
           <Button
             className="btn-action"
-            bsStyle="link"
+            variant="link"
             onClick={props.onRegister}
           >
             <FormattedMessage
@@ -71,10 +72,10 @@ const WalletButton: React.SFC<IWalletButtonProps> = (props) => (
             />
           </Button>
         )}
-        <Button className="btn-action" bsStyle="link" onClick={props.onCopy}>
+        <Button className="btn-action" variant="link" onClick={props.onCopy}>
           <FormattedMessage id="auth.wallet.share" defaultMessage="Share" />
         </Button>
-        <Button className="btn-action" bsStyle="link" onClick={props.onRemove}>
+        <Button className="btn-action" variant="link" onClick={props.onRemove}>
           <FormattedMessage id="auth.wallet.remove" defaultMessage="Remove" />
         </Button>
       </div>
@@ -83,7 +84,7 @@ const WalletButton: React.SFC<IWalletButtonProps> = (props) => (
       {props.wallet.access.map((access) => (
         <div key={access.ecosystem} className="wallet-access">
           <div className="wallet-child media-box" key={access.ecosystem}>
-            <div className="pull-left">
+            <div className="float-start">
               <Avatar
                 size={44}
                 account={props.wallet.address}
@@ -140,7 +141,7 @@ const WalletButton: React.SFC<IWalletButtonProps> = (props) => (
         </div>
       ))}
     </div>
-  </Clearfix>
+  </div>
 );
 
 export default styled(WalletButton)`

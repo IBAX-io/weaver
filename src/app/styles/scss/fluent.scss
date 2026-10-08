@@ -3,6 +3,10 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// IDE chrome (desktop shell, flex helpers, buttons) on top of the app theme.
+
+@use "app/mixins" as *;
+
 .wrapper {
   background: #244134;
   display: flex;
@@ -74,20 +78,6 @@ textarea.flex-stretch {
   align-items: center;
 }
 
-.panel {
-  border-radius: 0;
-  box-shadow: none;
-
-  > .panel-heading {
-    border-radius: 0;
-    margin: -1px -1px 0;
-  }
-
-  &.panel-default > .panel-heading {
-    margin: 0;
-  }
-}
-
 .list-group,
 .list-group-item {
   border-radius: 0 !important;
@@ -104,16 +94,8 @@ textarea.flex-stretch {
     background: 0;
   }
 
-  &.btn-default {
-    background: #244134;
-  }
-  &.btn-default:hover {
-    background: #27c24c;
-    color:#fff;
-  }
-  &.btn-default:active {
-    background: #27c24c;
-     color:#fff;
+  &.btn-secondary {
+    @include app-default-button;
   }
 }
 
@@ -174,38 +156,12 @@ textarea.flex-stretch {
   padding: 20px;
   width: 100%;
   flex: 1;
-
-  > .breadcrumb {
-    margin: -20px -25px 20px -20px !important;
-    border-top: 0;
-  }
 }
 
 .fullscreen-wrapper {
   display: flex;
   flex: 1;
   flex-direction: column;
-}
-
-.breadcrumb {
-  margin: 0 !important;
-  border-top: 0 !important;
-  background: none !important;
-}
-
-.breadcrumb > li + li:before {
-  content: "\e606";
-  font-family: "simple-line-icons";
-  font-style: normal;
-  font-weight: normal;
-  font-variant: normal;
-  font-size: 10px;
-  text-transform: none;
-  line-height: 1;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  padding: 0 5px;
-  color: #c1c2c3;
 }
 
 .form-control {

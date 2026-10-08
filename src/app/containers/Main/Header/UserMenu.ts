@@ -16,7 +16,7 @@ const mapStateToProps = (state: IRootState) => ({
     walletEcosystems: ((state.auth.wallet && state.auth.wallet.wallet && state.auth.wallets) ? (state.auth.wallets.find(l => l.id === state.auth.wallet.wallet.id) || { access: [] }).access : []).sort((a, b) => Number(a.ecosystem) - Number(b.ecosystem))
 });
 
-export default connect<any, any, any>(mapStateToProps, {
+export default connect(mapStateToProps, {
     onLogout: () => logout.started(null),
     onSwitchEcosystem: (ecosystem: string, defaultRole?: boolean) => defaultRole
         ? switchWallet({

@@ -3,9 +3,10 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import styled, { ThemedStyledInterface } from 'styled-components';
-import { IThemeDefinition } from 'ibax/theme';
+import styled from 'styled-components';
 
-const themed: ThemedStyledInterface<IThemeDefinition> = styled;
+// Kept as the app-wide entry point for themed styled components; the theme type comes from
+// the DefaultTheme declaration in ./styled.d.ts
+const themed = styled;
 
 export default themed;

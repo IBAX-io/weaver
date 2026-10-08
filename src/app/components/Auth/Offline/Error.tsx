@@ -11,7 +11,7 @@ export interface IErrorProps {
   error: NetworkError;
 }
 
-const Error: React.SFC<IErrorProps> = (props) => (
+const Error: React.FC<IErrorProps> = (props) => (
   <div className="text-center mv-lg">
     <h1 className="mb-lg">
       <sup>

@@ -16,7 +16,7 @@ interface Props {
   onChange?: (locale: string) => void;
 }
 
-const LangMenu: React.SFC<Props> = (props) => (
+const LangMenu: React.FC<Props> = (props) => (
   <HeaderButton
     align="right"
     content={

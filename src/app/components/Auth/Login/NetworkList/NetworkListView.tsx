@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import { injectIntl, InjectedIntlProps, FormattedMessage } from 'react-intl';
+import { useIntl, FormattedMessage } from 'react-intl';
 import { INetwork } from 'ibax/auth';
 
 import Table from 'components/Table';
@@ -24,7 +24,7 @@ interface INetworkActionsProps {
   onRemove?: () => void;
 }
 
-const NetworkActions: React.SFC<INetworkActionsProps> = (props) => (
+const NetworkActions: React.FC<INetworkActionsProps> = (props) => (
   <div style={{ whiteSpace: 'nowrap' }}>
     {props.onConnect && (
       <button
@@ -50,7 +50,7 @@ const NetworkActions: React.SFC<INetworkActionsProps> = (props) => (
   </div>
 );
 
-const NetworkName: React.SFC<{ name: string; current: boolean }> = (props) => (
+const NetworkName: React.FC<{ name: string; current: boolean }> = (props) => (
   <div>
     {props.current && (
       <b>
@@ -66,67 +66,63 @@ const NetworkName: React.SFC<{ name: string; current: boolean }> = (props) => (
   </div>
 );
 
-class NetworkListView extends React.Component<
-  INetworkListViewProps & InjectedIntlProps
-> {
-  buildRow = (network: INetwork, preconfigured?: boolean) => [
+const NetworkListView: React.FC<INetworkListViewProps> = (props) => {
+  const intl = useIntl();
+
+  const buildRow = (network: INetwork, preconfigured?: boolean) => [
     <b key={network.uuid} style={{ whiteSpace: 'nowrap' }}>
       {network.id}
     </b>,
     <NetworkName
       key={network.uuid}
       name={network.name}
-      current={this.props.current === network.uuid}
+      current={props.current === network.uuid}
     />,
     network.honorNodes.length,
     <NetworkActions
       key={network.uuid}
-      disabled={this.props.pending || this.props.current === network.uuid}
-      onConnect={() => this.props.onConnect(network.uuid)}
-      onRemove={preconfigured ? undefined : () => this.props.onRemove(network)}
+      disabled={props.pending || props.current === network.uuid}
+      onConnect={() => props.onConnect(network.uuid)}
+      onRemove={preconfigured ? undefined : () => props.onRemove(network)}
     />
   ];
 
-  render() {
-    return (
-      <Table
-        bordered
-        hover
-        columns={[
-          {
-            title: this.props.intl.formatMessage({
-              id: 'general.network.id.short',
-              defaultMessage: 'ID'
-            })
-          },
-          {
-            title: this.props.intl.formatMessage({
-              id: 'general.network.name',
-              defaultMessage: 'Name'
-            })
-          },
-          {
-            title: this.props.intl.formatMessage({
-              id: 'general.network.honor_nodes',
-              defaultMessage: 'Nodes'
-            })
-          },
-          {
-            title: this.props.intl.formatMessage({
-              id: 'general.network.actions',
-              defaultMessage: 'Actions'
-            })
-          }
-        ]}
-        data={[
-          ...this.props.preconfiguredNetworks.map((network) =>
-            this.buildRow(network, true)
-          ),
-          ...this.props.networks.map((network) => this.buildRow(network))
-        ]}
-      />
-    );
-  }
-}
+  return (
+    <Table
+      bordered
+      hover
+      columns={[
+        {
+          title: intl.formatMessage({
+            id: 'general.network.id.short',
+            defaultMessage: 'ID'
+          })
+        },
+        {
+          title: intl.formatMessage({
+            id: 'general.network.name',
+            defaultMessage: 'Name'
+          })
+        },
+        {
+          title: intl.formatMessage({
+            id: 'general.network.honor_nodes',
+            defaultMessage: 'Nodes'
+          })
+        },
+        {
+          title: intl.formatMessage({
+            id: 'general.network.actions',
+            defaultMessage: 'Actions'
+          })
+        }
+      ]}
+      data={[
+        ...props.preconfiguredNetworks.map((network) => buildRow(network, true)),
+        ...props.networks.map((network) => buildRow(network))
+      ]}
+    />
+  );
+};
 
-export default injectIntl(NetworkListView);
+export default NetworkListView;

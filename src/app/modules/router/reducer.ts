@@ -4,19 +4,21 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { reducerWithInitialState } from 'typescript-fsa-reducers';
-import { RouterState } from 'connected-react-router';
+import { locationChange } from './actions';
+import { IRouterState } from './types';
 
-export type State =
-    RouterState;
+export type State = IRouterState;
 
-export const initialState: RouterState = {
+export const initialState: State = {
     location: {
-        key: '',
-        pathname: '',
+        pathname: '/',
         search: '',
-        hash: ''
+        hash: '',
+        state: null,
+        key: 'default'
     },
-    action: 'PUSH'
+    action: 'POP'
 };
 
-export default reducerWithInitialState<State>(initialState);
+export default reducerWithInitialState<State>(initialState)
+    .case(locationChange, (state, payload) => payload);

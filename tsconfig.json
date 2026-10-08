@@ -1,40 +1,40 @@
 {
   "compilerOptions": {
-    "module": "esnext",
-    "target": "es5",
-    "lib": [
-      "dom",
-      "es6",
-      "es2016",
-      "es2017.object"
-    ],
-    "sourceMap": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "jsx": "react-jsx",
     "allowJs": true,
-    "jsx": "react",
     "strict": false,
-    "moduleResolution": "node",
-    "rootDir": "src/app",
-    "baseUrl": "src/app",
-    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
-    "noImplicitAny": true,
-    "strictNullChecks": false,
-    "suppressImplicitAnyIndexErrors": true,
-    "noUnusedLocals": true,
-    "allowSyntheticDefaultImports": true
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "types": ["vite/client", "node"],
+    "paths": {
+      "components/*": ["./src/app/components/*"],
+      "containers/*": ["./src/app/containers/*"],
+      "images/*": ["./src/app/images/*"],
+      "lib/*": ["./src/app/lib/*"],
+      "modules": ["./src/app/modules"],
+      "modules/*": ["./src/app/modules/*"],
+      "services/*": ["./src/app/services/*"],
+      "styles/*": ["./src/app/styles/*"],
+      "test/*": ["./src/app/test/*"],
+      "store": ["./src/app/store"],
+      "ibax/*": ["./src/defs/*"]
+    }
   },
-  "exclude": [
-    "node_modules",
-    "public",
-    "build",
-    "scripts",
-    "acceptance-tests",
-    "webpack",
-    "jest",
-    "src/app/setupTests.ts",
-    "tests",
-    "**/*.test.ts",
-    "**/test"
-  ]
+  "include": ["src", "scripts", "vite.config.ts", "vitest.vectors.config.ts"],
+  "exclude": ["node_modules", "public", "build", "releases", "src/electron"]
 }

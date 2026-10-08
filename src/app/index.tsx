@@ -4,30 +4,30 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
+import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { ConnectedRouter } from 'connected-react-router';
-import { render } from 'react-dom';
-import store, { history } from 'store';
-import 'react-app-polyfill/ie11';
-import 'babel-polyfill';
-import 'jspolyfill-array.prototype.find';
+import { createBrowserRouter, createMemoryRouter, RouterProvider } from 'react-router';
+import store from 'store';
+import platform from 'lib/platform';
+import { attachRouter } from 'lib/routing/navigation';
 import 'font-awesome/css/font-awesome.css';
 import 'simple-line-icons/css/simple-line-icons.css';
-import 'styles/built/sass.css';
+import 'styles/scss/sass.scss';
 import 'styles/index.css';
 import App from 'containers/App';
 
-//import ReactGA from 'react-ga';
-//ReactGA.initialize('G-H1F4HCEVMY');
-//console.log(window.location.pathname + window.location.search);
-// ReactGA.pageview(window.location.pathname + window.location.search);
-const TARGET_ROOT = document.querySelector('#root');
+// One catch-all route renders the app; screens declare their own <Routes> below it
+const routes = [{ path: '*', element: <App /> }];
 
-render(
+const router = platform.select({
+  web: () => createBrowserRouter(routes),
+  desktop: () => createMemoryRouter(routes)
+})();
+
+attachRouter(router, store.dispatch);
+
+createRoot(document.querySelector('#root')).render(
   <Provider store={store}>
-    <ConnectedRouter history={history}>
-      <App />
-    </ConnectedRouter>
-  </Provider>,
-  TARGET_ROOT
+    <RouterProvider router={router} />
+  </Provider>
 );

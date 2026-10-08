@@ -3,10 +3,10 @@
  *  See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as React from 'react';
+import React, { useContext } from 'react';
 import { StyledMenuItem } from './MenuItem';
-import * as propTypes from 'prop-types';
 import { TProtypoElement } from 'ibax/protypo';
+import { ProtypoContext } from '../ProtypoContext';
 
 export interface IMenuGroupProps {
   title?: string;
@@ -15,24 +15,27 @@ export interface IMenuGroupProps {
   childrenTree?: TProtypoElement[];
 }
 
-const MenuGroup: React.SFC<IMenuGroupProps> = (props, context) => (
-  <StyledMenuItem>
-    <a
-      href="#"
-      onClick={() =>
-        context.menuPush({ name: props.title, content: props.childrenTree })
-      }
-    >
-      <span className="link-body">
-        {props.icon && <em className={`icon ${props.icon}`} />}
-        <span>{props.title}</span>
-      </span>
-    </a>
-  </StyledMenuItem>
-);
+const MenuGroup: React.FC<React.PropsWithChildren<IMenuGroupProps>> = props => {
+  const context = useContext(ProtypoContext);
 
-MenuGroup.contextTypes = {
-  menuPush: propTypes.func.isRequired
+  return (
+    <StyledMenuItem>
+      <a
+        href="#"
+        onClick={() =>
+          context.menuPush({
+            section: context.section,
+            menu: { name: props.title, content: props.childrenTree }
+          })
+        }
+      >
+        <span className="link-body">
+          {props.icon && <em className={`icon ${props.icon}`} />}
+          <span>{props.title}</span>
+        </span>
+      </a>
+    </StyledMenuItem>
+  );
 };
 
 export default MenuGroup;

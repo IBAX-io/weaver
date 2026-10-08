@@ -4,15 +4,16 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
+import classnames from 'classnames';
 import { resolveHandler } from 'components/ProtypoConstructor';
-import * as propTypes from 'prop-types';
 import { TProtypoElement } from 'ibax/protypo';
 import { IConstructorElementProps } from 'ibax/editor';
+import { IEditableBlockProps } from './handlers/EditableBlock';
 
 export interface IProtypoConstructorProps extends IConstructorElementProps {
     apiHost: string;
     editable?: boolean;
-    wrapper?: JSX.Element;
+    wrapper?: React.JSX.Element;
     context: string;
     page: string;
     content: TProtypoElement[];
@@ -30,20 +31,7 @@ export interface IParamSpec {
 
 class ProtypoConstructor extends React.Component<IProtypoConstructorProps> {
     private _lastID: number;
-    private _renderElementsBind: Function;
     private _errors: { name: string, description: string }[];
-
-    constructor(props: IProtypoConstructorProps) {
-        super(props);
-        this._renderElementsBind = this.renderElements.bind(this);
-    }
-
-    getChildContext() {
-        return {
-            protypo: this,
-            renderElements: this._renderElementsBind
-        };
-    }
 
     getCurrentPage() {
         return this.props.page;
@@ -53,16 +41,14 @@ class ProtypoConstructor extends React.Component<IProtypoConstructorProps> {
         return `${this.props.apiHost}${name}`;
     }
 
-    renderHandler(Handler: typeof resolveHandler, element: TProtypoElement, key: string): React.ReactNode {
+    renderHandler(Handler: React.ComponentType<IEditableBlockProps>, element: TProtypoElement, key: string): React.ReactNode {
         const selected = this.props.selectedTag && this.props.selectedTag.id === element.id;
         return (
             <Handler
                 {...element.attr}
                 {...element.sysAttr}
                 key={key}
-                id={key}
                 tag={element}
-                childrenTree={element.children}
                 childrenText={element.childrenText}
                 editable={this.props.editable}
                 changePage={this.props.changePage}
@@ -104,7 +90,7 @@ class ProtypoConstructor extends React.Component<IProtypoConstructorProps> {
 
     renderElements(elements: TProtypoElement[], keyPrefix?: string): React.ReactNode[] {
         if (!elements) {
-            return null;
+            return [];
         }
 
         return elements.map((element, index) => (
@@ -136,29 +122,17 @@ class ProtypoConstructor extends React.Component<IProtypoConstructorProps> {
 
         const children = this.getChildren();
 
+        // 'protypo-content' scopes the legacy protypo class vocabulary stylesheet to the rendered page
         if (this.props.wrapper) {
-            return React.cloneElement(this.props.wrapper, this.props.wrapper.props, children);
+            const wrapper: React.ReactElement<{ className?: string }> = this.props.wrapper;
+            return React.cloneElement(wrapper, { className: classnames(wrapper.props.className, 'protypo-content') }, children);
         }
-        else {
-            if (this.props.editable) {
-                return (
-                    <div className="fullscreen">
-                        {children}
-                    </div>
-                );
-            }
-            return (
-                <div className="fullscreen">
-                    {children}
-                </div>
-            );
-        }
+        return (
+            <div className="fullscreen protypo-content">
+                {children}
+            </div>
+        );
     }
 }
-
-(ProtypoConstructor as any).childContextTypes = {
-    protypo: propTypes.object.isRequired,
-    renderElements: propTypes.func.isRequired
-};
 
 export default ProtypoConstructor;

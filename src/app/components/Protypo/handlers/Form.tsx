@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React from 'react';
-import propTypes from 'prop-types';
 import StyledComponent from './StyledComponent';
 import ValidatedForm from 'components/Validation/ValidatedForm';
 import InteractionManager, { TConditionMap } from '../interaction';
@@ -12,7 +11,22 @@ import InteractionManager, { TConditionMap } from '../interaction';
 export interface IFormProps {
     'class'?: string;
     'className'?: string;
+    children?: React.ReactNode;
 }
+
+export interface IProtypoFormContextValue {
+    form: ValidatedForm;
+    interactionManager: InteractionManager;
+    conditionMap: { [id: string]: TConditionMap };
+}
+
+// Provided by the protypo Form handler to its descendants (buttons and interactive components)
+export const ProtypoFormContext = React.createContext<IProtypoFormContextValue>({
+    form: null,
+    interactionManager: null,
+    conditionMap: null
+});
+ProtypoFormContext.displayName = 'ProtypoFormContext';
 
 interface IFormState {
     form: ValidatedForm;
@@ -24,25 +38,11 @@ interface IFormState {
 class Form extends React.Component<IFormProps, IFormState> {
     private _interactionManager = new InteractionManager();
 
-    static childContextTypes = {
-        form: propTypes.instanceOf(ValidatedForm),
-        interactionManager: propTypes.instanceOf(InteractionManager),
-        conditionMap: propTypes.object
-    };
-
     constructor(props: IFormProps) {
         super(props);
         this.state = {
             form: null,
             conditionMap: {}
-        };
-    }
-
-    getChildContext() {
-        return {
-            form: this.state.form,
-            interactionManager: this._interactionManager,
-            conditionMap: this.state.conditionMap
         };
     }
 
@@ -65,10 +65,18 @@ class Form extends React.Component<IFormProps, IFormState> {
     }
 
     render() {
+        const context: IProtypoFormContextValue = {
+            form: this.state.form,
+            interactionManager: this._interactionManager,
+            conditionMap: this.state.conditionMap
+        };
+
         return (
-            <ValidatedForm ref={this.bindForm.bind(this)} className={[this.props.class, this.props.className].join(' ')}>
-                {this.props.children}
-            </ValidatedForm>
+            <ProtypoFormContext.Provider value={context}>
+                <ValidatedForm ref={this.bindForm.bind(this)} className={[this.props.class, this.props.className].join(' ')}>
+                    {this.props.children}
+                </ValidatedForm>
+            </ProtypoFormContext.Provider>
         );
     }
 }

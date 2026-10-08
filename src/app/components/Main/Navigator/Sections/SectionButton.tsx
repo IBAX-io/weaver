@@ -15,7 +15,7 @@ interface Props {
     active?: boolean;
 }
 
-const SectionButton: React.SFC<Props> = props => (
+const SectionButton: React.FC<React.PropsWithChildren<Props>> = props => (
     <HeaderLink to={generateRoute(`/browse/${props.section}/${props.page}`, props.params)} active={props.active}>
         {props.children}
     </HeaderLink>
