@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { bytesToNumberBE } from '@noble/curves/utils.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { p256 } from '@noble/curves/nist.js';
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
+import { bytesToHex, hexToBytes, utf8ToBytes } from '@noble/hashes/utils.js';
 import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
 import { cryptoSuiteFromNode, ICryptoSuiteId, isSupportedCryptoSuite, resolveCryptoSuite, UnsupportedCryptoSuiteError } from './suites';
 import { formatAddress } from './address';
@@ -91,6 +91,19 @@ describe('crypto suites vs go-ibax', () => {
                 expect(k1.sign(challenge, privateKey)).not.toBe(k1.sign(challenge, privateKey));
             }
         }
+    });
+
+    it.each(vectors.filter(v => v.contextFreeSignature).map(v => [label(v), v] as const))('%s: refuses the node\'s signature made without the context', (_, v) => {
+        const suite = resolveCryptoSuite(v.suite);
+        // A valid ML-DSA signature of the same digest, only under the empty context
+        expect(ml_dsa65.verify(hexToBytes(v.contextFreeSignature), suite.hash(utf8ToBytes(v.message)), hexToBytes(v.publicKey))).toBe(true);
+        expect(suite.verify(v.message, v.contextFreeSignature, v.publicKey)).toBe(false);
+    });
+
+    it('has a context-free signature for every ML-DSA vector', () => {
+        const mldsa = vectors.filter(v => v.cryptoer.startsWith('MLDSA'));
+        expect(mldsa.length).toBeGreaterThan(0);
+        expect(mldsa.filter(v => !v.contextFreeSignature)).toEqual([]);
     });
 
     it('signs ML-DSA-65 hedged and only under the IBAX context', () => {
