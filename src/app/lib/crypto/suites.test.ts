@@ -8,8 +8,8 @@ import { bytesToNumberBE } from '@noble/curves/utils.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { p256 } from '@noble/curves/nist.js';
 import { bytesToHex, hexToBytes, utf8ToBytes } from '@noble/hashes/utils.js';
-import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
-import { cryptoSuiteFromNode, ICryptoSuiteId, isSupportedCryptoSuite, resolveCryptoSuite, UnsupportedCryptoSuiteError } from './suites';
+import { ml_dsa65, ml_dsa87 } from '@noble/post-quantum/ml-dsa.js';
+import { cryptoSuiteFromNode, ICryptoSuiteId, isSupportedCryptoSuite, resolveCryptoSuite, SUPPORTED_CRYPTO_SUITES, UnsupportedCryptoSuiteError } from './suites';
 import { formatAddress } from './address';
 import fixture from './fixtures/go-ibax-vectors.json';
 
@@ -17,6 +17,12 @@ import fixture from './fixtures/go-ibax-vectors.json';
 // exact keys, account ids and signatures the node computes and accepts.
 const vectors = fixture.vectors.map(v => ({ ...v, suite: { cryptoer: v.cryptoer, hasher: v.hasher } as ICryptoSuiteId }));
 const label = (v: typeof vectors[number]) => `${v.cryptoer}/${v.hasher} ${v.privateKey.slice(0, 6)}`;
+
+// The ML-DSA levels with their signature lengths (FIPS 204 table 2)
+const MLDSA_LEVELS: { [cryptoer: string]: { level: typeof ml_dsa65 | typeof ml_dsa87, signatureSize: number } } = {
+    MLDSA65: { level: ml_dsa65, signatureSize: 3309 },
+    MLDSA87: { level: ml_dsa87, signatureSize: 4627 }
+};
 
 describe('crypto suites vs go-ibax', () => {
     it.each(vectors.map(v => [label(v), v] as const))('%s: public key and account id', (_, v) => {
@@ -38,14 +44,14 @@ describe('crypto suites vs go-ibax', () => {
         expect(suite.verify(suite.doubleHash(payload), txSignature, v.publicKey)).toBe(true);
         expect(suite.verify(suite.doubleHash(payload.slice(1)), txSignature, v.publicKey)).toBe(false);
         // ECDSA: r || s; SM2: DER, as gmsm writes it: SEQUENCE of two INTEGERs, minimal, so shorter
-        // when r or s has leading zero bytes (8 to 72 bytes); ML-DSA-65: 3309 bytes
+        // when r or s has leading zero bytes (8 to 72 bytes); ML-DSA: fixed per level
         if ('SM2' === v.cryptoer) {
             expect(txSignature).toMatch(/^30[0-9a-f]{2}02/);
             expect(parseInt(txSignature.slice(2, 4), 16)).toBe(txSignature.length / 2 - 2);
             expect(txSignature.length / 2).toBeLessThanOrEqual(72);
         }
-        else if ('MLDSA65' === v.cryptoer) {
-            expect(txSignature).toHaveLength(2 * 3309);
+        else if (MLDSA_LEVELS[v.cryptoer]) {
+            expect(txSignature).toHaveLength(2 * MLDSA_LEVELS[v.cryptoer].signatureSize);
         }
         else {
             expect(txSignature).toHaveLength(128);
@@ -54,11 +60,13 @@ describe('crypto suites vs go-ibax', () => {
 
     it('implements every suite go-ibax implements, and refuses the one it only names', () => {
         const names = new Set(vectors.map(v => `${v.cryptoer}/${v.hasher}`));
-        for (const cryptoer of ['ECC_Secp256k1', 'ECC_P256', 'SM2', 'MLDSA65']) {
-            for (const hasher of ['SHA256', 'KECCAK256', 'SHA3_256', 'SM3']) {
+        for (const cryptoer of ['ECC_Secp256k1', 'ECC_P256', 'SM2', 'MLDSA65', 'MLDSA87']) {
+            for (const hasher of ['SHA256', 'KECCAK256', 'SHA3_256', 'SM3', 'SHA384', 'SHA512']) {
                 expect(names.has(`${cryptoer}/${hasher}`)).toBe(true);
             }
         }
+        expect(SUPPORTED_CRYPTO_SUITES).toHaveLength(30);
+        expect(names.size).toBe(30);
         // go-ibax's NewAsymAlgo panics for ECC_P512: no node can run with it
         expect(() => resolveCryptoSuite({ cryptoer: 'ECC_P512', hasher: 'SHA256' })).toThrow(UnsupportedCryptoSuiteError);
     });
@@ -96,7 +104,7 @@ describe('crypto suites vs go-ibax', () => {
     it.each(vectors.filter(v => v.contextFreeSignature).map(v => [label(v), v] as const))('%s: refuses the node\'s signature made without the context', (_, v) => {
         const suite = resolveCryptoSuite(v.suite);
         // A valid ML-DSA signature of the same digest, only under the empty context
-        expect(ml_dsa65.verify(hexToBytes(v.contextFreeSignature), suite.hash(utf8ToBytes(v.message)), hexToBytes(v.publicKey))).toBe(true);
+        expect(MLDSA_LEVELS[v.cryptoer].level.verify(hexToBytes(v.contextFreeSignature), suite.hash(utf8ToBytes(v.message)), hexToBytes(v.publicKey))).toBe(true);
         expect(suite.verify(v.message, v.contextFreeSignature, v.publicKey)).toBe(false);
     });
 
@@ -106,15 +114,20 @@ describe('crypto suites vs go-ibax', () => {
         expect(mldsa.filter(v => !v.contextFreeSignature)).toEqual([]);
     });
 
-    it('signs ML-DSA-65 hedged and only under the IBAX context', () => {
-        const v = vectors.find(item => 'MLDSA65' === item.cryptoer);
+    it.each(Object.keys(MLDSA_LEVELS))('signs %s hedged and only under the IBAX context', cryptoer => {
+        const v = vectors.find(item => cryptoer === item.cryptoer);
+        const { level } = MLDSA_LEVELS[cryptoer];
         const suite = resolveCryptoSuite(v.suite);
         const digest = suite.doubleHash(hexToBytes(v.payload));
         expect(suite.sign(digest, v.privateKey)).not.toBe(suite.sign(digest, v.privateKey));
         // The same key and digest signed without the context, as for any other application
-        const { secretKey } = ml_dsa65.keygen(hexToBytes(v.privateKey));
-        const foreign = bytesToHex(ml_dsa65.sign(suite.hash(digest), secretKey));
+        const { secretKey } = level.keygen(hexToBytes(v.privateKey));
+        const foreign = bytesToHex(level.sign(suite.hash(digest), secretKey));
         expect(suite.verify(digest, foreign, v.publicKey)).toBe(false);
+        // Nor under the other level's context
+        const otherContext = utf8ToBytes('MLDSA65' === cryptoer ? 'IBAX-MLDSA-87-v1' : 'IBAX-MLDSA-65-v1');
+        const otherLevel = bytesToHex(level.sign(suite.hash(digest), secretKey, { context: otherContext }));
+        expect(suite.verify(digest, otherLevel, v.publicKey)).toBe(false);
         expect(suite.verify(digest, suite.sign(digest, v.privateKey), v.publicKey)).toBe(true);
         expect(suite.canUsePrivateKey('00'.repeat(32))).toBe(true);
     });
