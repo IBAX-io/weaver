@@ -10,9 +10,10 @@ import { sectionsInit } from 'modules/sections/actions';
 import { fetchNotifications, ecosystemInit } from 'modules/content/actions';
 import { modalShow } from 'modules/modal/actions';
 import { displayableAuthError } from '../util/authErrors';
-import { forkJoin, from, of } from 'rxjs';
+import { defer, forkJoin, from, of, throwError } from 'rxjs';
 import { catchError, map, mergeMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
+import { cryptoSuiteKey } from 'lib/crypto/suites';
 
 enum RemoteSectionStatus {
     Removed = '0',
@@ -29,12 +30,19 @@ const acquireSessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
             sessionToken: action.payload.sessionToken
         });
 
-        return forkJoin([
-            from(client.sections({ locale: state.storage.locale })).pipe(map(s => s.list)),
-            from(client.getParam({ name: 'stylesheet' })).pipe(map(p => p.value), catchError(e => of(''))),
-            from(client.getParam({ name: 'print_stylesheet' })).pipe(map(p => p.value), catchError(e => of('')))
-
-        ]).pipe(
+        // A session restored at start was signed in under the key algorithms the network had then.
+        // The node reports the ones it has now: changed (the chain's crypto settings were changed),
+        // the account's address and every signature would be the old ones, so the session ends and
+        // the user signs in again under the new ones.
+        return defer(() => client.getUid()).pipe(
+            mergeMap(uid => cryptoSuiteKey(uid.cryptoSuite) === cryptoSuiteKey(action.payload.cryptoSuite)
+                ? forkJoin([
+                    from(client.sections({ locale: state.storage.locale })).pipe(map(s => s.list)),
+                    from(client.getParam({ name: 'stylesheet' })).pipe(map(p => p.value), catchError(e => of(''))),
+                    from(client.getParam({ name: 'print_stylesheet' })).pipe(map(p => p.value), catchError(e => of('')))
+                ])
+                : throwError(() => ({ error: 'E_CRYPTO_CHANGED' }))
+            ),
             mergeMap(([sections, stylesheet, printStylesheet]) => {
                 const sectionsResult: { [name: string]: ISection } = {};
                 const mainSection = sections.find(l => RemoteSectionStatus.Main === l.status);

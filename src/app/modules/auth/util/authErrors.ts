@@ -11,7 +11,7 @@ import { apiErrorCode, UntrustedNodeError } from 'lib/ibaxAPI/errors';
 export const DISPLAYABLE_AUTH_ERRORS = [
     'E_INVALID_KEY', 'E_INVALID_PASSWORD', 'E_KEYNOTFOUND', 'E_DELETEDKEY',
     'E_OFFLINE', 'E_SERVER', 'E_UPDATING', 'E_TOKENEXPIRED',
-    'E_IMPORT_FAILED', 'E_UNSUPPORTED_CRYPTO', 'E_UNTRUSTED_NODE'
+    'E_IMPORT_FAILED', 'E_UNSUPPORTED_CRYPTO', 'E_UNTRUSTED_NODE', 'E_CRYPTO_CHANGED'
 ];
 
 // The auth error code for anything signing in can throw
