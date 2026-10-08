@@ -7,7 +7,8 @@ import { describe, it, expect } from 'vitest';
 import { bytesToNumberBE } from '@noble/curves/utils.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { p256 } from '@noble/curves/nist.js';
-import { hexToBytes } from '@noble/hashes/utils.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
+import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
 import { cryptoSuiteFromNode, ICryptoSuiteId, isSupportedCryptoSuite, resolveCryptoSuite, UnsupportedCryptoSuiteError } from './suites';
 import { formatAddress } from './address';
 import fixture from './fixtures/go-ibax-vectors.json';
@@ -37,11 +38,14 @@ describe('crypto suites vs go-ibax', () => {
         expect(suite.verify(suite.doubleHash(payload), txSignature, v.publicKey)).toBe(true);
         expect(suite.verify(suite.doubleHash(payload.slice(1)), txSignature, v.publicKey)).toBe(false);
         // ECDSA: r || s; SM2: DER, as gmsm writes it: SEQUENCE of two INTEGERs, minimal, so shorter
-        // when r or s has leading zero bytes (8 to 72 bytes)
+        // when r or s has leading zero bytes (8 to 72 bytes); ML-DSA-65: 3309 bytes
         if ('SM2' === v.cryptoer) {
             expect(txSignature).toMatch(/^30[0-9a-f]{2}02/);
             expect(parseInt(txSignature.slice(2, 4), 16)).toBe(txSignature.length / 2 - 2);
             expect(txSignature.length / 2).toBeLessThanOrEqual(72);
+        }
+        else if ('MLDSA65' === v.cryptoer) {
+            expect(txSignature).toHaveLength(2 * 3309);
         }
         else {
             expect(txSignature).toHaveLength(128);
@@ -50,7 +54,7 @@ describe('crypto suites vs go-ibax', () => {
 
     it('implements every suite go-ibax implements, and refuses the one it only names', () => {
         const names = new Set(vectors.map(v => `${v.cryptoer}/${v.hasher}`));
-        for (const cryptoer of ['ECC_Secp256k1', 'ECC_P256', 'SM2']) {
+        for (const cryptoer of ['ECC_Secp256k1', 'ECC_P256', 'SM2', 'MLDSA65']) {
             for (const hasher of ['SHA256', 'KECCAK256', 'SHA3_256', 'SM3']) {
                 expect(names.has(`${cryptoer}/${hasher}`)).toBe(true);
             }
@@ -87,6 +91,19 @@ describe('crypto suites vs go-ibax', () => {
                 expect(k1.sign(challenge, privateKey)).not.toBe(k1.sign(challenge, privateKey));
             }
         }
+    });
+
+    it('signs ML-DSA-65 hedged and only under the IBAX context', () => {
+        const v = vectors.find(item => 'MLDSA65' === item.cryptoer);
+        const suite = resolveCryptoSuite(v.suite);
+        const digest = suite.doubleHash(hexToBytes(v.payload));
+        expect(suite.sign(digest, v.privateKey)).not.toBe(suite.sign(digest, v.privateKey));
+        // The same key and digest signed without the context, as for any other application
+        const { secretKey } = ml_dsa65.keygen(hexToBytes(v.privateKey));
+        const foreign = bytesToHex(ml_dsa65.sign(suite.hash(digest), secretKey));
+        expect(suite.verify(digest, foreign, v.publicKey)).toBe(false);
+        expect(suite.verify(digest, suite.sign(digest, v.privateKey), v.publicKey)).toBe(true);
+        expect(suite.canUsePrivateKey('00'.repeat(32))).toBe(true);
     });
 
     it('takes a suite from the node: none reported is the legacy one, half of one is none', () => {

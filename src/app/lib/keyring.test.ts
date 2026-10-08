@@ -51,7 +51,7 @@ describe('keyring', () => {
         expect(isValidPrivateKey(key)).toBe(true);
         const identities = deriveIdentities(key);
         const keys = Object.keys(identities);
-        expect(keys).toHaveLength(12);
+        expect(keys).toHaveLength(16);
         for (const suite of keys) {
             if (suite.startsWith('SM2/')) {
                 expect(identities[suite]).toBeNull();

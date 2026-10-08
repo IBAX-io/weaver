@@ -16,6 +16,7 @@
     "@msgpack/msgpack": "^3.1.3",
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
+    "@noble/post-quantum": "^0.7.1",
     "@nosferatu500/react-dnd": "^19.2.0",
     "@nosferatu500/react-dnd-html5-backend": "^19.2.0",
     "@nosferatu500/react-sortable-tree": "^7.1.0",

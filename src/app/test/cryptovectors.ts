@@ -19,7 +19,7 @@ import defaultSchema from 'lib/tx/schema/defaultSchema';
 import { DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
 
 // Every suite go-ibax implements (ECC_P512 is only named)
-export const CRYPTOERS: ICryptoSuiteId['cryptoer'][] = ['ECC_Secp256k1', 'ECC_P256', 'SM2'];
+export const CRYPTOERS: ICryptoSuiteId['cryptoer'][] = ['ECC_Secp256k1', 'ECC_P256', 'SM2', 'MLDSA65'];
 export const HASHERS: ICryptoSuiteId['hasher'][] = ['SHA256', 'KECCAK256', 'SHA3_256', 'SM3'];
 export const ALL_SUITES: ICryptoSuiteId[] = CRYPTOERS.flatMap(cryptoer => HASHERS.map(hasher => ({ cryptoer, hasher })));
 

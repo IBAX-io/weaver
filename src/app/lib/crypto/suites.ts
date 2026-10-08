@@ -9,6 +9,7 @@
 // for every cryptoer and hasher go-ibax implements (ECC_P512 it names but does not implement).
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { p256 } from '@noble/curves/nist.js';
+import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { keccak_256, sha3_256 } from '@noble/hashes/sha3.js';
 import { bytesToHex, concatBytes, hexToBytes, randomBytes, utf8ToBytes } from '@noble/hashes/utils.js';
@@ -22,13 +23,15 @@ export interface ICryptoSuite {
     readonly id: ICryptoSuiteId;
     // Whether the private key lies in the curve's range (SM2's is the smallest of the three)
     canUsePrivateKey(privateKeyHex: string): boolean;
-    // Uncompressed public key, hex with the 04 prefix (the node accepts it and cuts the prefix)
+    // Public key, hex: for the curves uncompressed with the 04 prefix (the node accepts it and cuts
+    // the prefix), for ML-DSA-65 its 1952-byte encoding
     publicKey(privateKeyHex: string): string;
     // Signed int64 account id, decimal
     keyID(publicKeyHex: string): string;
     hash(data: Uint8Array): Uint8Array;
     doubleHash(data: Uint8Array): Uint8Array;
-    // Signature over hash(data), hex: ECDSA r||s, or SM2 DER; data is a UTF-8 string or raw bytes
+    // Signature over hash(data), hex: ECDSA r||s, SM2 DER, or ML-DSA-65's 3309 bytes; data is a
+    // UTF-8 string or raw bytes
     sign(data: string | Uint8Array, privateKeyHex: string): string;
     verify(data: string | Uint8Array, signatureHex: string, publicKeyHex: string): boolean;
 }
@@ -60,8 +63,8 @@ export class UnsupportedCryptoSuiteError extends Error {
 // is signed: that is always the suite the node reports (cryptoSuiteFromNode), kept in the session.
 export const DEFAULT_CRYPTO_SUITE: ICryptoSuiteId = { cryptoer: 'ECC_Secp256k1', hasher: 'KECCAK256' };
 
-// A cryptoer: the uncompressed public key (04 || x || y) of a private key, and signatures over a
-// digest as the node makes and checks them
+// A cryptoer: the public key of a private key, and signatures over a digest as the node makes and
+// checks them
 interface ISigner {
     canUse(privateKey: Uint8Array): boolean;
     publicKey(privateKey: Uint8Array): Uint8Array;
@@ -92,10 +95,29 @@ const ecdsa = (curve: typeof secp256k1 | typeof p256, name: string): ISigner => 
     }
 });
 
+// ML-DSA-65 (FIPS 204), as go-ibax asymalgo.MLDSA65: the 32-byte private key is the seed the key
+// pair is expanded from, so every wallet key is usable. Pure ML-DSA over the digest with the IBAX
+// context string, hedged (fresh randomness in every signature).
+const MLDSA65_CONTEXT = utf8ToBytes('IBAX-MLDSA-65-v1');
+const mldsa65: ISigner = {
+    canUse: privateKey => privateKey.length === 32,
+    publicKey: privateKey => ml_dsa65.keygen(privateKey).publicKey,
+    sign: (digest, privateKey) => ml_dsa65.sign(digest, ml_dsa65.keygen(privateKey).secretKey, { context: MLDSA65_CONTEXT }),
+    verify: (digest, signature, publicKey) => {
+        try {
+            return ml_dsa65.verify(signature, digest, publicKey, { context: MLDSA65_CONTEXT });
+        }
+        catch (e) {
+            return false;
+        }
+    }
+};
+
 const SIGNERS: { [cryptoer: string]: ISigner } = {
     ECC_Secp256k1: ecdsa(secp256k1, 'ECC_Secp256k1'),
     ECC_P256: ecdsa(p256, 'ECC_P256'),
-    SM2: { canUse: isValidSm2PrivateKey, publicKey: sm2PublicKey, sign: sm2Sign, verify: sm2Verify }
+    SM2: { canUse: isValidSm2PrivateKey, publicKey: sm2PublicKey, sign: sm2Sign, verify: sm2Verify },
+    MLDSA65: mldsa65
 };
 
 const HASHES: { [hasher: string]: (data: Uint8Array) => Uint8Array } = {
