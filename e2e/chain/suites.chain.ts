@@ -39,11 +39,30 @@ const PARAMS_RECEIVED = 'I1=42 I2=-9223372036854775808 I3=9223372036854775807 I4
     'M1=1500000000000 M2=1 S1=héllo B1=true A1=[a b] AD=597920150864192934 ' +
     'FL=map[Body:[104 105] MimeType:text/plain Name:a.txt]';
 
-// Another suite that differs in the signature algorithm, and one that differs only in the hash
-const otherSuites = (suite: ICryptoSuiteId): ICryptoSuiteId[] => [
-    ALL_SUITES.find(other => other.cryptoer !== suite.cryptoer && other.hasher === suite.hasher),
-    ALL_SUITES.find(other => other.cryptoer === suite.cryptoer && other.hasher !== suite.hasher)
-];
+// Bytes of a suite's public key as the node checks it: the curves' keys without the 04 prefix
+const nodeKeySize = (suite: ICryptoSuiteId, privateKey: string) => {
+    const publicKey = resolveCryptoSuite(suite).publicKey(privateKey);
+    return (130 === publicKey.length && publicKey.startsWith('04') ? 128 : publicKey.length) / 2;
+};
+
+// Other suites: another signature algorithm with keys of the same size and one with keys of
+// another size (where there is one), and the same algorithm with another hash
+const otherSuites = (suite: ICryptoSuiteId, privateKey: string): ICryptoSuiteId[] => {
+    const size = nodeKeySize(suite, privateKey);
+    const otherCryptoer = ALL_SUITES.filter(other => other.cryptoer !== suite.cryptoer && other.hasher === suite.hasher);
+    return [
+        otherCryptoer.find(other => nodeKeySize(other, privateKey) === size),
+        otherCryptoer.find(other => nodeKeySize(other, privateKey) !== size),
+        ALL_SUITES.find(other => other.cryptoer === suite.cryptoer && other.hasher !== suite.hasher)
+    ].filter(Boolean);
+};
+
+// The node's answer to a signature by another suite's key: a key of its own size just does not
+// verify, a key of another size is refused as no key of the network's algorithm
+const refusalFor = (suite: ICryptoSuiteId, other: ICryptoSuiteId, privateKey: string) => {
+    const size = nodeKeySize(other, privateKey);
+    return size === nodeKeySize(suite, privateKey) ? 'Incorrect sign' : `invalid parameters len(public) = ${size}`;
+};
 
 describe.each(ALL_SUITES.map(suite => [cryptoSuiteKey(suite), suite] as const))('%s network', (_, suite) => {
     let network: ILocalNetwork;
@@ -81,14 +100,14 @@ describe.each(ALL_SUITES.map(suite => [cryptoSuiteKey(suite), suite] as const))(
     });
 
     it('refuses a login signed with another suite', async () => {
-        for (const other of otherSuites(suite)) {
+        for (const other of otherSuites(suite, founderKey)) {
             const uid = await api.getUid();
             const signer = resolveCryptoSuite(other);
             const error = await refusal(api.authorize(uid.token).login({
                 publicKey: signer.publicKey(founderKey),
                 signature: signer.sign(uid.uid, founderKey)
             }));
-            expect([cryptoSuiteKey(other), error.msg]).toEqual([cryptoSuiteKey(other), 'Incorrect sign']);
+            expect([cryptoSuiteKey(other), error.msg]).toEqual([cryptoSuiteKey(other), refusalFor(suite, other, founderKey)]);
         }
     });
 
@@ -127,9 +146,9 @@ describe.each(ALL_SUITES.map(suite => [cryptoSuiteKey(suite), suite] as const))(
     it('refuses transactions signed for another suite or network', async () => {
         const payload: TTxPayload = { type: 'utxo', toID: network.nodes[0].keyID, value: '1', comment: '' };
         const send = (signed: ISignedTransaction) => refusal(client.txSend({ [signed.hash]: new Blob([signed.data.slice()]) }));
-        for (const other of otherSuites(suite)) {
+        for (const other of otherSuites(suite, founderKey)) {
             const error = await send(signTransaction({ ...context, cryptoSuite: other }, payload, founderKey));
-            expect([cryptoSuiteKey(other), error.msg]).toEqual([cryptoSuiteKey(other), 'Incorrect sign']);
+            expect([cryptoSuiteKey(other), error.msg]).toEqual([cryptoSuiteKey(other), refusalFor(suite, other, founderKey)]);
         }
         expect((await send(signTransaction({ ...context, networkID: NETWORK_ID + 1 }, payload, founderKey))).msg).toBe('error networkid invalid');
     });
