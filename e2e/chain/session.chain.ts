@@ -9,7 +9,9 @@
 // chain in place. The cases build on each other, in order.
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it, onTestFailed, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
+import { rmSync } from 'node:fs';
 import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http';
+import path from 'node:path';
 import { Action } from 'redux';
 import IbaxAPI from 'lib/ibaxAPI';
 import { cryptoSuiteKey, ICryptoSuiteId, LEGACY_CRYPTO_SUITE, resolveCryptoSuite } from 'lib/crypto/suites';
@@ -276,12 +278,25 @@ describe('session across crypto suite changes', () => {
         }
     });
 
-    // go-ibax signs tokens with a secret drawn at every start
-    it('signs a restored session out as expired when the node restarted meanwhile, without the error dialog', async () => {
+    // go-ibax keeps the secret it signs tokens with in its keys directory
+    it('keeps a restored session across a restart of the node, which still takes its token', async () => {
         client = open(settingsFor(deployed));
         await signIn(client, A);
 
         await network.stopNode(0);
+        client = restart(client);
+        await client.waitFor(state => 'E_OFFLINE' === state.auth.sessionRetryReason, 'the retry screen');
+        await network.startNode(0);
+        await client.waitFor(state => state.auth.isAcquired, 'the session acquired after the node is back', 2 * SESSION_RETRY_MS + 5000);
+        expect(client.screen()).toBe('main');
+        expect([client.store.getState().auth.sessionRetryReason, client.store.getState().auth.signedOutBecause]).toEqual([null, null]);
+        expect(modalsShown(client)).toEqual([]);
+        await transferred(client, transfer(client, network.nodes[0].keyID));
+    });
+
+    it('signs a restored session out as expired when the node lost its token secret meanwhile, without the error dialog', async () => {
+        await network.stopNode(0);
+        rmSync(path.join(network.nodes[0].dataDir, 'JWTSecret'));
         client = restart(client);
         await client.waitFor(state => 'E_OFFLINE' === state.auth.sessionRetryReason, 'the retry screen');
         await network.startNode(0);
