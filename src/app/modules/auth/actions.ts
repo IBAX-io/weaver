@@ -14,6 +14,9 @@ export const acquireSession = actionCreator.async<ISession, boolean>('ACQUIRE_SE
 export const login = actionCreator.async<ILoginCall, { privateKey: string, publicKey: string, session: ISession }, string>('LOGIN');
 export const loginGuest = actionCreator.async<void, { privateKey: string, publicKey: string, wallet: IAccountContext, session: ISession }, string>('LOGIN_GUEST');
 export const logout = actionCreator.async('LOGOUT');
+// The network's key algorithms are no longer the ones the session signed in under (its address and
+// signatures would be the old ones): the session ends, and the sign-in page says why
+export const cryptoChanged = actionCreator('CRYPTO_CHANGED');
 export const inviteEcosystem = actionCreator<{ ecosystem: string, redirectPage?: string }>('INVITE_ECOSYSTEM');
 export const createWallet = actionCreator.async<ICreateWalletCall, IWallet, string>('CREATE_WALLET');
 // Re-encrypts a wallet stored by an earlier version (asks for its password)

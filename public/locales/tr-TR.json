@@ -386,5 +386,7 @@
   "auth.network.known": "IBAX ana ağı ve test ağındaki adres: {address}",
   "auth.network.enable": "Hesabı bu ağ için kur",
   "modal.authorization.network": "Bu ağ farklı anahtar algoritmaları kullanıyor; bu yüzden hesabın burada başka bir adresi var. Bu ağ için kurmak üzere hesabın parolasını bir kez girin.",
-  "auth.error.E_CRYPTO_CHANGED": "Bu ağ artık farklı anahtar algoritmaları kullanıyor; bu yüzden hesabınızın burada başka bir adresi var. Lütfen yeniden giriş yapın."
+  "auth.error.E_CRYPTO_CHANGED": "Bu ağ artık farklı anahtar algoritmaları kullanıyor; bu yüzden hesabınızın burada başka bir adresi var. Lütfen yeniden giriş yapın.",
+  "tx.error.E_CRYPTO_CHANGED": "Farklı anahtar algoritmalarıyla giriş yapılmış",
+  "tx.error.E_CRYPTO_CHANGED.desc": "Bu ağ artık farklı anahtar algoritmaları kullanıyor; bu yüzden hiçbir şey gönderilmedi ve oturumunuz kapatıldı. Hesabınızın bu ağdaki adresini kullanmak için yeniden giriş yapın."
 }

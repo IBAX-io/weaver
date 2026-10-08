@@ -9,10 +9,11 @@ import { runEpic } from 'test/runEpic';
 import mockState from 'test/mockStore';
 import { IRootState } from 'modules';
 import IbaxAPI from 'lib/ibaxAPI';
-import { DEFAULT_CRYPTO_SUITE, resolveCryptoSuite } from 'lib/crypto/suites';
+import { cryptoSuiteFromNode, DEFAULT_CRYPTO_SUITE, ICryptoSuiteId, resolveCryptoSuite } from 'lib/crypto/suites';
 import { ITransactionBody, ITransactionCall } from 'ibax/tx';
 import { IContractResponse, ITxStatus } from 'ibax/api';
 import { IAPIError, isApiError } from 'lib/ibaxAPI/errors';
+import { cryptoChanged, logout } from 'modules/auth/actions';
 import { txExec } from '../actions';
 import txExecEpic from './txExecEpic';
 
@@ -264,5 +265,59 @@ describe('txExecEpic', () => {
 
         expect(sent).toHaveLength(0);
         expect(output.map(action => action.type)).toEqual([txExec.failed.type]);
+    });
+
+    describe('when the node refuses the signatures', () => {
+        // go-ibax answers a transaction signed with another suite's algorithms like this, at once
+        const INCORRECT_SIGN: IAPIError = { error: 'E_SERVER', msg: 'Incorrect sign' } as IAPIError;
+        const TRANSFER = call({ transfers: [{ type: 'utxo', toID: RECIPIENT, amount: '1' }] });
+
+        // The node refuses the send; /getuid reports `suite`, or fails when null
+        const refusingNode = (suite: ICryptoSuiteId | null) => {
+            const { client } = createClient([]);
+            vi.mocked(client.txSend).mockRejectedValue(INCORRECT_SIGN);
+            const getUid = vi.spyOn(client, 'getUid').mockImplementation(async () => {
+                if (!suite) {
+                    throw { error: 'E_OFFLINE', msg: '' };
+                }
+                return { token: '', networkID: 5, uid: 'LOGIN51', cryptoSuite: cryptoSuiteFromNode(suite.cryptoer, suite.hasher) };
+            });
+            return { client, getUid };
+        };
+
+        it('signs out and says why when the network now uses other key algorithms', async () => {
+            const { client } = refusingNode({ cryptoer: 'SM2', hasher: 'SM3' });
+            const output = await run(client, TRANSFER);
+            expect(output).toEqual([
+                cryptoChanged(),
+                logout.started(null),
+                txExec.failed({ params: TRANSFER, error: { type: 'E_CRYPTO_CHANGED', error: '', params: [] } })
+            ]);
+            // Nothing was waited for
+            expect(client.txStatus).not.toHaveBeenCalled();
+        });
+
+        it('tells a change of the hash alone too', async () => {
+            const { client } = refusingNode({ cryptoer: 'ECC_Secp256k1', hasher: 'SHA256' });
+            const output = await run(client, TRANSFER);
+            expect(output).toContainEqual(logout.started(null));
+        });
+
+        it('reports the refusal as it is when the algorithms did not change, or the node cannot say', async () => {
+            for (const suite of [DEFAULT_CRYPTO_SUITE, null]) {
+                const { client, getUid } = refusingNode(suite);
+                const output = await run(client, TRANSFER);
+                expect(output).toEqual([txExec.failed({ params: TRANSFER, error: { type: 'E_SERVER', error: 'Incorrect sign', params: [] } })]);
+                expect(getUid).toHaveBeenCalledTimes(1);
+            }
+        });
+
+        it('asks nothing more when the node takes the transactions', async () => {
+            const { client } = createClient([{}]);
+            const getUid = vi.spyOn(client, 'getUid');
+            const output = await run(client, TRANSFER);
+            expect(output.map(action => action.type)).toEqual([txExec.done.type, expect.any(String)]);
+            expect(getUid).not.toHaveBeenCalled();
+        });
     });
 });

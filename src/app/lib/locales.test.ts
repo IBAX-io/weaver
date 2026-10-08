@@ -25,7 +25,7 @@ const load = (file: string) => JSON.parse(fs.readFileSync(path.join(LOCALES_DIR,
 // Every value of these unions; the compiler fails this file when one is added and not listed here
 const TX_ERRORS = [
     'error', 'info', 'warning', 'panic', 'E_GUEST_VIOLATION', 'E_AUTH_CANCELLED', 'E_INVALID_TRANSFER', 'E_INVALID_PARAM',
-    'E_UNSUPPORTED_PARAM', 'E_INSUFFICIENT_BALANCE', 'E_TX_TIMEOUT', 'E_PENALTY', 'E_DUPLICATE_TX', 'E_CONTRACT', 'E_SERVER'
+    'E_UNSUPPORTED_PARAM', 'E_INSUFFICIENT_BALANCE', 'E_TX_TIMEOUT', 'E_PENALTY', 'E_DUPLICATE_TX', 'E_CONTRACT', 'E_SERVER', 'E_CRYPTO_CHANGED'
 ] as const satisfies readonly TTxError[];
 const TX_ERRORS_COMPLETE: [Exclude<TTxError, typeof TX_ERRORS[number]>] extends [never] ? true : false = true;
 const DIRECTIONS = ['toAccount', 'toUTXO'] as const satisfies readonly TTransferSelfDirection[];

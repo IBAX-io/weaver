@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Epic } from 'modules';
-import { acquireSession } from '../actions';
+import { acquireSession, cryptoChanged, logout } from '../actions';
 import { ISection } from 'ibax/content';
 import { sectionsInit } from 'modules/sections/actions';
 import { fetchNotifications, ecosystemInit } from 'modules/content/actions';
@@ -83,6 +83,15 @@ const acquireSessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
                 );
             }),
             catchError(e => {
+                if (e && 'E_CRYPTO_CHANGED' === e.error) {
+                    // Signed out, back to the accounts of this network under its algorithms; the
+                    // sign-in page says why (a modal would be closed by the sign-out)
+                    return of(
+                        acquireSession.failed({ params: action.payload, error: 'E_CRYPTO_CHANGED' }),
+                        cryptoChanged(),
+                        logout.started(null)
+                    );
+                }
                 const rawError = (e && (e.error || e.message)) || 'E_OFFLINE';
                 const error = typeof rawError === 'string' ? rawError : 'E_SERVER';
                 return of(

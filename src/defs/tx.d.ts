@@ -18,6 +18,8 @@ declare module 'ibax/tx' {
         'E_UNSUPPORTED_PARAM' |
         'E_INSUFFICIENT_BALANCE' |
         'E_TX_TIMEOUT' |
+        // The network's key algorithms changed since sign-in: the node refused the signatures
+        'E_CRYPTO_CHANGED' |
         'E_PENALTY' |
         'E_DUPLICATE_TX' |
         'E_CONTRACT' |

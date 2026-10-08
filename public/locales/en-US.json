@@ -386,5 +386,7 @@
   "auth.network.known": "Address on IBAX mainnet and testnet: {address}",
   "auth.network.enable": "Set up account for this network",
   "modal.authorization.network": "This network uses other key algorithms, so the account has another address on it. Enter the account's password once to set it up for this network.",
-  "auth.error.E_CRYPTO_CHANGED": "This network now uses other key algorithms, so your account has another address on it. Please sign in again."
+  "auth.error.E_CRYPTO_CHANGED": "This network now uses other key algorithms, so your account has another address on it. Please sign in again.",
+  "tx.error.E_CRYPTO_CHANGED": "Signed in under other key algorithms",
+  "tx.error.E_CRYPTO_CHANGED.desc": "This network now uses other key algorithms, so nothing was sent and you have been signed out. Sign in again to use your account's address on it."
 }

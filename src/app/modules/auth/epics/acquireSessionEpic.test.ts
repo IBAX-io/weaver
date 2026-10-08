@@ -10,7 +10,8 @@ import { cryptoSuiteFromNode, DEFAULT_CRYPTO_SUITE, ICryptoSuiteId } from 'lib/c
 import { modalShow } from 'modules/modal/actions';
 import { sectionsInit } from 'modules/sections/actions';
 import IbaxAPI from 'lib/ibaxAPI';
-import { acquireSession } from '../actions';
+import { acquireSession, cryptoChanged, login, loginGuest, logout } from '../actions';
+import reducer, { initialState } from '../reducer';
 import acquireSessionEpic from './acquireSessionEpic';
 
 const session: ISession = { network: { uuid: 'net', apiHost: 'http://node' }, sessionToken: 'token', cryptoSuite: DEFAULT_CRYPTO_SUITE };
@@ -39,10 +40,13 @@ describe('acquireSessionEpic', () => {
         // The chain's settings changed from secp256k1/Keccak-256 to SM2/SM3 since the user signed in
         const { client, api } = nodeReporting({ cryptoer: 'SM2', hasher: 'SM3' });
         const out = await runEpic(acquireSessionEpic, [acquireSession.started(session)], undefined, { api });
+        // Signed out, the reason kept for the sign-in page: no modal, which the sign-out would close
         expect(out).toEqual([
             acquireSession.failed({ params: session, error: 'E_CRYPTO_CHANGED' }),
-            modalShow({ id: 'AUTH_ERROR', type: 'AUTH_ERROR', params: { error: 'E_CRYPTO_CHANGED' } })
+            cryptoChanged(),
+            logout.started(null)
         ]);
+        expect(out.some(action => modalShow.match(action))).toBe(false);
         // Nothing loaded under the old session
         expect(client.sections).not.toHaveBeenCalled();
     });
@@ -51,5 +55,20 @@ describe('acquireSessionEpic', () => {
         const { api } = nodeReporting({ cryptoer: 'ECC_Secp256k1', hasher: 'SHA256' });
         const out = await runEpic(acquireSessionEpic, [acquireSession.started(session)], undefined, { api });
         expect(out[0]).toEqual(acquireSession.failed({ params: session, error: 'E_CRYPTO_CHANGED' }));
+    });
+
+    it('keeps the reason through the sign-out until the next sign-in', () => {
+        const signedOut = [cryptoChanged(), logout.done({ params: null, result: null })].reduce(reducer, initialState);
+        expect(signedOut.signedOutBecause).toBe('E_CRYPTO_CHANGED');
+        // In either order
+        expect([logout.done({ params: null, result: null }), cryptoChanged()].reduce(reducer, initialState).signedOutBecause).toBe('E_CRYPTO_CHANGED');
+        // Signing in again clears it, and still signs in: the session and account taken
+        const fresh = { ...session, cryptoSuite: { cryptoer: 'SM2', hasher: 'SM3' } } as ISession;
+        const wallet = { wallet: { id: '7', walletID: '7', address: '0000-0000-0000-0000-0007', encKey: '', publicKey: '04', access: [] }, access: { ecosystem: '1', name: '', roles: [], notifications: [] } };
+        const guest = reducer(signedOut, loginGuest.done({ params: undefined, result: { session: fresh, wallet, privateKey: 'k', publicKey: '04' } }));
+        expect(guest).toMatchObject({ signedOutBecause: null, isAuthenticated: true, session: fresh, wallet });
+        const selected = { ...signedOut, wallet };
+        const user = reducer(selected, login.done({ params: { password: 'p' }, result: { session: fresh, privateKey: 'k', publicKey: '04' } }));
+        expect(user).toMatchObject({ signedOutBecause: null, isAuthenticated: true, session: fresh, id: '7' });
     });
 });

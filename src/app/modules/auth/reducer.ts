@@ -44,6 +44,8 @@ export type State = {
     readonly wallet: IAccountContext;
     readonly wallets: IAccount[];
     readonly privateKey: string;
+    // Why the user was signed out, shown on the sign-in page until the next sign-in
+    readonly signedOutBecause: 'E_CRYPTO_CHANGED' | null;
 };
 
 export const initialState: State = {
@@ -59,7 +61,8 @@ export const initialState: State = {
     session: null,
     wallet: null,
     privateKey: null,
-    wallets: []
+    wallets: [],
+    signedOutBecause: null
 };
 
 export default reducerWithInitialState<State>(initialState)
@@ -84,6 +87,7 @@ export default reducerWithInitialState<State>(initialState)
     .case(actions.acquireSession.started, acquireSessionHandler)
     .case(actions.acquireSession.done, acquireSessionDoneHandler)
     .case(actions.acquireSession.failed, acquireSessionFailedHandler)
+    .case(actions.cryptoChanged, state => ({ ...state, signedOutBecause: 'E_CRYPTO_CHANGED' }))
     // The signed-in wallet stored again (a new password): unlocking from now on uses the new key
     .case(saveWallet, (state, wallet) => state.wallet?.wallet.walletID === wallet.id
         ? { ...state, wallet: { ...state.wallet, wallet: { ...state.wallet.wallet, encKey: wallet.encKey } } }

@@ -41,6 +41,8 @@ export interface IWalletListProps {
   onUpgrade: (wallet: ILegacyWallet) => any;
   // Stored wallets not set up for this network's key algorithms yet
   walletsToEnable: IWallet[];
+  // Why the user was signed out, if the app did it
+  signedOutBecause: 'E_CRYPTO_CHANGED' | null;
   onEnable: (wallet: IWallet) => any;
 }
 
@@ -65,6 +67,14 @@ const WalletList: React.FC<IWalletListProps> = (props) => (
           className="desktop-flex-col desktop-flex-stretch"
           style={{ padding: 10 }}
         >
+          {'E_CRYPTO_CHANGED' === props.signedOutBecause && (
+            <div className="alert alert-warning text-start" role="status">
+              <FormattedMessage
+                id="auth.error.E_CRYPTO_CHANGED"
+                defaultMessage="This network now uses other key algorithms, so your account has another address on it. Please sign in again."
+              />
+            </div>
+          )}
           <div className="text-center desktop-flex-stretch">
             {0 === props.wallets.length ? (
               <Welcome />

@@ -27,11 +27,12 @@ const KEYS = ['e5a87a96a445cb55a214edaad3661018061ef2936e63a0a93bdb76eb28251c1f'
 
 // The login page on a network of the given suite, with one wallet stored before SM2 was supported
 // and one stored since
-const renderList = async (suite: ICryptoSuiteId, locale = 'en-US') => {
+const renderList = async (suite: ICryptoSuiteId, locale = 'en-US', signedOutBecause: IRootState['auth']['signedOutBecause'] = null) => {
     const [old, current] = await Promise.all(KEYS.map(key => createWallet(key, 'password')));
     const before = { ...old, identities: Object.fromEntries(Object.entries(old.identities).filter(([key]) => !key.startsWith('SM2/'))) };
     const state: IRootState = {
         ...mockState,
+        auth: { ...mockState.auth, signedOutBecause },
         engine: { ...mockState.engine, guestSession: { network: { uuid: 'net', apiHost: 'http://node' }, sessionToken: '', cryptoSuite: suite } },
         storage: { ...mockState.storage, wallets: [before, current], networks: [{ uuid: 'net', id: 1, name: 'Net', honorNodes: ['http://node'] }] }
     };
@@ -81,5 +82,15 @@ describe('login page on a network of other key algorithms', () => {
         const view = await renderList(SM2, 'zh-CN');
         expect(view.container.querySelector('#enable-wallets-title').textContent).toBe('尚未在此网络启用的账户');
         await view.unmount();
+    });
+
+    it('says why the user was signed out, when the network\'s algorithms changed', async () => {
+        const view = await renderList(SM2, 'en-US', 'E_CRYPTO_CHANGED');
+        expect(view.container.querySelector('.alert-warning[role="status"]').textContent)
+            .toBe('This network now uses other key algorithms, so your account has another address on it. Please sign in again.');
+        await view.unmount();
+        const none = await renderList(SM2);
+        expect(none.container.querySelector('.alert-warning')).toBeNull();
+        await none.unmount();
     });
 });
