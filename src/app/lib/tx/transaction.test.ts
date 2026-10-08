@@ -12,6 +12,7 @@ import params from './fixtures/go-ibax-contract-params.json';
 import Contract, { ContractParamError } from './contract';
 import defaultSchema from './schema/defaultSchema';
 import { DEFAULT_CRYPTO_SUITE, resolveCryptoSuite } from 'lib/crypto/suites';
+import { CONTRACT_PARAMS, splitTransaction } from 'test/cryptovectors';
 
 // Transactions the node's own client-transaction entry point decoded (or rejected). The same inputs
 // must reproduce the exact bytes the node took, but for the signature: hedged (fresh randomness in
@@ -31,52 +32,10 @@ const cases = fixture.cases as unknown as {
     node: { error?: string; type?: number; hash?: string; keyMatchesPublicKey?: boolean };
 }[];
 
-const PARAMS: { [name: string]: { type: string; value: unknown } } = {
-    I1: { type: 'int', value: '42' },
-    I2: { type: 'int', value: '-9223372036854775808' },
-    I3: { type: 'int', value: '9223372036854775807' },
-    I4: { type: 'int', value: 7 },
-    F1: { type: 'float', value: '5' },
-    F2: { type: 'float', value: '2.5' },
-    F3: { type: 'float', value: 7 },
-    F4: { type: 'float', value: '-1e3' },
-    M1: { type: 'money', value: '1.5' },
-    M2: { type: 'money', value: '0.000000000001' },
-    S1: { type: 'string', value: 'héllo' },
-    B1: { type: 'bool', value: 'true' },
-    A1: { type: 'array', value: ['a', 'b'] },
-    AD: { type: 'address', value: '0059-7920-1508-6419-2934' },
-    FL: { type: 'file', value: { name: 'a.txt', type: 'text/plain', value: new Uint8Array([104, 105]).buffer } }
-};
-
-// go-ibax converter.DecodeLength
-const readLength = (data: Uint8Array, offset: number): [number, number] => {
-    const first = data[offset];
-    if (first < 128) {
-        return [first, offset + 1];
-    }
-    let length = 0;
-    for (let i = 1; i <= (first & 0x7F); i++) {
-        length = length * 256 + data[offset + i];
-    }
-    return [length, offset + 1 + (first & 0x7F)];
-};
-
-// The client transaction's signed part (0x80, payload) and its signature
-const split = (data: Uint8Array) => {
-    const [payloadLength, payloadStart] = readLength(data, 1);
-    const [signatureLength, signatureStart] = readLength(data, payloadStart + payloadLength);
-    return {
-        signed: bytesToHex(data.slice(0, payloadStart + payloadLength)),
-        payload: data.slice(payloadStart, payloadStart + payloadLength),
-        signature: bytesToHex(data.slice(signatureStart, signatureStart + signatureLength))
-    };
-};
-
 // The bytes the node took, but for a signature of the same transaction by the same key
 const expectSameTransaction = (data: Uint8Array, taken: string, suiteId: ICryptoSuiteId, privateKey: string) => {
-    const ours = split(data);
-    const theirs = split(hexToBytes(taken));
+    const ours = splitTransaction(data);
+    const theirs = splitTransaction(hexToBytes(taken));
     expect(ours.signed).toBe(theirs.signed);
     const suite = resolveCryptoSuite(suiteId);
     const publicKey = suite.publicKey(privateKey);
@@ -147,11 +106,11 @@ describe('contract parameters', () => {
             networkID: params.networkID,
             cryptoSuite: DEFAULT_CRYPTO_SUITE,
             time: params.time,
-            fields: PARAMS
+            fields: CONTRACT_PARAMS
         }).sign(params.privateKey);
 
         expectSameTransaction(signed.data, params.data, DEFAULT_CRYPTO_SUITE, params.privateKey);
-        expect(Object.keys(params.node).sort()).toEqual(Object.keys(PARAMS).sort());
+        expect(Object.keys(params.node).sort()).toEqual(Object.keys(CONTRACT_PARAMS).sort());
         expect(Object.entries(params.node).filter(([, result]) => result.startsWith('ERR'))).toEqual([]);
         // Whole floats reach the node as float64 (an msgpack integer would be refused)
         expect(params.node.F1).toBe('float64 5');

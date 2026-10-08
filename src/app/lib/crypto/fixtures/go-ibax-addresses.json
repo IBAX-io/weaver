@@ -1,5 +1,5 @@
 {
-  "source": "go-ibax converter.AddressToID / IDToAddress (packages/converter/address.go) at 66f1358",
+  "source": "go-ibax converter.AddressToID / IDToAddress (packages/converter/address.go) via tools/cryptovectors",
   "cases": [
     {
       "input": "0059-7920-1508-6419-2934",

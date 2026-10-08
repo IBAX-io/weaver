@@ -34,6 +34,6 @@
       "ibax/*": ["./src/defs/*"]
     }
   },
-  "include": ["src", "vite.config.ts"],
+  "include": ["src", "scripts", "vite.config.ts", "vitest.vectors.config.ts"],
   "exclude": ["node_modules", "public", "build", "releases", "src/electron"]
 }
