@@ -24,9 +24,11 @@ import backupAccountEpic from './epics/backupAccountEpic';
 import upgradeLegacyWalletEpic from './epics/upgradeLegacyWalletEpic';
 import enableWalletOnNetworkEpic from './epics/enableWalletOnNetworkEpic';
 import reconnectOnCryptoChangeEpic from './epics/reconnectOnCryptoChangeEpic';
+import reconnectCryptoCheckEpic from './epics/reconnectCryptoCheckEpic';
 
 export default combineIsolatedEpics({
     acquireSessionEpic,
+    reconnectCryptoCheckEpic,
     authorizeEpic,
     createWalletEpic,
     importWalletEpic,

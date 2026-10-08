@@ -54,7 +54,10 @@ export class UnsupportedCryptoSuiteError extends Error {
     }
 }
 
-// The suite every public IBAX network uses (mainnet and testnet report it in /getuid)
+// The suite every public IBAX network uses (mainnet and testnet report it in /getuid). Only a
+// default for the client itself: the identity a wallet is listed under (keyring id) and the
+// accounts the sign-in page shows before any network was reached. It never decides how anything
+// is signed: that is always the suite the node reports (cryptoSuiteFromNode), kept in the session.
 export const DEFAULT_CRYPTO_SUITE: ICryptoSuiteId = { cryptoer: 'ECC_Secp256k1', hasher: 'KECCAK256' };
 
 // A cryptoer: the uncompressed public key (04 || x || y) of a private key, and signatures over a

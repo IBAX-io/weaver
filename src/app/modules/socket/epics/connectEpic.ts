@@ -8,7 +8,7 @@ import { Observable, Observer, of } from 'rxjs';
 import { mergeMap, takeUntil } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
-import { connect, disconnect, setConnected } from '../actions';
+import { connect, disconnect, reconnected, setConnected } from '../actions';
 import Centrifuge from 'centrifuge';
 
 const connectEpic: Epic =
@@ -22,6 +22,7 @@ const connectEpic: Epic =
                     const centrifuge = new Centrifuge(action.payload.wsHost + '/connection/websocket');
                     centrifuge.setToken(action.payload.socketToken);
 
+                    let connectedBefore = false;
                     centrifuge.on('connect', context => {
                         observer.next(connect.done({
                             params: action.payload,
@@ -30,6 +31,10 @@ const connectEpic: Epic =
                                 instance: centrifuge
                             }
                         }));
+                        if (connectedBefore) {
+                            observer.next(reconnected());
+                        }
+                        connectedBefore = true;
                     });
 
                     centrifuge.on('disconnect', context => {

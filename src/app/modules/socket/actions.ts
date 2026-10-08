@@ -16,3 +16,5 @@ export const unsubscribe = actionCreator.async<IAccount, void, void>('UNSUBSCRIB
 export const setNotifications = actionCreator<INotificationsMessage[]>('SET_NOTIFICATIONS');
 export const setNotificationsCount = actionCreator<INotificationsMessage>('SET_NOTIFICATIONS_COUNT');
 export const setConnected = actionCreator<boolean>('SET_CONNECTED');
+// The client connected again by itself after a dropped connection (not the first connect)
+export const reconnected = actionCreator('RECONNECTED');
