@@ -392,16 +392,18 @@ export const startCentrifugo = async (binary: string, root: string): Promise<ILo
     };
 };
 
-// Centrifugo from CENTRIFUGO_BIN, otherwise built into root (needs Go and the module proxy once)
+// Centrifugo from CENTRIFUGO_BIN, otherwise built into root/bin (needs Go and the module proxy
+// once); not into root itself, where root/centrifugo is the directory the server runs in
 export const buildCentrifugo = async (root: string) => {
     if (process.env.CENTRIFUGO_BIN) {
         return process.env.CENTRIFUGO_BIN;
     }
+    const bin = path.join(root, 'bin');
     await run('go', ['install', `github.com/centrifugal/centrifugo/v3@${CENTRIFUGO_VERSION}`], {
-        env: { ...process.env, GOBIN: root, GOFLAGS: '-mod=mod' },
+        env: { ...process.env, GOBIN: bin, GOFLAGS: '-mod=mod' },
         maxBuffer: 1 << 24
     });
-    return path.join(root, 'centrifugo');
+    return path.join(bin, 'centrifugo');
 };
 
 const CENTRIFUGO_VERSION = 'v3.2.3';
