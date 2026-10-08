@@ -19,6 +19,7 @@ import Contract from 'lib/tx/contract';
 import defaultSchema from 'lib/tx/schema/defaultSchema';
 import { ALL_SUITES, CONTRACT_PARAMS } from 'test/cryptovectors';
 import { ILocalNetwork, startNetwork } from './localChain';
+import { execute, maxBlockID, refusal, sleep } from './chainApi';
 
 const NETWORK_ID = 7;
 const BLOCKS = Number(process.env.CHAIN_E2E_BLOCKS || 10);
@@ -37,40 +38,6 @@ ${Object.entries(CONTRACT_PARAMS).map(([name, param]) => `        ${name} ${para
 const PARAMS_RECEIVED = 'I1=42 I2=-9223372036854775808 I3=9223372036854775807 I4=7 F1=5 F2=2.5 F3=7 F4=-1000 ' +
     'M1=1500000000000 M2=1 S1=héllo B1=true A1=[a b] AD=597920150864192934 ' +
     'FL=map[Body:[104 105] MimeType:text/plain Name:a.txt]';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// The API's errors are plain objects ({ error, msg })
-const refusal = async (promise: Promise<unknown>) => {
-    try {
-        await promise;
-    }
-    catch (error) {
-        return error as { error: string; msg?: string };
-    }
-    throw new Error('the node accepted it');
-};
-
-const maxBlockID = async (apiHost: string) =>
-    Number((await (await fetch(`${apiHost}/api/v2/maxblockid`)).json()).max_block_id);
-
-// Sends one transaction and waits until it is in a block
-const execute = async (client: IbaxAPI, signed: ISignedTransaction) => {
-    await client.txSend({ [signed.hash]: new Blob([signed.data.slice()]) });
-    const deadline = Date.now() + 60000;
-    while (Date.now() < deadline) {
-        await sleep(250);
-        const status = (await client.txStatus([signed.hash]).catch(() => null))?.[signed.hash];
-        if (status?.errmsg) {
-            throw new Error(`transaction failed: ${JSON.stringify(status.errmsg)}`);
-        }
-        if (status?.blockid) {
-            expect(status.penalty).toBe(0);
-            return status;
-        }
-    }
-    throw new Error(`transaction ${signed.hash} not in a block within 60 s`);
-};
 
 // Another suite that differs in the signature algorithm, and one that differs only in the hash
 const otherSuites = (suite: ICryptoSuiteId): ICryptoSuiteId[] => [

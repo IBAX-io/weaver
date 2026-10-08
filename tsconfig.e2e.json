@@ -7,8 +7,8 @@
     "include": [
         "e2e/**/*",
         "src/defs/**/*",
-        "vitest.desktop.config.ts",
-        "vitest.chain.config.ts"
+        "vitest.desktop.config.ts"
     ],
-    "exclude": []
+    // Driven through the app's own modules, under its types: tsconfig.chain.json
+    "exclude": ["e2e/chain/**/*"]
 }

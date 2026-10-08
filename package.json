@@ -64,7 +64,7 @@
     "build": "vite build",
     "build-desktop": "vite build --mode desktop && vite build -c vite.electron.config.ts --mode main && vite build -c vite.electron.config.ts --mode preload",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json && tsc --noEmit -p tsconfig.e2e.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json && tsc --noEmit -p tsconfig.e2e.json && tsc --noEmit -p tsconfig.chain.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "vectors:client": "vitest run -c vitest.vectors.config.ts",
