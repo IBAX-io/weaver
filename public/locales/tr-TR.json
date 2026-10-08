@@ -380,5 +380,10 @@
   "wallet.utxoHistory.privacy": "Bunları bulmak için bu hesabın adresi {explorer} adresine gönderilir.",
   "wallet.utxoHistory.unchecked": "Blok gezgininin listelediği işlem",
   "wallet.utxoHistory.mismatch": "Düğümün kaydı farklı: ayrıntılar gösterilmiyor",
-  "wallet.utxoHistory.incomplete.blocks": "Bloklar"
+  "wallet.utxoHistory.incomplete.blocks": "Bloklar",
+  "auth.network.title": "Bu ağ için henüz kurulmamış hesaplar",
+  "auth.network.desc": "Bu ağ farklı anahtar algoritmaları kullanıyor; bu yüzden her hesabın burada başka bir adresi var. Her birini parolasıyla bir kez kurun.",
+  "auth.network.known": "IBAX ana ağı ve test ağındaki adres: {address}",
+  "auth.network.enable": "Hesabı bu ağ için kur",
+  "modal.authorization.network": "Bu ağ farklı anahtar algoritmaları kullanıyor; bu yüzden hesabın burada başka bir adresi var. Bu ağ için kurmak üzere hesabın parolasını bir kez girin."
 }

@@ -15,7 +15,7 @@ import {
     isValidPrivateKey,
     privateKeyFromMnemonic
 } from './keyring';
-import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
+import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE, SUPPORTED_CRYPTO_SUITES } from 'lib/crypto/suites';
 import fixture from 'lib/crypto/fixtures/go-ibax-vectors.json';
 
 // BIP39 test mnemonic; its first Ethereum account (m/44'/60'/0'/0/0) is a well-known vector
@@ -84,6 +84,8 @@ describe('keyring', () => {
     it('stores wallets under their default-suite account id', async () => {
         const wallet = await createWallet(TEST_MNEMONIC_KEY, 'pw');
         expect(wallet.id).toBe(wallet.identities[cryptoSuiteKey(DEFAULT_CRYPTO_SUITE)].keyID);
-        expect(Object.keys(wallet.identities)).toHaveLength(6);
+        // One for every suite a network can use, SM2 and SM3 included
+        expect(Object.keys(wallet.identities).sort()).toEqual(SUPPORTED_CRYPTO_SUITES.map(cryptoSuiteKey).sort());
+        expect(Object.keys(wallet.identities)).toContain('SM2/SM3');
     }, 20000);
 });

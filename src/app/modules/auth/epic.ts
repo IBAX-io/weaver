@@ -22,6 +22,7 @@ import loginGuestEpic from './epics/loginGuestEpic';
 import acquireSessionEpic from './epics/acquireSessionEpic';
 import backupAccountEpic from './epics/backupAccountEpic';
 import upgradeLegacyWalletEpic from './epics/upgradeLegacyWalletEpic';
+import enableWalletOnNetworkEpic from './epics/enableWalletOnNetworkEpic';
 
 export default combineIsolatedEpics({
     acquireSessionEpic,
@@ -40,6 +41,7 @@ export default combineIsolatedEpics({
     changePasswordDoneEpic,
     switchWalletEpic,
     upgradeLegacyWalletEpic,
+    enableWalletOnNetworkEpic,
     loginGuestEpic,
     backupAccountEpic
 });

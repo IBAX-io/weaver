@@ -380,5 +380,10 @@
   "wallet.utxoHistory.privacy": "查找时会把本账户的地址发送给 {explorer}。",
   "wallet.utxoHistory.unchecked": "区块浏览器列出的交易",
   "wallet.utxoHistory.mismatch": "节点的记录与此不符，不显示详情",
-  "wallet.utxoHistory.incomplete.blocks": "区块列表"
+  "wallet.utxoHistory.incomplete.blocks": "区块列表",
+  "auth.network.title": "尚未在此网络启用的账户",
+  "auth.network.desc": "这个网络使用不同的密钥算法，每个账户在这里有另一个地址。每个账户需要用密码启用一次。",
+  "auth.network.known": "在 IBAX 主网和测试网上的地址：{address}",
+  "auth.network.enable": "在此网络启用账户",
+  "modal.authorization.network": "这个网络使用不同的密钥算法，账户在这里有另一个地址。请输入账户密码，启用一次即可。"
 }

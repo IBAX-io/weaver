@@ -53,7 +53,7 @@ describe('loginGuestEpic', () => {
     }, 20000);
 
     it('reports networks with an unsupported signature suite', async () => {
-        vi.mocked(authenticate).mockRejectedValueOnce(new UnsupportedCryptoSuiteError({ cryptoer: 'SM2', hasher: 'SM3' }));
+        vi.mocked(authenticate).mockRejectedValueOnce(new UnsupportedCryptoSuiteError({ cryptoer: 'ECC_P512', hasher: 'SHA256' }));
 
         const output = await runEpic(loginGuestEpic, [loginGuest.started()], state);
 

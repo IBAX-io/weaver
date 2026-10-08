@@ -32,11 +32,28 @@ describe('crypto suites vs go-ibax', () => {
         const payload = hexToBytes(v.payload);
         const txSignature = suite.sign(suite.doubleHash(payload), v.privateKey);
         expect(suite.verify(suite.doubleHash(payload), txSignature, v.publicKey)).toBe(true);
-        expect(txSignature).toHaveLength(128);
+        expect(suite.verify(suite.doubleHash(payload.slice(1)), txSignature, v.publicKey)).toBe(false);
+        // ECDSA: r || s; SM2: DER, as gmsm writes it: SEQUENCE of two INTEGERs, minimal, so shorter
+        // when r or s has leading zero bytes (8 to 72 bytes)
+        if ('SM2' === v.cryptoer) {
+            expect(txSignature).toMatch(/^30[0-9a-f]{2}02/);
+            expect(parseInt(txSignature.slice(2, 4), 16)).toBe(txSignature.length / 2 - 2);
+            expect(txSignature.length / 2).toBeLessThanOrEqual(72);
+        }
+        else {
+            expect(txSignature).toHaveLength(128);
+        }
     });
 
-    it('rejects suites it cannot implement', () => {
-        expect(() => resolveCryptoSuite({ cryptoer: 'SM2', hasher: 'SM3' })).toThrow(UnsupportedCryptoSuiteError);
+    it('implements every suite go-ibax implements, and refuses the one it only names', () => {
+        const names = new Set(vectors.map(v => `${v.cryptoer}/${v.hasher}`));
+        for (const cryptoer of ['ECC_Secp256k1', 'ECC_P256', 'SM2']) {
+            for (const hasher of ['SHA256', 'KECCAK256', 'SHA3_256', 'SM3']) {
+                expect(names.has(`${cryptoer}/${hasher}`)).toBe(true);
+            }
+        }
+        // go-ibax's NewAsymAlgo panics for ECC_P512: no node can run with it
+        expect(() => resolveCryptoSuite({ cryptoer: 'ECC_P512', hasher: 'SHA256' })).toThrow(UnsupportedCryptoSuiteError);
     });
 
     it('formats account ids like the node', () => {

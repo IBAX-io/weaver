@@ -19,6 +19,10 @@ export const createWallet = actionCreator.async<ICreateWalletCall, IWallet, stri
 // Re-encrypts a wallet stored by an earlier version (asks for its password)
 export type TUpgradeLegacyWalletError = 'E_INVALID_PASSWORD' | 'E_SERVER' | 'E_CANCELLED';
 export const upgradeLegacyWallet = actionCreator.async<ILegacyWallet, IWallet, TUpgradeLegacyWalletError>('UPGRADE_LEGACY_WALLET');
+// Adds a stored wallet's identity on the current network's crypto suite, which a wallet stored
+// before the client supported that suite lacks (asks for its password)
+export type TEnableWalletError = 'E_INVALID_PASSWORD' | 'E_SERVER' | 'E_CANCELLED';
+export const enableWalletOnNetwork = actionCreator.async<IWallet, IWallet, TEnableWalletError>('ENABLE_WALLET_ON_NETWORK');
 export const importWallet = actionCreator.async<IImportWalletCall, IWallet, string>('IMPORT_WALLET');
 export const removeWallet = actionCreator<IAccount>('REMOVE_WALLET');
 export const selectWallet = actionCreator<IAccountContext>('SELECT_WALLET');

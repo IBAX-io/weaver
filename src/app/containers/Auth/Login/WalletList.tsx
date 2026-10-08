@@ -5,7 +5,7 @@
 
 import { connect, ResolveThunks } from 'react-redux';
 import { IRootState } from 'modules';
-import { login, selectWallet, removeWallet, loginGuest, upgradeLegacyWallet } from 'modules/auth/actions';
+import { login, selectWallet, removeWallet, loginGuest, upgradeLegacyWallet, enableWalletOnNetwork } from 'modules/auth/actions';
 import { isLegacyWallet } from 'lib/crypto/legacyWallet';
 import { navigate } from 'modules/router/actions';
 import { IAccount } from 'ibax/api';
@@ -56,8 +56,17 @@ const walletAccounts = memoized((wallets: IRootState['storage']['wallets'], acco
             || walletAccount(wallet, suite, { account: '', ecosystems: [] }))
 );
 
+const currentSuite = (state: IRootState) => state.engine.guestSession ? state.engine.guestSession.cryptoSuite : DEFAULT_CRYPTO_SUITE;
+
 const selectWalletAccounts = (state: IRootState): IAccount[] =>
-    walletAccounts(state.storage.wallets, state.auth.wallets, state.engine.guestSession ? state.engine.guestSession.cryptoSuite : DEFAULT_CRYPTO_SUITE);
+    walletAccounts(state.storage.wallets, state.auth.wallets, currentSuite(state));
+
+// Stored wallets without an identity on the current network's suite: stored before the client
+// supported it. Listed so they can be set up for it with their password, never left out unseen.
+const walletsToEnable = memoized((wallets: IRootState['storage']['wallets'], suite: typeof DEFAULT_CRYPTO_SUITE) =>
+    [...wallets]
+        .sort((a, b) => a.id > b.id ? 1 : -1)
+        .filter(wallet => !wallet.identities[cryptoSuiteKey(suite)]));
 
 const legacyEntries = memoized((entries: unknown[]) => ({
     legacy: entries.filter(isLegacyWallet),
@@ -68,6 +77,7 @@ const mapStateToProps = (state: IRootState) => ({
     isOffline: !state.engine.guestSession,
     pending: state.auth.isLoggingIn,
     wallets: selectWalletAccounts(state),
+    walletsToEnable: walletsToEnable(state.storage.wallets, currentSuite(state)),
     notifications: state.socket.notifications,
     activationEmail: selectActivationMail(state),
     demoModeEnabled: selectDemoEnabled(state),
@@ -96,7 +106,8 @@ const mapDispatchToProps = {
     }),
     onCreate: () => navigate({ to: '/account' }),
     onGuestLogin: () => loginGuest.started(undefined),
-    onUpgrade: upgradeLegacyWallet.started
+    onUpgrade: upgradeLegacyWallet.started,
+    onEnable: enableWalletOnNetwork.started
 };
 
 export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: ResolveThunks<typeof mapDispatchToProps>, props) => ({
@@ -104,6 +115,7 @@ export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: Re
     isOffline: state.isOffline,
     pending: state.pending,
     wallets: state.wallets,
+    walletsToEnable: state.walletsToEnable,
     notifications: state.notifications,
     activationEnabled: !!state.activationEmail,
     demoModeEnabled: state.demoModeEnabled,
@@ -116,6 +128,7 @@ export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: Re
     onGuestLogin: dispatch.onGuestLogin,
     legacyWallets: state.legacyWallets,
     damagedWallets: state.damagedWallets,
-    onUpgrade: dispatch.onUpgrade
+    onUpgrade: dispatch.onUpgrade,
+    onEnable: dispatch.onEnable
 
 }))(WalletList);

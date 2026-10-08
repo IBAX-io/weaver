@@ -6,7 +6,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import { FormattedMessage } from 'react-intl';
-import { IAccountContext } from 'ibax/auth';
+import { IAccountContext, IWallet } from 'ibax/auth';
 import { IAccount } from 'ibax/api';
 import { INotificationsMessage } from 'ibax/socket';
 
@@ -39,6 +39,9 @@ export interface IWalletListProps {
   // Stored entries that are not wallets of any known format; kept untouched
   damagedWallets: number;
   onUpgrade: (wallet: ILegacyWallet) => any;
+  // Stored wallets not set up for this network's key algorithms yet
+  walletsToEnable: IWallet[];
+  onEnable: (wallet: IWallet) => any;
 }
 
 const legacyAddress = (wallet: ILegacyWallet) =>
@@ -85,6 +88,35 @@ const WalletList: React.FC<IWalletListProps> = (props) => (
               ))
             )}
           </div>
+          {props.walletsToEnable.length > 0 && (
+            <section className="text-start mb-3" aria-labelledby="enable-wallets-title">
+              <h2 id="enable-wallets-title" className="h6 mb-1">
+                <FormattedMessage id="auth.network.title" defaultMessage="Accounts not set up for this network yet" />
+              </h2>
+              <p className="small mb-2">
+                <FormattedMessage
+                  id="auth.network.desc"
+                  defaultMessage="This network uses other key algorithms, so each account has another address on it. Set each one up once with its password."
+                />
+              </p>
+              {props.walletsToEnable.map(wallet => (
+                <ContextButton
+                  key={wallet.id}
+                  icon="icon-key"
+                  onClick={() => props.onEnable(wallet)}
+                  description={
+                    <FormattedMessage
+                      id="auth.network.known"
+                      defaultMessage="Address on IBAX mainnet and testnet: {address}"
+                      values={{ address: <span className="font-monospace">{formatAddress(wallet.id)}</span> }}
+                    />
+                  }
+                >
+                  <FormattedMessage id="auth.network.enable" defaultMessage="Set up account for this network" />
+                </ContextButton>
+              ))}
+            </section>
+          )}
           {(props.legacyWallets.length > 0 || props.damagedWallets > 0) && (
             <section className="text-start mb-3" aria-labelledby="legacy-wallets-title">
               <h2 id="legacy-wallets-title" className="h6 mb-1">

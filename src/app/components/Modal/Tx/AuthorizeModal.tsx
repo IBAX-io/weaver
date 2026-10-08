@@ -11,8 +11,9 @@ import Modal from '../';
 import Validation from 'components/Validation';
 
 export interface IAuthorizeModalProps {
-    // 'upgrade': the password of a wallet saved by an earlier version
-    purpose?: 'upgrade';
+    // 'upgrade': the password of a wallet saved by an earlier version; 'network': the password of a
+    // wallet to be used on a network whose key algorithms it was not set up for
+    purpose?: 'upgrade' | 'network';
 }
 
 class AuthorizeModal extends Modal<IAuthorizeModalProps, string> {
@@ -32,6 +33,11 @@ class AuthorizeModal extends Modal<IAuthorizeModalProps, string> {
                             <FormattedMessage
                                 id="modal.authorization.upgrade"
                                 defaultMessage="Enter the password this account had in the earlier version of Weaver. The account keeps this password."
+                            />
+                        ) : this.props.params && 'network' === this.props.params.purpose ? (
+                            <FormattedMessage
+                                id="modal.authorization.network"
+                                defaultMessage="This network uses other key algorithms, so the account has another address on it. Enter the account's password once to set it up for this network."
                             />
                         ) : (
                             <FormattedMessage id="modal.authorization.password" defaultMessage="Please enter your password to perform this action" />
