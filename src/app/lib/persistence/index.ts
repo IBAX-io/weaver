@@ -99,10 +99,12 @@ const hasCryptoSuite = (session: unknown) => {
     return !!suite && 'string' === typeof suite.cryptoer && 'string' === typeof suite.hasher;
 };
 
-// Sessions stored by a version that did not keep the network's key algorithms (Weaver up to 1.4)
-// cannot sign: the signed-in one is dropped with its account (the user signs in again) and the
-// network one too (connected to again at start)
-export const discardSessionsWithoutCryptoSuite = (persisted: TPersistedState | null): TPersistedState | null => {
+// Sessions stored that cannot be used, dropped as the app starts:
+// - one kept after signing out (Weaver up to 1.4 kept it, its token valid for months): dropped
+// - one stored without the network's key algorithms (Weaver up to 1.4) cannot sign: the signed-in
+//   one is dropped with its account (the user signs in again), the network one too (connected to
+//   again at start)
+export const discardStaleSessions = (persisted: TPersistedState | null): TPersistedState | null => {
     if (!persisted) {
         return persisted;
     }
@@ -110,6 +112,9 @@ export const discardSessionsWithoutCryptoSuite = (persisted: TPersistedState | n
     const result = { ...persisted };
     if (auth && auth.session && !hasCryptoSuite(auth.session)) {
         result.auth = { ...auth, session: null, wallet: null, id: null, isAuthenticated: false, isDefaultWallet: false };
+    }
+    else if (auth && auth.session && true !== auth.isAuthenticated) {
+        result.auth = { ...auth, session: null };
     }
     if (engine && engine.guestSession && !hasCryptoSuite(engine.guestSession)) {
         result.engine = { ...engine, guestSession: null };

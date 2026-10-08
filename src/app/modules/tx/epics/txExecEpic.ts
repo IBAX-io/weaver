@@ -23,6 +23,7 @@ import fileObservable from 'modules/io/util/fileObservable';
 import { enqueueNotification } from 'modules/notifications/actions';
 import { ITransaction, ITransactionBody, ITransactionCall, ITxError, TTransferCall, TTransferSelfDirection } from 'ibax/tx';
 import { IContractResponse } from 'ibax/api';
+import { signedInSession } from 'modules/auth/selectors';
 
 const TX_STATUS_INTERVAL = 2000;
 // A transaction not in a block after 3 minutes is reported instead of being polled forever
@@ -245,19 +246,23 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
   // Everything, the session and network lookup included, ends in txExec.done or txExec.failed
   mergeMap(action => {
   // The session the transactions are signed in: signed out of only if it is still the one open
-  const session = state$.value.auth.session;
+  const session = signedInSession(state$.value);
+  // Signed out of since they were asked for: nothing is signed or sent, nothing is shown
+  if (!session) {
+    return of(txExec.failed({ params: action.payload, error: { type: 'E_SIGNED_OUT', error: '', params: [] } }));
+  }
   return defer(() => {
     const state = state$.value;
     const client = api({
-      apiHost: state.auth.session.network.apiHost,
-      sessionToken: state.auth.session.sessionToken
+      apiHost: session.network.apiHost,
+      sessionToken: session.sessionToken
     });
     const privateKey = state.auth.privateKey;
-    const network = state.storage.networks.find(l => l.uuid === state.auth.session.network.uuid);
+    const network = state.storage.networks.find(l => l.uuid === session.network.uuid);
     const context: ITxContext = {
       networkID: network.id,
       ecosystemID: parseInt(state.auth.wallet?.access?.ecosystem || '1', 10),
-      cryptoSuite: state.auth.session.cryptoSuite
+      cryptoSuite: session.cryptoSuite
     };
 
     // One batch per contract (all of its parameter sets), then one for the value transfers. Every

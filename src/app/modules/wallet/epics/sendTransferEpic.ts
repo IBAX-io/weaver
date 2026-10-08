@@ -13,6 +13,7 @@ import ModalObservable from 'modules/modal/util/ModalObservable';
 import TxObservable from 'modules/tx/util/TxObservable';
 import { modalShow } from 'modules/modal/actions';
 import { fetchBalance, ISendTransferCall, sendTransfer } from '../actions';
+import { signedInSession } from 'modules/auth/selectors';
 
 // The recipient's account on this network: a typo can still pass the address checksum (1 in 10),
 // and coins sent to an id without an account are not owned by anyone yet
@@ -38,6 +39,11 @@ const sendTransferEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(sendTransfer.started),
     mergeMap((action): Observable<Action> => {
         const state = state$.value;
+        const session = signedInSession(state);
+        // Signed out of since it was asked for: nothing is sent, nothing is shown
+        if (!session) {
+            return of(sendTransfer.failed({ params: action.payload, error: { type: 'E_SIGNED_OUT', error: '' } }));
+        }
         // The demo account's key is public (txCallEpic refuses it too)
         if (state.auth.isDefaultWallet) {
             return of(
@@ -53,7 +59,7 @@ const sendTransferEpic: Epic = (action$, state$, { api }) => action$.pipe(
             return null !== owner && null !== current && current.account === owner.account && current.ecosystem === owner.ecosystem;
         };
         const recipientKnown$: Observable<boolean> = 'utxo' === transfer.type
-            ? defer(() => api({ apiHost: state.auth.session.network.apiHost }).keyinfo({ id: transfer.toID })).pipe(
+            ? defer(() => api({ apiHost: session.network.apiHost }).keyinfo({ id: transfer.toID })).pipe(
                 map(info => info.ecosystems.length > 0),
                 // Not knowing is not a reason to warn
                 catchError(() => of(true))

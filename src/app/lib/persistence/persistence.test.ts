@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { discardSessionsWithoutCryptoSuite, mergePersistedState, parsePersistedState, persistedStateChanged, PERSISTENCE_KEY, selectPersistedState, storedWalletsChanged, toPersistedState } from '.';
+import { discardStaleSessions, mergePersistedState, parsePersistedState, persistedStateChanged, PERSISTENCE_KEY, selectPersistedState, storedWalletsChanged, toPersistedState } from '.';
 import createLocalStorageBackend from './localStorageBackend';
 import createDebouncedBackend from './debouncedBackend';
 
@@ -131,7 +131,7 @@ describe('persistence', () => {
             engine: { guestSession: { network, sessionToken: 'g' } },
             storage: { locale: 'en-US' }
         };
-        expect(discardSessionsWithoutCryptoSuite(old)).toEqual({
+        expect(discardStaleSessions(old)).toEqual({
             auth: { isAuthenticated: false, isDefaultWallet: false, session: null, id: null, wallet: null },
             engine: { guestSession: null },
             storage: { locale: 'en-US' }
@@ -141,8 +141,13 @@ describe('persistence', () => {
             auth: { ...old.auth, session: { ...old.auth.session, cryptoSuite: suite } },
             engine: { guestSession: { ...old.engine.guestSession, cryptoSuite: suite } }
         };
-        expect(discardSessionsWithoutCryptoSuite(current)).toEqual(current);
-        expect(discardSessionsWithoutCryptoSuite({ auth: { session: null }, engine: {} })).toEqual({ auth: { session: null }, engine: {} });
-        expect(discardSessionsWithoutCryptoSuite(null)).toBeNull();
+        expect(discardStaleSessions(current)).toEqual(current);
+        expect(discardStaleSessions({ auth: { session: null }, engine: {} })).toEqual({ auth: { session: null }, engine: {} });
+        expect(discardStaleSessions(null)).toBeNull();
+        // Signed out of, its token still stored (Weaver up to 1.4 kept it): the session goes, the
+        // rest stays
+        const signedOut = { ...current, auth: { ...current.auth, isAuthenticated: false, wallet: null } };
+        expect(discardStaleSessions(signedOut)).toEqual({ ...signedOut, auth: { ...signedOut.auth, session: null } });
+        expect(JSON.stringify(discardStaleSessions(signedOut).auth)).not.toContain('"t"');
     });
 });

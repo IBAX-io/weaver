@@ -20,6 +20,8 @@ export const logout = actionCreator.async('LOGOUT');
 // sign-in page of that network says why. `during`: found when a session was restored or signed in
 // with, or when the node refused transactions (those not sent yet were cancelled).
 export const E_CRYPTO_CHANGED = 'E_CRYPTO_CHANGED';
+// Asked of the node for a session signed out of since: nothing is asked, nothing is shown
+export const E_SIGNED_OUT = 'E_SIGNED_OUT';
 export interface ISignOutReason {
     reason: typeof E_CRYPTO_CHANGED;
     network: string;

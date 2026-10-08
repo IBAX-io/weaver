@@ -13,6 +13,8 @@ import { logout } from 'modules/auth/actions';
 import { fetchHistory, sendTransfer, E_INVALIDWALLET } from '../actions';
 import { sameOwner } from '../reducer';
 import { HISTORY_COLUMNS, HISTORY_PAGE_SIZE, historyQuery, parseHistoryPage } from '../history';
+import { signedInSession } from 'modules/auth/selectors';
+import { E_SIGNED_OUT } from 'modules/auth/actions';
 
 // A page of the account's history, newest first. A page with a row this page cannot read is
 // refused as a whole, like a balance it cannot do arithmetic on: a list with rows quietly left out
@@ -20,12 +22,16 @@ import { HISTORY_COLUMNS, HISTORY_PAGE_SIZE, historyQuery, parseHistoryPage } fr
 export const fetchHistoryEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(fetchHistory.started),
     switchMap(action => {
+        const session = signedInSession(state$.value);
+        // Signed out of since it was asked for: the node is not asked
+        if (!session) {
+            return of(fetchHistory.failed({ params: action.payload, error: E_SIGNED_OUT }));
+        }
         const { account, ecosystem, filter, before } = action.payload;
         const keyID = parseAddress(account);
         if (null === keyID) {
             return of(fetchHistory.failed({ params: action.payload, error: E_INVALIDWALLET }));
         }
-        const session = state$.value.auth.session;
         const client = api({ apiHost: session.network.apiHost, sessionToken: session.sessionToken });
         return defer(() => client.listWhere({
             name: 'history',

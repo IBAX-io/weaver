@@ -9,6 +9,7 @@ import { IRootState } from 'modules';
 import { TProtypoElement } from 'ibax/protypo';
 
 import ProtypoConstructor from 'components/ProtypoConstructor';
+import { signedInSession } from 'modules/auth/selectors';
 
 export interface IProtypoConstructorContainerProps {
     section: string;
@@ -43,7 +44,7 @@ const mapStateToProps = (state: IRootState, props: IProtypoConstructorContainerP
     const section = state.sections.sections[props.section];
 
     return {
-        apiHost: state.auth.session && (state.auth.session.network.apiHost + '/api/v2'),
+        apiHost: signedInSession(state) && (signedInSession(state).network.apiHost + '/api/v2'),
         page: section.page && section.page.name
     };
 };

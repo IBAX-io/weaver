@@ -8,14 +8,20 @@ import { catchError, map, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { fetchNotifications } from 'modules/content/actions';
+import { signedInSession } from 'modules/auth/selectors';
 
 const fetchNotificationsEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(fetchNotifications.started),
     mergeMap(action => {
         const state = state$.value;
+        const session = signedInSession(state);
+        // Signed out of since it was asked for: the node is not asked
+        if (!session) {
+            return of(fetchNotifications.failed({ params: action.payload, error: undefined }));
+        }
         const client = api({
-            apiHost: state.auth.session.network.apiHost,
-            sessionToken: state.auth.session.sessionToken
+            apiHost: session.network.apiHost,
+            sessionToken: session.sessionToken
         });
 
         return from(client.content({

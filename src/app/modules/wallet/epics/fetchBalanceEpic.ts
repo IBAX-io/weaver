@@ -12,6 +12,8 @@ import { isBalanceUnits } from 'lib/tx/amount';
 import { IBalanceResponse } from 'ibax/api';
 import { logout } from 'modules/auth/actions';
 import { FEE_ECOSYSTEM, fetchBalance } from '../actions';
+import { signedInSession } from 'modules/auth/selectors';
+import { E_SIGNED_OUT } from 'modules/auth/actions';
 
 // The page does arithmetic on these: anything else from the node is refused, not shown
 const isBalanceResponse = (value: unknown): value is IBalanceResponse => {
@@ -25,7 +27,12 @@ const isBalanceResponse = (value: unknown): value is IBalanceResponse => {
 const fetchBalanceEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(fetchBalance.started),
     switchMap(action => {
-        const client = api({ apiHost: state$.value.auth.session.network.apiHost });
+        const session = signedInSession(state$.value);
+        // Signed out of since it was asked for: the node is not asked
+        if (!session) {
+            return of(fetchBalance.failed({ params: action.payload, error: E_SIGNED_OUT }));
+        }
+        const client = api({ apiHost: session.network.apiHost });
         const request = (ecosystem: string) => from(client.getBalance({ wallet: action.payload.account, ecosystem })).pipe(
             map(response => {
                 if (!isBalanceResponse(response)) {

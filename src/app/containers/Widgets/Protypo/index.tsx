@@ -11,6 +11,7 @@ import { displayData } from 'modules/content/actions';
 import { menuPush } from 'modules/sections/actions';
 import { TProtypoElement } from 'ibax/protypo';
 import Protypo from 'components/Protypo';
+import { signedInSession } from 'modules/auth/selectors';
 
 export interface IProtypoProps {
     wrapper?: React.JSX.Element;
@@ -22,7 +23,7 @@ export interface IProtypoProps {
 }
 
 const mapStateToProps = (state: IRootState, props: IProtypoProps) => ({
-    apiHost: state.auth.session && (state.auth.session.network.apiHost + '/api/v2'),
+    apiHost: signedInSession(state) && (signedInSession(state).network.apiHost + '/api/v2'),
     page: props.page,
     ...props
 });

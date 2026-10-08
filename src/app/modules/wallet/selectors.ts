@@ -6,10 +6,11 @@
 import { INetwork } from 'ibax/auth';
 import { IRootState } from 'modules';
 import { isHttpsUrl } from 'lib/settings/httpsUrl';
+import { signedInSession } from 'modules/auth/selectors';
 
 // The stored network the signed-in session is on (its settings: block explorer, id)
 export const sessionNetwork = (state: IRootState): INetwork | null => {
-    const session = state.auth.session;
+    const session = signedInSession(state);
     return (session && state.storage.networks.find(network => network.uuid === session.network.uuid)) || null;
 };
 

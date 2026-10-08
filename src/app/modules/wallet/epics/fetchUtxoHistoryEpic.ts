@@ -15,6 +15,8 @@ import { sameOwner } from '../reducer';
 import { explorerAllowed, sessionExplorer } from '../selectors';
 import { findTransfers, IExplorerRow, parseExplorerPage, TExplorerPage } from '../utxoHistory';
 import { TUtxoHistoryEntry, verifyUtxoTransfer } from '../utxoTransfer';
+import { signedInSession } from 'modules/auth/selectors';
+import { E_SIGNED_OUT } from 'modules/auth/actions';
 
 // The node lookups in flight at once
 const NODE_LOOKUPS = 5;
@@ -30,9 +32,13 @@ export const fetchUtxoHistoryEpic: Epic = (action$, state$, { api, explorer }) =
     switchMap(action => {
         const { account, ecosystem, cursor } = action.payload;
         const state = state$.value;
-        const session = state.auth.session;
+        const session = signedInSession(state);
         const base = sessionExplorer(state);
         const keyID = parseAddress(account);
+        // Signed out of since it was asked for: neither the explorer nor the node is asked
+        if (!session) {
+            return of(fetchUtxoHistory.failed({ params: action.payload, error: E_SIGNED_OUT }));
+        }
         if (!base) {
             return of(fetchUtxoHistory.failed({ params: action.payload, error: E_NO_EXPLORER }));
         }

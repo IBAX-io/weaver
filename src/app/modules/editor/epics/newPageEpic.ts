@@ -4,22 +4,28 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as uuid from 'uuid';
-import { from, zip } from 'rxjs';
+import { from, zip, EMPTY } from 'rxjs';
 import { filter, map, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { editorSave, reloadEditorTab } from '../actions';
 import ModalObservable from 'modules/modal/util/ModalObservable';
 import TxObservable from 'modules/tx/util/TxObservable';
+import { signedInSession } from 'modules/auth/selectors';
 
 const newPageEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(editorSave),
     filter(l => l.payload.new && 'page' === l.payload.type),
     mergeMap(action => {
         const state = state$.value;
+        const session = signedInSession(state);
+        // Signed out of since it was asked for: the node is not asked
+        if (!session) {
+            return EMPTY;
+        }
         const client = api({
-            apiHost: state.auth.session.network.apiHost,
-            sessionToken: state.auth.session.sessionToken
+            apiHost: session.network.apiHost,
+            sessionToken: session.sessionToken
         });
         const id = uuid.v4();
 

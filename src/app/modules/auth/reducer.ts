@@ -42,7 +42,8 @@ export type State = {
     readonly isImportingWallet: boolean;
     readonly importWalletError: string;
     readonly id: string;
-    readonly session: ISession;
+    // Null when no one is signed in
+    readonly session: ISession | null;
     readonly wallet: IAccountContext;
     readonly wallets: IAccount[];
     readonly privateKey: string;
