@@ -8,6 +8,7 @@
 import { ISchema } from 'lib/tx/schema';
 import IField, { InvalidFieldValueError } from 'lib/tx/contract/field';
 import { ISignedTransaction, ITxContext, signTransaction } from 'lib/tx/transaction';
+import { ISigner } from 'lib/crypto/signer';
 
 export interface IContractContext extends ITxContext {
     id: number;
@@ -62,12 +63,12 @@ export default class Contract {
         });
     }
 
-    sign(privateKey: string): ISignedTransaction {
+    sign(signer: ISigner): Promise<ISignedTransaction> {
         const params: { [name: string]: unknown } = {};
         Object.keys(this._fields).forEach(name => {
             params[name] = this._fields[name].get();
         });
 
-        return signTransaction(this._context, { type: 'contract', id: this._id, params }, privateKey);
+        return signTransaction(this._context, { type: 'contract', id: this._id, params }, signer);
     }
 }

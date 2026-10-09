@@ -15,10 +15,12 @@ import path from 'node:path';
 import { Action } from 'redux';
 import IbaxAPI from 'lib/ibaxAPI';
 import { cryptoSuiteKey, ICryptoSuiteId, LEGACY_CRYPTO_SUITE, resolveCryptoSuite } from 'lib/crypto/suites';
+import { IModuleKeyRef } from 'ibax/auth';
 import { isValidPrivateKey } from 'lib/keyring';
+import { moduleKey, softwareKey } from 'lib/crypto/signer';
 import { signTransaction } from 'lib/tx/transaction';
 import dependencies from 'modules/dependencies';
-import { acquireSession, cryptoChanged, importWallet, ISignOutReason, loadWallets, login, logout, selectWallet, sessionExpired, TSignOutReason } from 'modules/auth/actions';
+import { acquireSession, addModuleWallet, cryptoChanged, importWallet, ISignOutReason, loadWallets, login, logout, selectWallet, sessionExpired, TSignOutReason } from 'modules/auth/actions';
 import { SESSION_RETRY_MS } from 'modules/auth/util/sessionRetry';
 import { modalShow } from 'modules/modal/actions';
 import { reconnected } from 'modules/socket/actions';
@@ -26,7 +28,8 @@ import { txExec } from 'modules/tx/actions';
 import { sendTransfer } from 'modules/wallet/actions';
 import { TPersistedState } from 'lib/persistence';
 import { FIPS_MODULE, ILocalCentrifugo, ILocalNetwork, startCentrifugo, startNetwork } from './localChain';
-import { execute, maxBlockID, register, sleep } from './chainApi';
+import { execute, maxBlockID, operatorSigner, register, sleep } from './chainApi';
+import { ISoftToken, startSoftToken, USER_PIN } from './softToken';
 import { describeActions, IClient, startClient, TDialogAnswer } from './clientStore';
 import { ISettings, ISettingsNetwork, settingsFor } from './appConfig';
 
@@ -53,9 +56,15 @@ const newUserKey = (): string => {
 };
 const USER_KEY = newUserKey();
 
+// In FIPS mode the user's key is on a SoftHSM token (an ECC_P256 key serves both suites), and the
+// user enters its PIN where a password is asked for
+let token: ISoftToken | null = null;
+let userModuleKey: IModuleKeyRef | null = null;
+const SECRET = FIPS_MODULE ? USER_PIN : PASSWORD;
+
 const keyIDOf = (suite: ICryptoSuiteId) => {
     const crypto = resolveCryptoSuite(suite);
-    return crypto.keyID(crypto.publicKey(USER_KEY));
+    return crypto.keyID(userModuleKey ? userModuleKey.publicKey : crypto.publicKey(USER_KEY));
 };
 
 const sameSuite = (a: ICryptoSuiteId | undefined, b: ICryptoSuiteId) => !!a && cryptoSuiteKey(a) === cryptoSuiteKey(b);
@@ -66,7 +75,7 @@ const answer: TDialogAnswer = modal => {
         return { data: true };
     }
     if ('AUTHORIZE' === modal.type) {
-        return { data: PASSWORD };
+        return { data: SECRET };
     }
     return undefined;
 };
@@ -81,22 +90,32 @@ const actionsSince = (client: IClient, from: number) => client.actions.slice(fro
 const prepare = async (network: ILocalNetwork) => {
     const founder = network.nodes[0];
     const api = new IbaxAPI({ apiHost: founder.apiHost });
-    await register(api, dependencies.defaultKey, NETWORK_ID);
-    await register(api, USER_KEY, NETWORK_ID);
-    const session = await register(api, founder.privateKey, NETWORK_ID);
-    await execute(api.authorize(session.result.token), signTransaction(
+    await register(api, softwareKey(dependencies.defaultKey), NETWORK_ID);
+    if (userModuleKey) {
+        // A client may have logged out of the token meanwhile
+        await token.pkcs11.login(token.serial, USER_PIN);
+        await register(api, moduleKey(userModuleKey), NETWORK_ID, token.pkcs11);
+    }
+    else {
+        await register(api, softwareKey(USER_KEY), NETWORK_ID);
+    }
+    const session = await register(api, softwareKey(founder.privateKey), NETWORK_ID);
+    await execute(api.authorize(session.result.token), await signTransaction(
         { ecosystemID: 1, networkID: NETWORK_ID, cryptoSuite: network.suite },
         { type: 'utxo', toID: keyIDOf(network.suite), value: `${100n * BigInt(COIN)}`, comment: '' },
-        founder.privateKey
+        operatorSigner(founder.privateKey, network.suite)
     ));
 };
 
 // What the user does on the sign-in page of the app deployed for the network (which the app
-// connects to by itself at start): imports the key once, picks the account and enters the password
+// connects to by itself at start): imports the key once (in FIPS mode: adds the token's key), picks
+// the account and enters the password (the PIN)
 const signIn = async (client: IClient, suite: ICryptoSuiteId) => {
     await client.waitFor(state => sameSuite(state.engine.guestSession?.cryptoSuite, suite), `the network discovered under ${cryptoSuiteKey(suite)}`);
     if (!client.store.getState().storage.wallets.length) {
-        client.dispatch(importWallet.started({ backup: USER_KEY, password: PASSWORD }));
+        client.dispatch(userModuleKey
+            ? addModuleWallet.started(userModuleKey)
+            : importWallet.started({ backup: USER_KEY, password: PASSWORD }));
         await client.waitFor(state => state.storage.wallets.length > 0, 'the imported wallet stored');
     }
 
@@ -109,7 +128,7 @@ const signIn = async (client: IClient, suite: ICryptoSuiteId) => {
     expect(access, 'access to ecosystem 1').toBeDefined();
 
     client.dispatch(selectWallet({ wallet: account, access }));
-    client.dispatch(login.started({ password: PASSWORD }));
+    client.dispatch(login.started({ password: SECRET }));
     await client.waitFor(state => state.auth.isAcquired, 'the session acquired');
     expect(client.screen()).toBe('main');
     expect(client.store.getState().auth.session.cryptoSuite).toEqual(suite);
@@ -212,7 +231,7 @@ describe('session across crypto suite changes', () => {
     let deployed: ISettingsNetwork;
     const clients: IClient[] = [];
     const open = (settings: ISettings, persisted: TPersistedState | null = null) => {
-        const client = startClient({ settings, persisted, answer });
+        const client = startClient({ settings, persisted, answer, pkcs11: token?.pkcs11 ?? null });
         clients.push(client);
         return client;
     };
@@ -226,6 +245,10 @@ describe('session across crypto suite changes', () => {
 
     beforeAll(async () => {
         const chain = inject('chain');
+        if (FIPS_MODULE) {
+            token = await startSoftToken('ibax-e2e');
+            userModuleKey = await token.generate(A, 'e2e user');
+        }
         centrifugo = await startCentrifugo(chain.centrifugo, chain.root);
         network = await startNetwork({ root: chain.root, binary: chain.binary, postgres: chain.postgres, suite: A, networkID: NETWORK_ID, nodes: 2, centrifugo, name: 'session' });
         deployed = {
@@ -243,6 +266,7 @@ describe('session across crypto suite changes', () => {
         clients.forEach(client => client.close());
         await network?.stop();
         await centrifugo?.stop();
+        token?.close();
     });
 
     let client: IClient;
@@ -367,11 +391,11 @@ describe('session across crypto suite changes', () => {
         await expect(network.startNode(1, { suite: A })).rejects.toThrow('the genesis block does not match the configured crypto suite');
 
         // Blocks keep coming from the first node, under the chain's suite
-        const founder = await register(api, first.privateKey, NETWORK_ID);
-        await execute(api.authorize(founder.result.token), signTransaction(
+        const founder = await register(api, softwareKey(first.privateKey), NETWORK_ID);
+        await execute(api.authorize(founder.result.token), await signTransaction(
             { ecosystemID: 1, networkID: NETWORK_ID, cryptoSuite: B },
             { type: 'utxo', toID: keyIDOf(B), value: '1', comment: '' },
-            first.privateKey
+            operatorSigner(first.privateKey, B)
         ));
         expect(await maxBlockID(first.apiHost)).toBeGreaterThan(before);
         expect((await api.getUid()).cryptoSuite).toEqual(B);

@@ -9,6 +9,7 @@ import logoutEpic from './epics/logoutEpic';
 import authorizeEpic from './epics/authorizeEpic';
 import createWalletEpic from './epics/createWalletEpic';
 import importWalletEpic from './epics/importWalletEpic';
+import addModuleWalletEpic from './epics/addModuleWalletEpic';
 import authErrorEpic from './epics/authErrorEpic';
 import removeWalletEpic from './epics/removeWalletEpic';
 import logoutEmptySessionEpic from './epics/logoutEmptySessionEpic';
@@ -34,6 +35,7 @@ export default combineIsolatedEpics({
     authorizeEpic,
     createWalletEpic,
     importWalletEpic,
+    addModuleWalletEpic,
     loginEpic,
     authErrorEpic,
     logoutEmptySessionEpic,

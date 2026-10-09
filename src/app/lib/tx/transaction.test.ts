@@ -12,6 +12,7 @@ import params from './fixtures/go-ibax-contract-params.json';
 import Contract, { ContractParamError } from './contract';
 import defaultSchema from './schema/defaultSchema';
 import { DEFAULT_CRYPTO_SUITE, resolveCryptoSuite } from 'lib/crypto/suites';
+import { createSigner, softwareKey } from 'lib/crypto/signer';
 import { CONTRACT_PARAMS, splitTransaction, VECTOR_TIMEOUT } from 'test/cryptovectors';
 
 // Transactions the node's own client-transaction entry point decoded (or rejected). The same inputs
@@ -32,6 +33,8 @@ const cases = fixture.cases as unknown as {
     node: { error?: string; type?: number; hash?: string; keyMatchesPublicKey?: boolean };
 }[];
 
+const signer = (suite: ICryptoSuiteId, privateKey: string) => createSigner(softwareKey(privateKey), suite, { fips: false, pkcs11: null });
+
 // The bytes the node took, but for a signature of the same transaction by the same key
 const expectSameTransaction = (data: Uint8Array, taken: string, suiteId: ICryptoSuiteId, privateKey: string) => {
     const ours = splitTransaction(data);
@@ -47,15 +50,15 @@ const expectSameTransaction = (data: Uint8Array, taken: string, suiteId: ICrypto
 const resign = (c: typeof cases[number]) => signTransaction(
     { ecosystemID: c.ecosystemID, networkID: c.signedNetworkID ?? c.networkID, cryptoSuite: { cryptoer: c.cryptoer, hasher: c.hasher }, time: c.time },
     c.payload,
-    c.privateKey
+    signer({ cryptoer: c.cryptoer, hasher: c.hasher }, c.privateKey)
 );
 
 describe('signTransaction', () => {
-    it('reproduces the transfers the node accepted', () => {
+    it('reproduces the transfers the node accepted', async () => {
         const accepted = cases.filter(c => !c.node.error);
         expect(accepted.length).toBeGreaterThan(0);
         for (const c of accepted) {
-            const signed = resign(c);
+            const signed = await resign(c);
             expectSameTransaction(signed.data, c.data, { cryptoer: c.cryptoer, hasher: c.hasher }, c.privateKey);
             expect(signed.hash).toBe(c.node.hash);
             expect(c.node.type).toBe(c.payload.type === 'utxo' ? 5 : 6);
@@ -63,7 +66,7 @@ describe('signTransaction', () => {
         }
     }, VECTOR_TIMEOUT);
 
-    it('keeps the node rejections that the UI must prevent (control)', () => {
+    it('keeps the node rejections that the UI must prevent (control)', async () => {
         const errors = cases.filter(c => c.node.error).map(c => c.node.error);
         expect(new Set(errors)).toEqual(new Set([
             'error UTXO ToID must be a valid address',
@@ -73,15 +76,15 @@ describe('signTransaction', () => {
             'Incorrect sign'
         ]));
         for (const c of cases.filter(item => item.node.error && !item.tampered)) {
-            expectSameTransaction(resign(c).data, c.data, { cryptoer: c.cryptoer, hasher: c.hasher }, c.privateKey);
+            expectSameTransaction((await resign(c)).data, c.data, { cryptoer: c.cryptoer, hasher: c.hasher }, c.privateKey);
         }
     }, VECTOR_TIMEOUT);
 
-    it('sets the contract id only for contract calls', () => {
+    it('sets the contract id only for contract calls', async () => {
         const context = { ecosystemID: 2, networkID: 5, cryptoSuite: { cryptoer: 'ECC_Secp256k1', hasher: 'KECCAK256' } as const, time: 1 };
-        const key = cases[0].privateKey;
-        const contract = signTransaction(context, { type: 'contract', id: 7, params: { A: '1' } }, key).body;
-        const utxo = signTransaction(context, { type: 'utxo', toID: '597920150864192934', value: '1', comment: '' }, key).body;
+        const key = signer(context.cryptoSuite, cases[0].privateKey);
+        const contract = (await signTransaction(context, { type: 'contract', id: 7, params: { A: '1' } }, key)).body;
+        const utxo = (await signTransaction(context, { type: 'utxo', toID: '597920150864192934', value: '1', comment: '' }, key)).body;
 
         expect(contract.Header.ID).toBe(7n);
         expect(contract.UTXO).toBeUndefined();
@@ -90,16 +93,22 @@ describe('signTransaction', () => {
         expect(utxo.Header.EcosystemID).toBe(2n);
     });
 
-    it('refuses a payload it does not know', () => {
+    it('refuses a payload it does not know', async () => {
         const context = { ecosystemID: 1, networkID: 5, cryptoSuite: { cryptoer: 'ECC_Secp256k1', hasher: 'KECCAK256' } as const, time: 1 };
-        expect(() => signTransaction(context, { type: 'mint' } as unknown as TTxPayload, cases[0].privateKey)).toThrow(TypeError);
+        await expect(signTransaction(context, { type: 'mint' } as unknown as TTxPayload, signer(context.cryptoSuite, cases[0].privateKey))).rejects.toThrow(TypeError);
+    });
+
+    it('signs only with a signer of the network\'s suite', async () => {
+        const context = { ecosystemID: 1, networkID: 5, cryptoSuite: { cryptoer: 'ECC_Secp256k1', hasher: 'KECCAK256' } as const, time: 1 };
+        const other = signer({ cryptoer: 'ECC_P256', hasher: 'SHA256' }, cases[0].privateKey);
+        await expect(signTransaction(context, { type: 'transferSelf', value: '1', direction: 'toUTXO' }, other)).rejects.toThrow(/Unsupported crypto suite/);
     });
 });
 
 describe('contract parameters', () => {
     // Every parameter type a form can fill in, as the node's FillTxData converted it
-    it('reproduces a call whose parameters the node accepted', () => {
-        const signed = new Contract({
+    it('reproduces a call whose parameters the node accepted', async () => {
+        const signed = await new Contract({
             id: params.contractID,
             schema: defaultSchema,
             ecosystemID: params.ecosystemID,
@@ -107,7 +116,7 @@ describe('contract parameters', () => {
             cryptoSuite: DEFAULT_CRYPTO_SUITE,
             time: params.time,
             fields: CONTRACT_PARAMS
-        }).sign(params.privateKey);
+        }).sign(signer(DEFAULT_CRYPTO_SUITE, params.privateKey));
 
         expectSameTransaction(signed.data, params.data, DEFAULT_CRYPTO_SUITE, params.privateKey);
         expect(Object.keys(params.node).sort()).toEqual(Object.keys(CONTRACT_PARAMS).sort());

@@ -36,13 +36,14 @@ import { renderPage } from 'modules/sections/actions';
 import { fetchNotifications } from 'modules/content/actions';
 import { fetchBalance, fetchHistory, fetchUtxoHistory, sendTransfer } from 'modules/wallet/actions';
 import { txExec } from 'modules/tx/actions';
+import { softwareKey } from 'lib/crypto/signer';
 
 const session = { network: { uuid: 'net', apiHost: 'http://node' }, sessionToken: 'jwt.secret.token', cryptoSuite: DEFAULT_CRYPTO_SUITE };
 const owner = { account: '1188-4962-8957-7794-8872', ecosystem: '1' };
 
 const wallet = { wallet: { id: '7', walletID: '7', address: owner.account, encKey: '', publicKey: '04', access: [] }, access: { ecosystem: '1', name: '', roles: [], notifications: [] } };
 // Signed in with an account picked on the list, as the reducer leaves it; then signed out
-const signedIn = reducer({ ...initialState, wallet }, login.done({ params: { password: 'p' }, result: { session, privateKey: 'k', publicKey: '04' } }));
+const signedIn = reducer({ ...initialState, wallet }, login.done({ params: { password: 'p' }, result: { session, signingKey: softwareKey('k'), publicKey: '04' } }));
 const signedOutAuth = reducer(signedIn, logout.done({ params: null, result: null }));
 const signedOut: IRootState = { ...mockState, auth: signedOutAuth };
 

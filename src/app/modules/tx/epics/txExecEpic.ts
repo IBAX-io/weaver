@@ -14,8 +14,9 @@ import defaultSchema from 'lib/tx/schema/defaultSchema';
 import { ISignedTransaction, ITxContext, signTransaction, TTxPayload } from 'lib/tx/transaction';
 import { isBaseUnits } from 'lib/tx/amount';
 import { parseAddress } from 'lib/crypto/address';
-import { ICryptoSuiteId, sameCryptoSuite } from 'lib/crypto/suites';
-import { E_CRYPTO_CHANGED, E_TOKENEXPIRED } from 'modules/auth/actions';
+import { createSigner, INodeCrypto, ISigner, sameNodeCrypto, signerErrorCode } from 'lib/crypto/signer';
+import { isPkcs11Error } from 'lib/pkcs11';
+import { deauthorize, E_CRYPTO_CHANGED, E_TOKENEXPIRED } from 'modules/auth/actions';
 import { CryptoChangedError, signOutForCryptoChange } from 'modules/auth/util/cryptoChange';
 import { isSessionExpiredError, SessionExpiredError, signOutForExpiredSession } from 'modules/auth/util/sessionExpiry';
 import IbaxAPI from 'lib/ibaxAPI';
@@ -86,26 +87,26 @@ class TxExecutionError {
 
 // The node checks every transaction's signature when it is sent and refuses a bad one (go-ibax
 // ProcessClientTxBatches: "Incorrect sign" for any other suite's signature). When it refuses a
-// send (it answered: not when it could not be reached), it is asked which algorithms it uses now:
-// other than the session's, that is the reason (the chain's crypto settings were changed while
+// send (it answered: not when it could not be reached), it is asked which algorithms it uses now
+// (and whether it runs in FIPS mode): other than the session's, that is the reason (the chain's crypto settings were changed while
 // the session was open; a redeployed chain also refuses the token). Otherwise a refused token
 // ends the session, and any other refusal, or one the node cannot be asked about, stands as it is.
-const refusedSending = (client: IbaxAPI, suite: ICryptoSuiteId) => (error: unknown) => {
+const refusedSending = (client: IbaxAPI, session: INodeCrypto) => (error: unknown) => {
   if ('E_OFFLINE' === apiErrorCode(error)) {
     return throwError(() => error);
   }
   const refused = () => isSessionExpiredError(apiErrorCode(error)) ? new SessionExpiredError('send') : error;
   return defer(() => client.getUid()).pipe(
     catchError(() => throwError(refused)),
-    mergeMap(uid => throwError(() => sameCryptoSuite(uid.cryptoSuite, suite) ? refused() : new CryptoChangedError('send')))
+    mergeMap(uid => throwError(() => sameNodeCrypto(uid, session) ? refused() : new CryptoChangedError('send')))
   );
 };
 
 // Every parameter set of a contract becomes one signed transaction; files are read first
-const signContract = (client: IbaxAPI, context: ITxContext, privateKey: string, contract: TContractCall): Observable<ITxJob[]> =>
+const signContract = (client: IbaxAPI, context: ITxContext, session: INodeCrypto, signer: ISigner, contract: TContractCall): Observable<ITxJob[]> =>
   from(client.getContract({ name: contract.name })).pipe(
     // The token refused here already is the same as the transactions refused for it
-    catchError(error => isSessionExpiredError(apiErrorCode(error)) ? refusedSending(client, context.cryptoSuite)(error) : throwError(() => error)),
+    catchError(error => isSessionExpiredError(apiErrorCode(error)) ? refusedSending(client, session)(error) : throwError(() => error)),
     concatMap((proto: IContractResponse) => from(contract.params).pipe(
       concatMap((params: TContractParams) => from(proto.fields).pipe(
         filter(field => field.type === 'file' && !!params[field.name]),
@@ -116,7 +117,7 @@ const signContract = (client: IbaxAPI, context: ITxContext, privateKey: string, 
           );
         }),
         toArray(),
-        map(files => {
+        concatMap(async files => {
           const txParams: { [name: string]: IContractParam } = {};
           const logParams: { [name: string]: IContractParam } = {};
 
@@ -136,12 +137,12 @@ const signContract = (client: IbaxAPI, context: ITxContext, privateKey: string, 
             };
           });
 
-          const signed = new Contract({
+          const signed = await new Contract({
             ...context,
             id: proto.id,
             schema: defaultSchema,
             fields: txParams
-          }).sign(privateKey);
+          }).sign(signer);
 
           return { name: proto.name, signed, body: { ...signed.body, Params: logParams } };
         })
@@ -157,7 +158,7 @@ class TxPending {
 const POLL_RETRY_ERRORS = ['E_HASHNOTFOUND', 'E_OFFLINE'];
 
 // Sends a batch and polls until every transaction is in a block; an execution error stops polling
-const sendBatch = (client: IbaxAPI, suite: ICryptoSuiteId, jobs: ITxJob[]): Observable<ITransaction[]> => defer(() => {
+const sendBatch = (client: IbaxAPI, session: INodeCrypto, jobs: ITxJob[]): Observable<ITransaction[]> => defer(() => {
   const request: { [hash: string]: Blob } = {};
   jobs.forEach(job => {
     // The same payload signed twice in the same second has one hash: the node would see one
@@ -168,7 +169,7 @@ const sendBatch = (client: IbaxAPI, suite: ICryptoSuiteId, jobs: ITxJob[]): Obse
   });
 
   return from(client.txSend(request)).pipe(
-    catchError(refusedSending(client, suite)),
+    catchError(refusedSending(client, session)),
     delay(TX_STATUS_INTERVAL),
     mergeMap(() => defer(() => client.txStatus(jobs.map(job => job.signed.hash))).pipe(
       // Right after sending, the node may not know a hash yet; a dropped connection says nothing
@@ -243,13 +244,17 @@ const toTxError = (error: unknown): ITxError => {
       params: [error.param, error.paramType]
     };
   }
+  const signerError = signerErrorCode(error);
+  if (signerError) {
+    return { type: signerError, error: error instanceof Error ? error.message : '', params: [] };
+  }
   if (isApiError(error)) {
     return { type: error.error, error: error.msg, params: error.params || [] };
   }
   return { type: 'E_SERVER', error: error instanceof Error ? error.message : String(error), params: [] };
 };
 
-export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
+export const txExecEpic: Epic = (action$, state$, { api, pkcs11 }) => action$.pipe(
   ofAction(txExec.started),
   // Everything, the session and network lookup included, ends in txExec.done or txExec.failed
   mergeMap(action => {
@@ -265,7 +270,12 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
       apiHost: session.network.apiHost,
       sessionToken: session.sessionToken
     });
-    const privateKey = state.auth.privateKey;
+    // Locked again since the call was let through (txCallEpic): nothing is signed, nothing is shown
+    if (!state.auth.signingKey) {
+      return of(txExec.failed({ params: action.payload, error: { type: 'E_AUTH_CANCELLED', error: '', params: [] } }));
+    }
+    // Throws for a key in memory on a FIPS network, or a module key where no module is reached
+    const signer = createSigner(state.auth.signingKey, session.cryptoSuite, { fips: !!session.fips, pkcs11 });
     const network = state.storage.networks.find(l => l.uuid === session.network.uuid);
     const context: ITxContext = {
       networkID: network.id,
@@ -280,19 +290,24 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
       const transfers = (action.payload.transfers || []).map(transfer => ({ transfer, payload: transferPayload(transfer) }));
       return concat(
         from(action.payload.contracts).pipe(
-          concatMap(contract => signContract(client, context, privateKey, contract))
+          concatMap(contract => signContract(client, context, session, signer, contract))
         ),
-        transfers.length ? defer(() => of(transfers.map(({ transfer, payload }) => {
-          const signed = signTransaction(context, payload, privateKey);
-          return { name: TRANSFER_NAMES[transfer.type], signed, body: signed.body };
-        }))) : of<ITxJob[]>()
+        transfers.length ? defer(async () => {
+          // One at a time: a module signs one request after another anyway
+          const jobs: ITxJob[] = [];
+          for (const { transfer, payload } of transfers) {
+            const signed = await signTransaction(context, payload, signer);
+            jobs.push({ name: TRANSFER_NAMES[transfer.type], signed, body: signed.body });
+          }
+          return jobs;
+        }) : of<ITxJob[]>()
       );
     });
 
     return batches$.pipe(
       toArray(),
       concatMap(signed => from(signed)),
-      concatMap(jobs => sendBatch(client, context.cryptoSuite, jobs)),
+      concatMap(jobs => sendBatch(client, session, jobs)),
       toArray(),
       mergeMap(results => of(
         txExec.done({
@@ -320,10 +335,15 @@ export const txExecEpic: Epic = (action$, state$, { api }) => action$.pipe(
           txExec.failed({ params: action.payload, error: { type: E_TOKENEXPIRED, error: '', params: [] } }),
           ...signOutForExpiredSession(state$.value, session, error.during)
         )
-        : of(txExec.failed({
-          params: action.payload,
-          error: toTxError(error)
-        })))
+        : of(
+          txExec.failed({
+            params: action.payload,
+            error: toTxError(error)
+          }),
+          // The token forgot the login (removed, or the module restarted): the next call asks for
+          // the PIN again
+          ...(isPkcs11Error(error) && 'E_PKCS11_NOT_LOGGED_IN' === error.code ? [deauthorize(null)] : [])
+        ))
   );
   })
 );

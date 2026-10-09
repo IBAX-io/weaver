@@ -9,8 +9,9 @@ import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { acquireSession, loginGuest } from '../actions';
 import { navigate } from 'modules/router/actions';
-import { authenticate } from 'services/auth';
+import { authenticateGuest } from 'services/auth';
 import { authFailureCode } from '../util/authErrors';
+import { softwareKey } from 'lib/crypto/signer';
 
 const GUEST_ECOSYSTEM = {
     ecosystem: '1',
@@ -26,12 +27,13 @@ const loginGuestEpic: Epic = (action$, state$, { api, defaultKey }) => action$.p
         const stored = state$.value.storage.networks.find(l => l.uuid === network.uuid);
         const client = api({ apiHost: network.apiHost });
 
-        return defer(() => authenticate(client, defaultKey, { ecosystem: '1', expire: 60 * 60 * 24 * 90, networkID: stored && stored.id })).pipe(
-            mergeMap(({ result, cryptoSuite, publicKey, keyID }) => {
+        return defer(() => authenticateGuest(client, defaultKey, { ecosystem: '1', expire: 60 * 60 * 24 * 90, networkID: stored && stored.id })).pipe(
+            mergeMap(({ result, cryptoSuite, fips, publicKey, keyID }) => {
                 const session = {
                     sessionToken: result.token,
                     network,
-                    cryptoSuite
+                    cryptoSuite,
+                    fips
                 };
 
                 return of(
@@ -53,7 +55,8 @@ const loginGuestEpic: Epic = (action$, state$, { api, defaultKey }) => action$.p
                                 },
                                 access: GUEST_ECOSYSTEM
                             },
-                            privateKey: defaultKey,
+                            // Nothing signs on a FIPS network but a module key
+                            signingKey: fips ? null : softwareKey(defaultKey),
                             publicKey
                         }
                     }),

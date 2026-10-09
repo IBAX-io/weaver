@@ -29,6 +29,7 @@
     "cropperjs": "^1.5.13",
     "font-awesome": "^4.7.0",
     "immutable": "^3.8.4",
+    "koffi": "^3.3.2",
     "lodash": "^4.18.1",
     "monaco-editor": "^0.57.0",
     "qrcode.react": "^4.2.0",

@@ -26,7 +26,9 @@ declare module 'ibax/tx' {
         'E_PENALTY' |
         'E_DUPLICATE_TX' |
         'E_CONTRACT' |
-        'E_SERVER';
+        'E_SERVER' |
+        // The signer refused: a key in memory on a FIPS network, or the PKCS#11 module
+        import('ibax/pkcs11').TSignerErrorCode;
 
     interface IErrorRedirect {
         pagename: string;

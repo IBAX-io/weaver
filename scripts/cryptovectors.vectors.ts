@@ -17,7 +17,7 @@ const FILES: [string, (doc: any) => unknown][] = [
     ['go-ibax-contract-params.json', writeContractParams]
 ];
 
-it('writes the client side of the go-ibax vectors', () => {
+it('writes the client side of the go-ibax vectors', async () => {
     if (!process.env.GO_IBAX_DIR) {
         throw new Error('GO_IBAX_DIR must point to a go-ibax checkout');
     }
@@ -25,6 +25,6 @@ it('writes the client side of the go-ibax vectors', () => {
     for (const [name, write] of FILES) {
         const file = path.join(dir, name);
         const doc = JSON.parse(readFileSync(file, 'utf8'));
-        writeFileSync(file, JSON.stringify(write(doc), null, 2) + '\n');
+        writeFileSync(file, JSON.stringify(await write(doc), null, 2) + '\n');
     }
 });

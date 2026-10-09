@@ -11,6 +11,8 @@ declare module 'ibax/api' {
     token: string;
     networkID: number;
     cryptoSuite: import('ibax/crypto').ICryptoSuiteId;
+    // The node runs in FIPS 140-3 mode: signatures for it come from a validated module only
+    fips: boolean;
   }
 
   interface ILoginRequest {
@@ -19,6 +21,11 @@ declare module 'ibax/api' {
     expire?: number;
     ecosystem?: string;
     role?: number;
+  }
+
+  interface ILoginGuestRequest {
+    expire?: number;
+    ecosystem?: string;
   }
 
   interface ILoginResponse {
@@ -47,6 +54,7 @@ declare module 'ibax/api' {
     encKey: string;
     publicKey: string;
     access: IEcosystemInfo[];
+    module?: import('ibax/auth').IModuleKeyRef;
   }
 
   interface IRoleInfo {

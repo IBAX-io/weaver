@@ -13,7 +13,8 @@ import { encode } from '@msgpack/msgpack';
 import { bytesToHex, concatBytes, hexToBytes } from '@noble/hashes/utils.js';
 import { ITransactionBody, TTransferSelfDirection } from 'ibax/tx';
 import { ICryptoSuiteId } from 'ibax/crypto';
-import { resolveCryptoSuite } from 'lib/crypto/suites';
+import { resolveCryptoSuite, sameCryptoSuite, UnsupportedCryptoSuiteError } from 'lib/crypto/suites';
+import { ISigner } from 'lib/crypto/signer';
 import { encodeLengthPlusData } from './convert';
 
 export const CLIENT_TX_TYPE = 0x80;
@@ -56,15 +57,19 @@ const payloadMembers = (payload: TTxPayload): Omit<ITransactionBody, 'Header' | 
     }
 };
 
-export const signTransaction = (context: ITxContext, payload: TTxPayload, privateKey: string): ISignedTransaction => {
+// The signer signs for the network's suite (context.cryptoSuite) and no other
+export const signTransaction = async (context: ITxContext, payload: TTxPayload, signer: ISigner): Promise<ISignedTransaction> => {
+    if (!sameCryptoSuite(signer.suite, context.cryptoSuite)) {
+        throw new UnsupportedCryptoSuiteError(context.cryptoSuite);
+    }
     const suite = resolveCryptoSuite(context.cryptoSuite);
-    const publicKey = suite.publicKey(privateKey);
+    const publicKey = signer.publicKey;
     const body: ITransactionBody = {
         Header: {
             ID: BigInt(payload.type === 'contract' ? payload.id : 0),
             Time: BigInt(context.time ?? Math.floor(Date.now() / 1000)),
             EcosystemID: BigInt(context.ecosystemID),
-            KeyID: BigInt(suite.keyID(publicKey)),
+            KeyID: BigInt(signer.keyID),
             NetworkID: BigInt(context.networkID),
             PublicKey: hexToBytes(publicKey)
         },
@@ -77,7 +82,7 @@ export const signTransaction = (context: ITxContext, payload: TTxPayload, privat
     // the node requires even for whole values
     const buffer = encode(body, { useBigInt64: true, forceIntegerToFloat: true });
     const hash = suite.doubleHash(buffer);
-    const signature = hexToBytes(suite.sign(hash, privateKey));
+    const signature = hexToBytes(await signer.sign(hash));
 
     return {
         hash: bytesToHex(hash),

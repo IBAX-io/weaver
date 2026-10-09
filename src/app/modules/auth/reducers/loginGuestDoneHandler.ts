@@ -13,7 +13,7 @@ const loginGuestDoneHandler: Reducer<typeof loginGuest.done, State> = (state, pa
     isLoggingIn: false,
     ecosystem: '1',
     session: payload.result.session,
-    privateKey: payload.result.privateKey,
+    signingKey: payload.result.signingKey,
     wallet: payload.result.wallet,
     isDefaultWallet: true,
     // Signed in again: the reason for the last sign-out is no longer news

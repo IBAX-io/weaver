@@ -5,6 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+    createModuleWallet,
     createWallet,
     decryptPrivateKey,
     deriveIdentities,
@@ -15,7 +16,7 @@ import {
     isValidPrivateKey,
     privateKeyFromMnemonic
 } from './keyring';
-import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE, SUPPORTED_CRYPTO_SUITES } from 'lib/crypto/suites';
+import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE, resolveCryptoSuite, SUPPORTED_CRYPTO_SUITES } from 'lib/crypto/suites';
 import fixture from 'lib/crypto/fixtures/go-ibax-vectors.json';
 
 // BIP39 test mnemonic; its first Ethereum account (m/44'/60'/0'/0/0) is a well-known vector
@@ -107,4 +108,25 @@ describe('keyring', () => {
         expect(Object.keys(wallet.identities).sort()).toEqual(SUPPORTED_CRYPTO_SUITES.map(cryptoSuiteKey).sort());
         expect(Object.keys(wallet.identities)).toContain('SM2/SM3');
     }, 20000);
+
+    it('makes a wallet of a module key: where the key is, an identity for every suite it signs for', () => {
+        const publicKey = resolveCryptoSuite({ cryptoer: 'ECC_P256', hasher: 'SHA256' }).publicKey('1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727');
+        const key = { token: { serial: 'S1', label: 'Token' }, id: '01', label: 'Key', cryptoer: 'ECC_P256' as const, publicKey };
+        const wallet = createModuleWallet(key);
+
+        expect(wallet.module).toEqual(key);
+        expect(wallet.encKey).toBe('');
+        expect(wallet.id).toBe(resolveCryptoSuite({ cryptoer: 'ECC_P256', hasher: 'SHA256' }).keyID(publicKey));
+        expect(Object.keys(wallet.identities).sort()).toEqual(SUPPORTED_CRYPTO_SUITES.map(cryptoSuiteKey).sort());
+        for (const suite of SUPPORTED_CRYPTO_SUITES) {
+            const identity = wallet.identities[cryptoSuiteKey(suite)];
+            // The token hashes with the SHA-2 and SHA-3 hashers only
+            if ('ECC_P256' === suite.cryptoer && ['SHA256', 'SHA384', 'SHA512', 'SHA3_256'].includes(suite.hasher)) {
+                expect(identity).toEqual({ publicKey, keyID: resolveCryptoSuite(suite).keyID(publicKey) });
+            }
+            else {
+                expect(identity, cryptoSuiteKey(suite)).toBeNull();
+            }
+        }
+    });
 });

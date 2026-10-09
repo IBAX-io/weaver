@@ -17,6 +17,9 @@ import { signTransaction, TTxPayload } from 'lib/tx/transaction';
 import Contract, { IContractParam } from 'lib/tx/contract';
 import defaultSchema from 'lib/tx/schema/defaultSchema';
 import { DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
+import { createSigner, softwareKey } from 'lib/crypto/signer';
+
+const signerFor = (suite: ICryptoSuiteId, privateKey: string) => createSigner(softwareKey(privateKey), suite, { fips: false, pkcs11: null });
 
 // Every suite go-ibax implements (ECC_P512 is only named)
 export const CRYPTOERS: ICryptoSuiteId['cryptoer'][] = ['ECC_Secp256k1', 'ECC_P256', 'SM2', 'MLDSA65', 'MLDSA87'];
@@ -140,11 +143,12 @@ const sameTransaction = (written: Uint8Array, fresh: Uint8Array, suiteId: ICrypt
         suite.verify(suite.doubleHash(theirs.payload), theirs.signature, suite.publicKey(privateKey));
 };
 
-export const signTransferCase = (c: TTransferInput) => {
-    const signed = signTransaction(
-        { ecosystemID: c.ecosystemID, networkID: c.signedNetworkID ?? c.networkID, cryptoSuite: { cryptoer: c.cryptoer, hasher: c.hasher }, time: c.time },
+export const signTransferCase = async (c: TTransferInput) => {
+    const cryptoSuite = { cryptoer: c.cryptoer, hasher: c.hasher };
+    const signed = await signTransaction(
+        { ecosystemID: c.ecosystemID, networkID: c.signedNetworkID ?? c.networkID, cryptoSuite, time: c.time },
         c.payload,
-        c.privateKey
+        signerFor(cryptoSuite, c.privateKey)
     );
     return { hash: signed.hash, data: bytesToHex(c.tampered ? tamperTransaction(signed.data) : signed.data) };
 };
@@ -153,17 +157,18 @@ const inputKey = (c: TTransferInput) => JSON.stringify([
     c.cryptoer, c.hasher, c.networkID, c.signedNetworkID, c.tampered, c.ecosystemID, c.time, c.privateKey, c.payload
 ]);
 
-export const writeTransfers = <T extends { cases: ITransferCase[] }>(doc: T): T => {
+export const writeTransfers = async <T extends { cases: ITransferCase[] }>(doc: T): Promise<T> => {
     const nodeOf = new Map(doc.cases.map(c => [inputKey(c), c] as const));
     return {
         ...doc,
-        cases: transferInputs().map(input => {
+        cases: await Promise.all(transferInputs().map(async input => {
             const known = nodeOf.get(inputKey(input));
             if (known) {
-                const fresh = signTransaction(
-                    { ecosystemID: input.ecosystemID, networkID: input.signedNetworkID ?? input.networkID, cryptoSuite: { cryptoer: input.cryptoer, hasher: input.hasher }, time: input.time },
+                const cryptoSuite = { cryptoer: input.cryptoer, hasher: input.hasher };
+                const fresh = await signTransaction(
+                    { ecosystemID: input.ecosystemID, networkID: input.signedNetworkID ?? input.networkID, cryptoSuite, time: input.time },
                     input.payload,
-                    input.privateKey
+                    signerFor(cryptoSuite, input.privateKey)
                 );
                 // A tampered case was signed before its payload was altered: checked as signed
                 const written = hexToBytes(known.data);
@@ -172,8 +177,8 @@ export const writeTransfers = <T extends { cases: ITransferCase[] }>(doc: T): T 
                 }
             }
             // A new or changed case waits for go-ibax to fill in the node's verdict
-            return { ...input, ...signTransferCase(input), node: {} };
-        })
+            return { ...input, ...await signTransferCase(input), node: {} };
+        }))
     };
 };
 
@@ -223,10 +228,10 @@ export const signContractParams = (doc: IContractParamsFile) => new Contract({
     cryptoSuite: DEFAULT_CRYPTO_SUITE,
     time: doc.time,
     fields: CONTRACT_PARAMS
-}).sign(doc.privateKey);
+}).sign(signerFor(DEFAULT_CRYPTO_SUITE, doc.privateKey));
 
-export const writeContractParams = <T extends IContractParamsFile>(doc: T): T => {
-    const fresh = signContractParams(doc).data;
+export const writeContractParams = async <T extends IContractParamsFile>(doc: T): Promise<T> => {
+    const fresh = (await signContractParams(doc)).data;
     const kept = !!doc.data && sameTransaction(hexToBytes(doc.data), fresh, DEFAULT_CRYPTO_SUITE, doc.privateKey);
     const data = kept ? doc.data : bytesToHex(fresh);
     const names = Object.keys(CONTRACT_PARAMS).sort();

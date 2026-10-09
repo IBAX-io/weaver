@@ -4,7 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 // Packages build/ (npm run build-desktop): the page, plus the main process and preload bundled
-// with all their dependencies (vite.electron.config.ts) and build/package.json.
+// with all their dependencies (vite.electron.config.ts) and build/package.json. koffi's native
+// binary (build/koffi) goes outside app.asar, as a native module cannot load from an archive.
 /** @type {import('electron-builder').Configuration} */
 export default {
     productName: 'Weaver',
@@ -16,7 +17,12 @@ export default {
     },
     files: [
         '**/*',
-        '!**/*.map'
+        '!**/*.map',
+        '!koffi/**'
+    ],
+    // <resources>/koffi/<platform>_<arch>/koffi.node, where the bundled koffi looks for it
+    extraResources: [
+        { from: 'build/koffi', to: 'koffi', filter: ['**/*.node'] }
     ],
     // Everything the app runs is already bundled: no node_modules to install, rebuild or ship
     // (otherwise electron-builder falls back to the project's node_modules, ~400 MB)

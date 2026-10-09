@@ -17,5 +17,8 @@ export const CHANNELS = {
     closeWindow: 'weaver:close-window',
     openDevTools: 'weaver:open-dev-tools',
     setBadgeCount: 'weaver:set-badge-count',
-    openExternal: 'weaver:open-external'
+    openExternal: 'weaver:open-external',
+    pkcs11: 'weaver:pkcs11',
+    pkcs11Module: 'weaver:pkcs11-module',
+    pkcs11ChooseModule: 'weaver:pkcs11-choose-module'
 } as const;

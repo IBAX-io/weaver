@@ -7,6 +7,7 @@ import './profile';
 import { app, session } from 'electron';
 import { spawnWindow, window } from './windows/index';
 import './ipc';
+import { shutdown as shutdownPkcs11 } from './pkcs11/service';
 
 app.whenReady().then(() => {
     // The app needs no camera, microphone, location, notifications or the like
@@ -31,6 +32,8 @@ app.on('second-instance', () => {
         window.focus();
     }
 });
+
+app.on('will-quit', shutdownPkcs11);
 
 app.on('window-all-closed', () => {
     if ('darwin' !== process.platform) {

@@ -7,7 +7,7 @@ import queryString from 'query-string';
 import urlJoin from 'url-join';
 import { cryptoSuiteFromNode } from 'lib/crypto/suites';
 import urlTemplate from 'url-template';
-import { IUIDResponse, ILoginRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, IListWhereRequest, IListWhereResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo, IBalanceRequest, IBalanceResponse } from 'ibax/api';
+import { IUIDResponse, ILoginRequest, ILoginGuestRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, IListWhereRequest, IListWhereResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo, IBalanceRequest, IBalanceResponse } from 'ibax/api';
 
 import { isApiError, UntrustedNodeError } from './errors';
 
@@ -210,7 +210,8 @@ class IbaxAPI {
         token: response.token,
         networkID: parseInt(response.network_id, 10),
         uid: 'LOGIN' + response.network_id + response.uid,
-        cryptoSuite: cryptoSuiteFromNode(response.cryptoer, response.hasher)
+        cryptoSuite: cryptoSuiteFromNode(response.cryptoer, response.hasher),
+        fips: true === response.fips
       };
     }
   });
@@ -221,6 +222,20 @@ class IbaxAPI {
       ecosystem: request.ecosystem,
       role_id: request.role,
       expire: request.expire,
+    }),
+    responseTransformer: response => ({
+      ...response,
+      roles: response.roles || []
+    })
+  });
+  // The guest account's session, without a signature (go-ibax login guest=true): the guest key is
+  // public, and a FIPS network's client may not sign in software. Like login, it answers the
+  // node's challenge: the client authorized with the /getuid token
+  public loginGuest = this.setSecuredEndpoint<ILoginGuestRequest, ILoginResponse>('post', 'login', {
+    requestTransformer: request => ({
+      guest: 'true',
+      ecosystem: request.ecosystem,
+      expire: request.expire
     }),
     responseTransformer: response => ({
       ...response,

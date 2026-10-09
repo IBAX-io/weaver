@@ -9,7 +9,7 @@ import { Reducer } from 'modules';
 
 const authorizeHandler: Reducer<typeof authorize, State> = (state, payload) => ({
     ...state,
-    privateKey: payload
+    signingKey: payload
 });
 
 export default authorizeHandler;

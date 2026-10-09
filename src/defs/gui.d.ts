@@ -4,6 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 declare module 'ibax/gui' {
+  import { IPkcs11Bridge } from 'ibax/pkcs11';
+
   // Launch arguments the page sees (src/electron/args.ts)
   interface IInferredArguments {
     readonly fullNode?: string[];
@@ -26,6 +28,8 @@ declare module 'ibax/gui' {
     readonly offsetY?: number;
     // Development only: load the page from this local Vite dev server instead of the built files
     readonly devServer?: string;
+    // The PKCS#11 module's library, instead of the one chosen in the app
+    readonly pkcs11Module?: string;
   }
 
   interface IDesktopWindowState {
@@ -54,5 +58,6 @@ declare module 'ibax/gui' {
     setBadgeCount(count: number): void;
     // http(s) only
     openExternal(url: string): void;
+    readonly pkcs11: IPkcs11Bridge;
   }
 }

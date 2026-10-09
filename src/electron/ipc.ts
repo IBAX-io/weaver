@@ -13,6 +13,8 @@ import { appUrl } from './appUrl';
 import { isTrustedSender } from './util/navigation';
 import { openExternalIfAllowed } from './util/openExternal';
 import { windowState } from './util/windowState';
+import * as pkcs11 from './pkcs11/service';
+import { failure, pageRequest } from './pkcs11/protocol';
 
 // The persisted state holds settings and encrypted wallets; anything larger is not from the app
 const MAX_STATE_BYTES = 1024 * 1024;
@@ -118,4 +120,19 @@ handle(CHANNELS.openExternal, (_event, url) => {
     if ('string' === typeof url) {
         openExternalIfAllowed(url);
     }
+});
+
+// PKCS#11 module keys: every call resolves, failures as results (pkcs11/service.ts)
+const notFromApp = failure('E_PKCS11_INVALID_ARGUMENT', 'Not from the app');
+
+ipcMain.handle(CHANNELS.pkcs11Module, event => fromApp(event) ? pkcs11.moduleInfo() : notFromApp);
+
+ipcMain.handle(CHANNELS.pkcs11ChooseModule, event => fromApp(event) ? pkcs11.chooseModule(senderWindow(event)) : notFromApp);
+
+ipcMain.handle(CHANNELS.pkcs11, (event, method, ...values) => {
+    if (!fromApp(event)) {
+        return notFromApp;
+    }
+    const request = pageRequest(method, values);
+    return request ? pkcs11.request(request) : failure('E_PKCS11_INVALID_ARGUMENT', `Invalid PKCS#11 request ${String(method)}`);
 });

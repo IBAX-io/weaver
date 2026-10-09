@@ -10,7 +10,7 @@ import { ofAction } from 'lib/rx/ofAction';
 import { discoverNetwork, initialize } from 'modules/engine/actions';
 import { connect } from '../actions';
 import { acquireSession } from 'modules/auth/actions';
-import { authenticate } from 'services/auth';
+import { authenticateGuest } from 'services/auth';
 
 const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.pipe(
     ofAction(discoverNetwork.done, initialize.done, acquireSession.done),
@@ -41,7 +41,7 @@ const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.
             apiHost: state.engine.guestSession.network.apiHost
         });
 
-        return from(authenticate(client, defaultKey, { networkID: network.id })).pipe(
+        return from(authenticateGuest(client, defaultKey, { networkID: network.id })).pipe(
             map(({ result }) => result),
             mergeMap(loginResult =>
                 from(client.authorize(loginResult.token).getConfig({

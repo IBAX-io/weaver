@@ -16,6 +16,8 @@ interface IConfigSchema {
     [PERSISTED_STATE_KEY]: string;
     dimensions: Rectangle;
     maximized: boolean;
+    // The PKCS#11 module chosen in the app (pkcs11/service.ts)
+    pkcs11Module: string;
 }
 
 const file = path.join(app.getPath('userData'), 'config.json');

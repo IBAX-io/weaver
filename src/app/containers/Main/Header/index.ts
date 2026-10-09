@@ -9,7 +9,7 @@ import { IRootState } from 'modules';
 import Header from 'components/Main/Header';
 
 const mapStateToProps = (state: IRootState) => ({
-    isAuthorized: !!state.auth.privateKey
+    isAuthorized: !!state.auth.signingKey
 });
 
 export default connect(mapStateToProps)(Header);

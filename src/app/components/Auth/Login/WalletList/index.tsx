@@ -47,6 +47,9 @@ export interface IWalletListProps {
   // transactions ('send')
   signOutNotice: ISignOutReason | null;
   onEnable: (wallet: IWallet) => any;
+  // The network runs in FIPS 140-3 mode: only accounts with a key in a PKCS#11 module are listed;
+  // `desktop`: the app can reach a module (the web app cannot sign for such a network)
+  fipsMode: { desktop: boolean } | null;
 }
 
 // A titled group of accounts that need something done before they can be used
@@ -133,6 +136,21 @@ const WalletList: React.FC<IWalletListProps> = (props) => {
           style={{ padding: 10 }}
           ref={page}
         >
+          {props.fipsMode && (
+            <div className="alert alert-info text-start">
+              {props.fipsMode.desktop ? (
+                <FormattedMessage
+                  id="auth.fips.desktop"
+                  defaultMessage="This network runs in FIPS 140-3 mode: only keys in a hardware token (PKCS#11) sign for it, so only accounts with such a key are listed. Add one with Create or import account."
+                />
+              ) : (
+                <FormattedMessage
+                  id="auth.fips.web"
+                  defaultMessage="This network runs in FIPS 140-3 mode: only keys in a hardware token sign for it, and only the desktop app can use one. Here you can read the network but not sign in to it."
+                />
+              )}
+            </div>
+          )}
           {props.signOutNotice && (
             // Shown with the page: an alert is read out, a polite region filled from the start is not
             <div className="alert alert-warning text-start" role="alert">
@@ -225,7 +243,8 @@ const WalletList: React.FC<IWalletListProps> = (props) => {
             </AccountSection>
           )}
           <div className="text-start">
-            <ContextButton
+            {/* No account the web app could make signs for a FIPS network */}
+            {!(props.fipsMode && !props.fipsMode.desktop) && <ContextButton
               icon="icon-plus"
               onClick={props.onCreate}
               description={
@@ -239,7 +258,7 @@ const WalletList: React.FC<IWalletListProps> = (props) => {
                 id="wallet.createimport"
                 defaultMessage="Create or import account"
               />
-            </ContextButton>
+            </ContextButton>}
             {props.demoModeEnabled && (
               <ContextButton
                 icon="icon-login"

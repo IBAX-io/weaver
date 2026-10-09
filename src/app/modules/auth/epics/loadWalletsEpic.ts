@@ -17,11 +17,12 @@ const loadWalletsEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(loadWallets.started),
     mergeMap(action => {
         const state = state$.value;
-        const { network, cryptoSuite } = state.engine.guestSession;
+        const { network, cryptoSuite, fips } = state.engine.guestSession;
         const client = api({ apiHost: network.apiHost });
 
         return from(state.storage.wallets).pipe(
-            filter(wallet => !!wallet.identities[cryptoSuiteKey(cryptoSuite)]),
+            // On a FIPS network only a module wallet signs
+            filter(wallet => !!wallet.identities[cryptoSuiteKey(cryptoSuite)] && (!fips || !!wallet.module)),
             mergeMap(wallet =>
                 from(client.keyinfo({ id: walletIdentity(wallet, cryptoSuite).keyID })).pipe(
                     map(keyInfo => walletAccount(wallet, cryptoSuite, keyInfo)),

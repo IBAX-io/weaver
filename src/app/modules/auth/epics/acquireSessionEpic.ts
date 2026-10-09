@@ -15,7 +15,7 @@ import { displayableAuthError } from '../util/authErrors';
 import { defer, forkJoin, from, of } from 'rxjs';
 import { catchError, map, mergeMap, switchMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
-import { sameCryptoSuite } from 'lib/crypto/suites';
+import { sameNodeCrypto } from 'lib/crypto/signer';
 import { isSessionRetryError } from '../util/sessionRetry';
 import { isSessionExpiredError, signOutForExpiredSession } from '../util/sessionExpiry';
 
@@ -35,7 +35,7 @@ const acquireSessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
             sessionToken: action.payload.sessionToken
         });
 
-        // The session was signed in under the key algorithms the network had then (a restored one
+        // The session was signed in under the key algorithms (and FIPS mode) the network had then (a restored one
         // maybe days ago). The node reports the ones it has now, asked alongside the sections:
         // changed (the chain's crypto settings were), the account's address and every signature
         // would be the old ones, so the session ends and the user signs in again under the new ones.
@@ -50,7 +50,7 @@ const acquireSessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
             from(client.getParam({ name: 'print_stylesheet' })).pipe(map(p => p.value), catchError(e => of('')))
         ]).pipe(
             mergeMap(([uid, answer, stylesheet, printStylesheet]) => {
-                if (!action.payload.cryptoSuite || !sameCryptoSuite(uid.cryptoSuite, action.payload.cryptoSuite)) {
+                if (!action.payload.cryptoSuite || !sameNodeCrypto(uid, action.payload)) {
                     throw new CryptoChangedError('session');
                 }
                 if (answer.error) {

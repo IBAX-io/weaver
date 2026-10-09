@@ -13,7 +13,8 @@ import { modalShow } from 'modules/modal/actions';
 import BackupModal from 'components/Modal/BackupModal';
 
 const mapStateToProps = (state: IRootState) => ({
-    privateKey: state.auth.privateKey,
+    // Only a key in memory can be written down: a module's never leaves it
+    privateKey: 'software' === state.auth.signingKey?.kind ? state.auth.signingKey.privateKey : '',
     publicKey: state.auth.wallet.wallet.publicKey,
     address: state.auth.wallet.wallet.address
 });

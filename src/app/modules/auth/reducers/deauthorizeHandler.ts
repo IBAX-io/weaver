@@ -9,7 +9,7 @@ import { Reducer } from 'modules';
 
 const deauthorizeHandler: Reducer<typeof deauthorize, State> = (state, payload) => ({
     ...state,
-    privateKey: null
+    signingKey: null
 });
 
 export default deauthorizeHandler;

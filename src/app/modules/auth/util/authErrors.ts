@@ -6,12 +6,14 @@
 import { KeyNotUsableError, UnsupportedCryptoSuiteError } from 'lib/crypto/suites';
 import { InvalidEncryptedKeyError } from 'lib/keyring';
 import { apiErrorCode, UntrustedNodeError } from 'lib/ibaxAPI/errors';
+import { SIGNER_ERRORS, signerErrorCode } from 'lib/crypto/signer';
 
 // Auth error codes the UI can explain; each has an auth.error.* message in every locale
 export const DISPLAYABLE_AUTH_ERRORS = [
     'E_INVALID_KEY', 'E_INVALID_PASSWORD', 'E_KEYNOTFOUND', 'E_DELETEDKEY',
     'E_OFFLINE', 'E_SERVER', 'E_UPDATING', 'E_TOKENEXPIRED',
-    'E_IMPORT_FAILED', 'E_UNSUPPORTED_CRYPTO', 'E_UNTRUSTED_NODE', 'E_KEY_NOT_USABLE'
+    'E_IMPORT_FAILED', 'E_UNSUPPORTED_CRYPTO', 'E_UNTRUSTED_NODE', 'E_KEY_NOT_USABLE',
+    ...SIGNER_ERRORS
 ];
 
 // The auth error code for anything signing in can throw
@@ -27,6 +29,10 @@ export const authFailureCode = (error: unknown): string => {
     }
     if (error instanceof InvalidEncryptedKeyError) {
         return 'E_INVALID_KEY';
+    }
+    const signer = signerErrorCode(error);
+    if (signer) {
+        return signer;
     }
     return apiErrorCode(error);
 };

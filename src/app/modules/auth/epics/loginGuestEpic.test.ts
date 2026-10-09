@@ -9,12 +9,12 @@ import { IRootState } from 'modules';
 import { runEpic } from 'test/runEpic';
 import mockState from 'test/mockStore';
 import { DEFAULT_CRYPTO_SUITE, UnsupportedCryptoSuiteError } from 'lib/crypto/suites';
-import { authenticate } from 'services/auth';
+import { authenticateGuest } from 'services/auth';
 import { acquireSession, loginGuest } from '../actions';
 import { navigate } from 'modules/router/actions';
 import loginGuestEpic from './loginGuestEpic';
 
-vi.mock('services/auth', () => ({ authenticate: vi.fn() }));
+vi.mock('services/auth', () => ({ authenticateGuest: vi.fn() }));
 
 const guestNetwork = { uuid: 'testnet', apiHost: 'http://node' };
 const state: IRootState = {
@@ -37,23 +37,41 @@ const loginResponse: ILoginResponse = {
 
 describe('loginGuestEpic', () => {
     it('acquires the guest session so the app leaves the splash screen', async () => {
-        vi.mocked(authenticate).mockResolvedValueOnce({
+        vi.mocked(authenticateGuest).mockResolvedValueOnce({
             result: loginResponse,
             networkID: 1,
             cryptoSuite: DEFAULT_CRYPTO_SUITE,
+            fips: false,
             publicKey: '04ab',
             keyID: '123'
         });
 
         const output = await runEpic(loginGuestEpic, [loginGuest.started()], state);
-        const session = { sessionToken: 'guest-token', network: guestNetwork, cryptoSuite: DEFAULT_CRYPTO_SUITE };
+        const session = { sessionToken: 'guest-token', network: guestNetwork, cryptoSuite: DEFAULT_CRYPTO_SUITE, fips: false };
 
         expect(output.map(a => a.type)).toEqual([navigate({ to: '/' }).type, loginGuest.done.type, acquireSession.started.type]);
         expect(output[2]).toEqual(acquireSession.started(session));
     }, 20000);
 
+    it('holds no key for the guest of a FIPS network, whose session is not signed for', async () => {
+        vi.mocked(authenticateGuest).mockResolvedValueOnce({
+            result: loginResponse,
+            networkID: 1,
+            cryptoSuite: DEFAULT_CRYPTO_SUITE,
+            fips: true,
+            publicKey: '',
+            keyID: '123'
+        });
+
+        const output = await runEpic(loginGuestEpic, [loginGuest.started()], state);
+        const done = output.find(loginGuest.done.match);
+
+        expect(done.payload.result.signingKey).toBeNull();
+        expect(done.payload.result.session.fips).toBe(true);
+    }, 20000);
+
     it('reports networks with an unsupported signature suite', async () => {
-        vi.mocked(authenticate).mockRejectedValueOnce(new UnsupportedCryptoSuiteError({ cryptoer: 'ECC_P512', hasher: 'SHA256' }));
+        vi.mocked(authenticateGuest).mockRejectedValueOnce(new UnsupportedCryptoSuiteError({ cryptoer: 'ECC_P512', hasher: 'SHA256' }));
 
         const output = await runEpic(loginGuestEpic, [loginGuest.started()], state);
 

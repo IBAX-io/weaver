@@ -40,7 +40,7 @@ const state: IRootState = {
 };
 const authenticated = (cryptoSuite: typeof DEFAULT_CRYPTO_SUITE) => ({
     result: { token: 't', refresh: '', notify_key: '', timestamp: '0', key_id: '7', ecosystem_id: '1', account: account.address, expiry: 0, isnode: false, isowner: false, roles: [] },
-    networkID: 1, cryptoSuite, publicKey: '04', keyID: '7'
+    networkID: 1, cryptoSuite, fips: false, publicKey: '04', keyID: '7'
 });
 
 describe('a change of the network\'s key algorithms', () => {

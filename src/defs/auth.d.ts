@@ -37,16 +37,31 @@ declare module 'ibax/auth' {
     [suite: string]: IWalletIdentity | null;
   }
 
+  // A key that stays in a PKCS#11 module (desktop app): the wallet holds where it is, not the key
+  interface IModuleKeyRef {
+    token: { serial: string, label: string };
+    // CKA_ID, hex
+    id: string;
+    label: string;
+    cryptoer: import('ibax/pkcs11').TModuleCryptoer;
+    // Hex, as the module reports it (IPkcs11Key)
+    publicKey: string;
+  }
+
   interface IWallet {
     id: string;
+    // Empty for a module wallet
     encKey: string;
     identities: IWalletIdentities;
+    module?: IModuleKeyRef;
   }
 
   interface ISession {
     network: INetworkEndpoint;
     sessionToken: string;
     cryptoSuite: import('ibax/crypto').ICryptoSuiteId;
+    // The network runs in FIPS 140-3 mode (/getuid): only module keys sign for it
+    fips?: boolean;
   }
 
   interface IAccountContext {

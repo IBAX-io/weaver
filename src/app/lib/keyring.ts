@@ -12,7 +12,8 @@ import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { p256 } from '@noble/curves/nist.js';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE, resolveCryptoSuite, SUPPORTED_CRYPTO_SUITES } from 'lib/crypto/suites';
-import { IWallet, IWalletIdentities } from 'ibax/auth';
+import { IModuleKeyRef, IWallet, IWalletIdentities } from 'ibax/auth';
+import { moduleKeyServes } from 'lib/crypto/signer';
 
 // Same derivation as the official IBAX wallets, so a mnemonic restores the same account
 export const HD_PATH = "m/44'/60'/0'/0/0";
@@ -156,6 +157,24 @@ export const createWallet = async (privateKey: string, password: string): Promis
         id: identities[cryptoSuiteKey(DEFAULT_CRYPTO_SUITE)].keyID,
         encKey: await encryptPrivateKey(privateKey, password),
         identities
+    };
+};
+
+// A stored wallet for a key in a PKCS#11 module: identities under every suite the key serves (its
+// own algorithm, with a hash the module computes), none elsewhere. Its id is the account id under
+// the key's algorithm with SHA-256, so adding the same key twice yields the same wallet.
+export const createModuleWallet = (key: IModuleKeyRef): IWallet => {
+    const identities: IWalletIdentities = {};
+    for (const suiteId of SUPPORTED_CRYPTO_SUITES) {
+        identities[cryptoSuiteKey(suiteId)] = moduleKeyServes(key, suiteId)
+            ? { publicKey: key.publicKey, keyID: resolveCryptoSuite(suiteId).keyID(key.publicKey) }
+            : null;
+    }
+    return {
+        id: resolveCryptoSuite({ cryptoer: key.cryptoer, hasher: 'SHA256' }).keyID(key.publicKey),
+        encKey: '',
+        identities,
+        module: key
     };
 };
 

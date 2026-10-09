@@ -7,7 +7,7 @@ import { Action } from 'typescript-fsa';
 import { defer, of } from 'rxjs';
 import { catchError, exhaustMap, filter, map, mergeMap } from 'rxjs/operators';
 import { Epic } from 'modules';
-import { sameCryptoSuite } from 'lib/crypto/suites';
+import { sameNodeCrypto } from 'lib/crypto/signer';
 import { acquireSession } from '../actions';
 import { signedInSession } from '../selectors';
 import { isSessionExpiredError, signOutForExpiredSession } from '../util/sessionExpiry';
@@ -35,7 +35,7 @@ const logoutEmptySessionEpic: Epic = (action$, state$, { api }) => action$.pipe(
         const client = api({ apiHost: session.network.apiHost });
 
         return defer(() => client.getUid()).pipe(
-            map(uid => sameCryptoSuite(uid.cryptoSuite, session.cryptoSuite)),
+            map(uid => sameNodeCrypto(uid, session)),
             // Not telling: the refusal stands as it is
             catchError(() => of(true)),
             mergeMap(same => of(...(same
