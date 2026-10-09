@@ -15,12 +15,12 @@ import NetworkError from 'services/network/errors';
 import { saveNetwork } from 'modules/storage/actions';
 import { modalShow } from 'modules/modal/actions';
 
-const addNetworkEpic: Epic = (action$, _state$, { defaultKey }) => action$.pipe(
+const addNetworkEpic: Epic = (action$) => action$.pipe(
   ofAction(addNetwork.started),
   mergeMap(action => {
     const uniqueID = uuid.v4();
 
-    return from(discover({ uuid: uniqueID, apiHost: action.payload.apiHost }, defaultKey, action.payload.networkID)).pipe(
+    return from(discover({ uuid: uniqueID, apiHost: action.payload.apiHost }, action.payload.networkID)).pipe(
       mergeMap(result => of(
         navigate({ to: '/networks' }),
         saveNetwork({

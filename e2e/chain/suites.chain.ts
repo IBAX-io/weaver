@@ -31,6 +31,9 @@ const BLOCKS = Number(process.env.CHAIN_E2E_BLOCKS || 10);
 const USER_FUNDS = '1000000000000000000';
 // What the founder moves to its account for contract fees: 100,000 coins
 const FOUNDER_FEES = '100000000000000000';
+// What the user moves to its account: another amount than FOUNDER_FEES, or in plain mode (the user
+// is the founder) the two transactions are the same one when signed within the same second
+const SELF_TRANSFER = '50000000000000000';
 
 // Reports every parameter as the contract received it
 const PARAMS_CONTRACT = `contract E2eParams {
@@ -152,9 +155,9 @@ describe.each(ALL_SUITES.filter(nodeRuns).map(suite => [cryptoSuiteKey(suite), s
 
     it('moves coins from UTXO to the account (TransferSelf)', async () => {
         const before = await client.getBalance({ wallet: user.keyID, ecosystem: 1 });
-        await execute(client, await signTransaction(context, { type: 'transferSelf', value: '100000000000000000', direction: 'toAccount' }, user));
+        await execute(client, await signTransaction(context, { type: 'transferSelf', value: SELF_TRANSFER, direction: 'toAccount' }, user));
         const after = await client.getBalance({ wallet: user.keyID, ecosystem: 1 });
-        expect(BigInt(after.amount) - BigInt(before.amount)).toBe(100000000000000000n);
+        expect(BigInt(after.amount) - BigInt(before.amount)).toBe(BigInt(SELF_TRANSFER));
     });
 
     it('transfers UTXO to a new account', async () => {

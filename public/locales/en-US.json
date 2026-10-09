@@ -317,6 +317,8 @@
   "tx.error.E_DUPLICATE_TX.desc": "The same transaction was submitted twice in one batch; nothing was sent.",
   "auth.error.E_UNTRUSTED_NODE": "The node's answer does not fit the selected network, so nothing was signed.",
   "auth.error.E_KEY_NOT_USABLE": "This account's key cannot be used with this network's key algorithms, so it has no address on this network. Use another account here; this one still works on other networks.",
+  "auth.error.E_ECONOTOPEN": "This ecosystem does not take new members. Ask its administrators to add your account.",
+  "auth.error.E_REGISTRATION": "Your account could not be registered on the network. Try again later.",
   "auth.legacy.title": "Accounts saved by an earlier version",
   "auth.legacy.desc": "Upgrade each one once with its password before using it.",
   "auth.legacy.upgrade": "Upgrade account",

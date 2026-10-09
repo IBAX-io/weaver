@@ -13,7 +13,7 @@ import { discover } from 'services/network';
 import { mergeHonorNodes } from 'modules/storage/actions';
 import NetworkError from 'services/network/errors';
 
-const setNetworkEpic: Epic = (action$, state$, { api, defaultKey }) => action$.pipe(
+const setNetworkEpic: Epic = (action$, state$, { api }) => action$.pipe(
   ofAction(discoverNetwork.started),
   mergeMap(action => {
     const network = state$.value.storage.networks.find(l => l.uuid === action.payload.uuid);
@@ -36,7 +36,7 @@ const setNetworkEpic: Epic = (action$, state$, { api, defaultKey }) => action$.p
       mergeMap(node =>
         iif(
           () => null !== node,
-          defer(() => from(discover({ uuid: network.uuid, apiHost: node }, defaultKey, network.id)).pipe(
+          defer(() => from(discover({ uuid: network.uuid, apiHost: node }, network.id)).pipe(
             mergeMap(result => concat(
               of(discoverNetwork.done({
                 params: action.payload,

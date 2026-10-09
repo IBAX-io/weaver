@@ -27,7 +27,7 @@ const loginGuestEpic: Epic = (action$, state$, { api, defaultKey }) => action$.p
         const stored = state$.value.storage.networks.find(l => l.uuid === network.uuid);
         const client = api({ apiHost: network.apiHost });
 
-        return defer(() => authenticateGuest(client, defaultKey, { ecosystem: '1', expire: 60 * 60 * 24 * 90, networkID: stored && stored.id })).pipe(
+        return defer(() => authenticateGuest(client, { ecosystem: '1', networkID: stored && stored.id })).pipe(
             mergeMap(({ result, cryptoSuite, fips, publicKey, keyID }) => {
                 const session = {
                     sessionToken: result.token,
