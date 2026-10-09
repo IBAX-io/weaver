@@ -57,10 +57,11 @@ const loginEpic: Epic = (action$, state$, { api, pkcs11 }) => action$.pipe(
 
                 return from(authenticate(client, signingKey, {
                     ecosystem: wallet.access.ecosystem,
-                    expire: 60 * 60 * 24 * 90,
                     role: wallet.role ? Number(wallet.role.id) : undefined,
                     networkID: network && network.id,
-                    pkcs11
+                    pkcs11,
+                    // A new key registers itself, sent with the guest's session of the same node
+                    registrar: guest.sessionToken ? client.authorize(guest.sessionToken) : null
                 })).pipe(
                     mergeMap(({ result, cryptoSuite, fips, publicKey }) => {
                         // The account was listed under the algorithms the network had when it was

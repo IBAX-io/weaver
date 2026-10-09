@@ -19,7 +19,6 @@ import { IModuleKeyRef } from 'ibax/auth';
 import { isValidPrivateKey } from 'lib/keyring';
 import { moduleKey, softwareKey } from 'lib/crypto/signer';
 import { signTransaction } from 'lib/tx/transaction';
-import dependencies from 'modules/dependencies';
 import { acquireSession, addModuleWallet, cryptoChanged, importWallet, ISignOutReason, loadWallets, login, logout, selectWallet, sessionExpired, TSignOutReason } from 'modules/auth/actions';
 import { SESSION_RETRY_MS } from 'modules/auth/util/sessionRetry';
 import { modalShow } from 'modules/modal/actions';
@@ -85,12 +84,11 @@ const modalsShown = (client: IClient, from = 0) =>
 
 const actionsSince = (client: IClient, from: number) => client.actions.slice(from).map(action => action.type);
 
-// The network as a new user finds it: the guest key the app signs in with to discover a network,
-// and the user's account under the chain's suite, with coins from the founder
+// The network as a new user finds it: the user's account under the chain's suite, registered by
+// the key itself, with coins from the founder
 const prepare = async (network: ILocalNetwork) => {
     const founder = network.nodes[0];
     const api = new IbaxAPI({ apiHost: founder.apiHost });
-    await register(api, softwareKey(dependencies.defaultKey), NETWORK_ID);
     if (userModuleKey) {
         // A client may have logged out of the token meanwhile
         await token.pkcs11.login(token.serial, USER_PIN);

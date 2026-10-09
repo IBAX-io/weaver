@@ -12,7 +12,7 @@ import { connect } from '../actions';
 import { acquireSession } from 'modules/auth/actions';
 import { authenticateGuest } from 'services/auth';
 
-const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.pipe(
+const initConnectEpic: Epic = (action$, state$, { api }) => action$.pipe(
     ofAction(discoverNetwork.done, initialize.done, acquireSession.done),
     filter(action => {
         const state = state$.value;
@@ -41,7 +41,7 @@ const initConnectEpic: Epic = (action$, state$, { api, defaultKey }) => action$.
             apiHost: state.engine.guestSession.network.apiHost
         });
 
-        return from(authenticateGuest(client, defaultKey, { networkID: network.id })).pipe(
+        return from(authenticateGuest(client, { networkID: network.id })).pipe(
             map(({ result }) => result),
             mergeMap(loginResult =>
                 from(client.authorize(loginResult.token).getConfig({

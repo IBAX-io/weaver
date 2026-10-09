@@ -317,6 +317,8 @@
   "tx.error.E_DUPLICATE_TX.desc": "同一批次里提交了两笔相同的交易，均未发送。",
   "auth.error.E_UNTRUSTED_NODE": "节点的响应与所选网络不符，未做任何签名。",
   "auth.error.E_KEY_NOT_USABLE": "此账户的私钥无法用于该网络的密钥算法，因此在该网络上没有地址。请在这里使用其他账户；此账户在其他网络上仍可正常使用。",
+  "auth.error.E_ECONOTOPEN": "该生态系统不接受新成员。请联系其管理员添加您的账户。",
+  "auth.error.E_REGISTRATION": "无法在网络上注册您的账户。请稍后重试。",
   "auth.legacy.title": "旧版本保存的账户",
   "auth.legacy.desc": "使用前请用各自的密码升级一次。",
   "auth.legacy.upgrade": "升级账户",

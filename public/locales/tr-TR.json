@@ -317,6 +317,8 @@
   "tx.error.E_DUPLICATE_TX.desc": "Aynı işlem bir toplu işte iki kez gönderildi; hiçbir şey gönderilmedi.",
   "auth.error.E_UNTRUSTED_NODE": "Düğümün yanıtı seçili ağa uymuyor; hiçbir şey imzalanmadı.",
   "auth.error.E_KEY_NOT_USABLE": "Bu hesabın anahtarı bu ağın anahtar algoritmalarıyla kullanılamaz, bu yüzden bu ağda adresi yok. Burada başka bir hesap kullanın; bu hesap diğer ağlarda çalışmaya devam eder.",
+  "auth.error.E_ECONOTOPEN": "Bu ekosistem yeni üye kabul etmiyor. Hesabınızı eklemesi için yöneticilerine başvurun.",
+  "auth.error.E_REGISTRATION": "Hesabınız ağa kaydedilemedi. Daha sonra tekrar deneyin.",
   "auth.legacy.title": "Önceki sürümün kaydettiği hesaplar",
   "auth.legacy.desc": "Kullanmadan önce her birini kendi parolasıyla bir kez yükseltin.",
   "auth.legacy.upgrade": "Hesabı yükselt",
