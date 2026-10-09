@@ -5,7 +5,8 @@
 
 // Once per run: builds the node from GO_IBAX_DIR and Centrifugo, and starts the PostgreSQL cluster
 // all local networks keep their databases in. The temporary root is removed afterwards unless
-// CHAIN_E2E_KEEP=1 (node logs: <root>/<suite>/node<i>/node.log).
+// CHAIN_E2E_KEEP=1 (node logs: <root>/<suite>/node<i>/node.log). CHAIN_E2E_FIPS=<module> (a GOFIPS140
+// value, such as v1.26.0) builds and runs the nodes in FIPS 140-3 mode.
 import type { TestProject } from 'vitest/node';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
