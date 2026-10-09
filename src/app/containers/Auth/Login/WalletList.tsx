@@ -13,6 +13,7 @@ import { cryptoSuiteKey, DEFAULT_CRYPTO_SUITE, isSupportedCryptoSuite } from 'li
 import { walletAccount } from 'modules/auth/util/walletAccount';
 import { modalShow } from 'modules/modal/actions';
 
+import pkcs11 from 'lib/pkcs11';
 import WalletList from 'components/Auth/Login/WalletList';
 
 const selectNetwork = (state: IRootState) => {
@@ -48,25 +49,32 @@ const memoized = <A extends unknown[], R>(compute: (...inputs: A) => R) => {
 
 const sortedWallets = memoized((wallets: IRootState['storage']['wallets']) => [...wallets].sort((a, b) => a.id > b.id ? 1 : -1));
 
-// Stored wallets as accounts of the current network (its crypto suite decides the identity);
-// details loaded from the node replace the placeholders once available
-const walletAccounts = memoized((wallets: IRootState['storage']['wallets'], accounts: IAccount[], suite: typeof DEFAULT_CRYPTO_SUITE): IAccount[] =>
+// Stored wallets as accounts of the current network (its crypto suite decides the identity; on a
+// FIPS network only module wallets sign); details loaded from the node replace the placeholders
+// once available
+const walletAccounts = memoized((wallets: IRootState['storage']['wallets'], accounts: IAccount[], suite: typeof DEFAULT_CRYPTO_SUITE, fips: boolean): IAccount[] =>
     wallets
-        .filter(wallet => !!wallet.identities[cryptoSuiteKey(suite)])
+        .filter(wallet => !!wallet.identities[cryptoSuiteKey(suite)] && (!fips || !!wallet.module))
         .map(wallet => (accounts || []).find(l => l.walletID === wallet.id)
             || walletAccount(wallet, suite, { account: '', ecosystems: [] }))
 );
 
 const currentSuite = (state: IRootState) => state.engine.guestSession ? state.engine.guestSession.cryptoSuite : DEFAULT_CRYPTO_SUITE;
 
+const fipsNetwork = (state: IRootState) => !!state.engine.guestSession?.fips;
+
 const selectWalletAccounts = (state: IRootState): IAccount[] =>
-    walletAccounts(sortedWallets(state.storage.wallets), state.auth.wallets, currentSuite(state));
+    walletAccounts(sortedWallets(state.storage.wallets), state.auth.wallets, currentSuite(state), fipsNetwork(state));
+
+// One object per mode, so the list re-renders only when the mode changes
+const FIPS_MODE = { desktop: !!pkcs11 };
 
 // Stored wallets with no identity computed for the current network's suite: stored before the
 // client supported it (not those whose key the suite's curve does not take: no password helps). Listed so they can be set up for it with their password, never left out unseen.
-// None on a network whose suite the client cannot use (no password would set them up).
-const walletsToEnable = memoized((wallets: IRootState['storage']['wallets'], suite: typeof DEFAULT_CRYPTO_SUITE) =>
-    isSupportedCryptoSuite(suite) ? wallets.filter(wallet => undefined === wallet.identities[cryptoSuiteKey(suite)]) : []);
+// None on a network whose suite the client cannot use (no password would set them up), nor on a
+// FIPS network (a key in memory signs nothing there).
+const walletsToEnable = memoized((wallets: IRootState['storage']['wallets'], suite: typeof DEFAULT_CRYPTO_SUITE, fips: boolean) =>
+    isSupportedCryptoSuite(suite) && !fips ? wallets.filter(wallet => undefined === wallet.identities[cryptoSuiteKey(suite)]) : []);
 
 // Why the user was signed out of this network, if the app did it (another network's reason is not
 // this one's)
@@ -85,7 +93,8 @@ const mapStateToProps = (state: IRootState) => ({
     isOffline: !state.engine.guestSession,
     pending: state.auth.isLoggingIn,
     wallets: selectWalletAccounts(state),
-    walletsToEnable: walletsToEnable(sortedWallets(state.storage.wallets), currentSuite(state)),
+    walletsToEnable: walletsToEnable(sortedWallets(state.storage.wallets), currentSuite(state), fipsNetwork(state)),
+    fipsMode: fipsNetwork(state) ? FIPS_MODE : null,
     signOutNotice: signOutNotice(state),
     notifications: state.socket.notifications,
     activationEmail: selectActivationMail(state),
@@ -125,6 +134,7 @@ export default connect(mapStateToProps, mapDispatchToProps, (state, dispatch: Re
     pending: state.pending,
     wallets: state.wallets,
     walletsToEnable: state.walletsToEnable,
+    fipsMode: state.fipsMode,
     signOutNotice: state.signOutNotice,
     notifications: state.notifications,
     activationEnabled: !!state.activationEmail,

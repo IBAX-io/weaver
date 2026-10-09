@@ -6,11 +6,11 @@
 import { map } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
-import { importWallet } from 'modules/auth/actions';
+import { addModuleWallet, importWallet } from 'modules/auth/actions';
 import { saveWallet } from '../actions';
 
 const saveWalletOnImportEpic: Epic = action$ => action$.pipe(
-    ofAction(importWallet.done),
+    ofAction(importWallet.done, addModuleWallet.done),
     map(action =>
         saveWallet(action.payload.result)
     )

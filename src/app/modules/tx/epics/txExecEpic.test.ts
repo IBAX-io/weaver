@@ -13,9 +13,13 @@ import { cryptoSuiteFromNode, DEFAULT_CRYPTO_SUITE, ICryptoSuiteId, resolveCrypt
 import { ITransactionBody, ITransactionCall } from 'ibax/tx';
 import { IContractResponse, ITxStatus } from 'ibax/api';
 import { IAPIError, isApiError } from 'lib/ibaxAPI/errors';
-import { cryptoChanged, E_CRYPTO_CHANGED, E_TOKENEXPIRED, logout, sessionExpired } from 'modules/auth/actions';
+import { cryptoChanged, deauthorize, E_CRYPTO_CHANGED, E_TOKENEXPIRED, logout, sessionExpired } from 'modules/auth/actions';
 import { txExec } from '../actions';
 import txExecEpic from './txExecEpic';
+import { moduleKey, softwareKey, TSigningKey } from 'lib/crypto/signer';
+import { Pkcs11Error } from 'lib/pkcs11';
+import { IPkcs11 } from 'ibax/pkcs11';
+import { hexToBytes } from '@noble/hashes/utils.js';
 
 const PRIVATE_KEY = '1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727';
 const RECIPIENT = '597920150864192934';
@@ -24,7 +28,7 @@ const state: IRootState = {
     ...mockState,
     auth: {
         ...mockState.auth,
-        privateKey: PRIVATE_KEY,
+        signingKey: softwareKey(PRIVATE_KEY),
         session: { network: { uuid: 'testnet', apiHost: 'http://node' }, sessionToken: 'token', cryptoSuite: DEFAULT_CRYPTO_SUITE }
     },
     storage: {
@@ -287,7 +291,7 @@ describe('txExecEpic', () => {
                 if (!suite) {
                     throw { error: 'E_OFFLINE', msg: '' };
                 }
-                return { token: '', networkID: 5, uid: 'LOGIN51', cryptoSuite: cryptoSuiteFromNode(suite.cryptoer, suite.hasher) };
+                return { token: '', networkID: 5, uid: 'LOGIN51', cryptoSuite: cryptoSuiteFromNode(suite.cryptoer, suite.hasher), fips: false };
             });
             return { client, getUid };
         };
@@ -360,6 +364,83 @@ describe('txExecEpic', () => {
             const output = await run(client, TRANSFER);
             expect(output.map(action => action.type)).toEqual([txExec.done.type, expect.any(String)]);
             expect(getUid).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('on a FIPS network', () => {
+        const P256 = { cryptoer: 'ECC_P256', hasher: 'SHA256' } as const;
+        const MODULE_PUBLIC_KEY = resolveCryptoSuite(P256).publicKey(PRIVATE_KEY);
+        const MODULE_KEY = moduleKey({ token: { serial: 'S1', label: 'Token' }, id: '01', label: 'Key', cryptoer: 'ECC_P256', publicKey: MODULE_PUBLIC_KEY });
+        const TRANSFER = call({ transfers: [{ type: 'utxo', toID: RECIPIENT, amount: '1' }] });
+
+        const fipsState = (signingKey: TSigningKey): IRootState => ({
+            ...state,
+            auth: { ...state.auth, signingKey, session: { ...state.auth.session, cryptoSuite: P256, fips: true } }
+        });
+
+        // A module holding PRIVATE_KEY, or failing with `refusal`
+        const fakeModule = (refusal?: Pkcs11Error) => {
+            const sign = vi.fn(async (request: Parameters<IPkcs11['sign']>[0]) => {
+                if (refusal) {
+                    throw refusal;
+                }
+                return resolveCryptoSuite({ cryptoer: request.cryptoer, hasher: request.hasher }).sign(hexToBytes(request.data), PRIVATE_KEY);
+            });
+            return { pkcs11: { sign } as unknown as IPkcs11, sign };
+        };
+
+        const runFips = async (client: IbaxAPI, signingKey: TSigningKey, pkcs11: IPkcs11 | null) => {
+            const output = runEpic(txExecEpic, [txExec.started(TRANSFER)], fipsState(signingKey), { api: () => client, pkcs11 });
+            await vi.runAllTimersAsync();
+            return output;
+        };
+
+        it('signs nothing with a key in memory', async () => {
+            const { client, sent } = createClient([]);
+            const output = await runFips(client, softwareKey(PRIVATE_KEY), fakeModule().pkcs11);
+
+            expect(sent).toHaveLength(0);
+            expect(output).toEqual([txExec.failed({ params: TRANSFER, error: expect.objectContaining({ type: 'E_FIPS_SIGNER_REQUIRED' }) })]);
+        });
+
+        it('signs in the module, with the module key\'s address', async () => {
+            const { client, sent } = createClient([]);
+            const { pkcs11, sign } = fakeModule();
+            const output = await runFips(client, MODULE_KEY, pkcs11);
+
+            expect(output[0].type).toBe(txExec.done.type);
+            expect(sign).toHaveBeenCalledTimes(1);
+            expect(sign.mock.calls[0][0]).toMatchObject({ token: 'S1', keyId: '01', cryptoer: 'ECC_P256', hasher: 'SHA256' });
+            const suite = resolveCryptoSuite(P256);
+            const [tx] = Object.values(sent[0]).map(decodeClientTx);
+            expect(tx.body.Header.KeyID).toBe(BigInt(suite.keyID(MODULE_PUBLIC_KEY)));
+            expect(suite.verify(suite.doubleHash(tx.payload), Array.from(tx.signature, b => b.toString(16).padStart(2, '0')).join(''), MODULE_PUBLIC_KEY)).toBe(true);
+        });
+
+        it('says the desktop app is needed where no module can be reached', async () => {
+            const { client, sent } = createClient([]);
+            const output = await runFips(client, MODULE_KEY, null);
+
+            expect(sent).toHaveLength(0);
+            expect(output).toEqual([txExec.failed({ params: TRANSFER, error: expect.objectContaining({ type: 'E_PKCS11_UNAVAILABLE' }) })]);
+        });
+
+        it('names the module\'s refusal, and asks for the PIN again when the token forgot the login', async () => {
+            const { client, sent } = createClient([]);
+            const output = await runFips(client, MODULE_KEY, fakeModule(new Pkcs11Error('E_PKCS11_NOT_LOGGED_IN', 'CKR_USER_NOT_LOGGED_IN')).pkcs11);
+
+            expect(sent).toHaveLength(0);
+            expect(output).toEqual([
+                txExec.failed({ params: TRANSFER, error: { type: 'E_PKCS11_NOT_LOGGED_IN', error: 'CKR_USER_NOT_LOGGED_IN', params: [] } }),
+                deauthorize(null)
+            ]);
+        });
+
+        it('keeps the login for any other refusal', async () => {
+            const { client } = createClient([]);
+            const output = await runFips(client, MODULE_KEY, fakeModule(new Pkcs11Error('E_PKCS11_TOKEN_ABSENT', 'CKR_TOKEN_NOT_PRESENT')).pkcs11);
+
+            expect(output).toEqual([txExec.failed({ params: TRANSFER, error: expect.objectContaining({ type: 'E_PKCS11_TOKEN_ABSENT' }) })]);
         });
     });
 });

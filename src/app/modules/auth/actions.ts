@@ -5,15 +5,18 @@
 
 import { actionCreatorFactory } from 'typescript-fsa';
 import { ILegacyWallet } from 'lib/crypto/legacyWallet';
-import { IWallet, ILoginCall, ISession, IAccountContext } from 'ibax/auth';
+import { IWallet, ILoginCall, ISession, IAccountContext, IModuleKeyRef } from 'ibax/auth';
 import { ICreateWalletCall, IImportWalletCall } from 'ibax/auth';
 import { IAccount } from 'ibax/api';
 import { TPasswordPromptError } from './util/passwordPrompt';
+import { TSigningKey } from 'lib/crypto/signer';
 
 const actionCreator = actionCreatorFactory('auth');
 export const acquireSession = actionCreator.async<ISession, boolean>('ACQUIRE_SESSION');
-export const login = actionCreator.async<ILoginCall, { privateKey: string, publicKey: string, session: ISession }, string>('LOGIN');
-export const loginGuest = actionCreator.async<void, { privateKey: string, publicKey: string, wallet: IAccountContext, session: ISession }, string>('LOGIN_GUEST');
+// signingKey: the wallet's key, unlocked (a key in memory) or logged in to (a key in a module)
+export const login = actionCreator.async<ILoginCall, { signingKey: TSigningKey, publicKey: string, session: ISession }, string>('LOGIN');
+// signingKey: null on a FIPS network, where the guest's session is not signed for
+export const loginGuest = actionCreator.async<void, { signingKey: TSigningKey | null, publicKey: string, wallet: IAccountContext, session: ISession }, string>('LOGIN_GUEST');
 export const logout = actionCreator.async('LOGOUT');
 // The network's key algorithms are no longer the ones the session signed in under (its address and
 // signatures would be the old ones): the session ends, the network is connected to again, and the
@@ -42,10 +45,12 @@ export const upgradeLegacyWallet = actionCreator.async<ILegacyWallet, IWallet, T
 // before the client supported that suite lacks (asks for its password)
 export const enableWalletOnNetwork = actionCreator.async<IWallet, IWallet, TPasswordPromptError>('ENABLE_WALLET_ON_NETWORK');
 export const importWallet = actionCreator.async<IImportWalletCall, IWallet, string>('IMPORT_WALLET');
+// Stores a wallet for a key that stays in a PKCS#11 module (desktop app)
+export const addModuleWallet = actionCreator.async<IModuleKeyRef, IWallet, string>('ADD_MODULE_WALLET');
 export const removeWallet = actionCreator<IAccount>('REMOVE_WALLET');
 export const selectWallet = actionCreator<IAccountContext>('SELECT_WALLET');
 export const switchWallet = actionCreator<{ ecosystem: string, role: string }>('SWITCH_WALLET');
-export const authorize = actionCreator<string>('AUTHORIZE');
+export const authorize = actionCreator<TSigningKey>('AUTHORIZE');
 export const deauthorize = actionCreator('DEAUTHORIZE');
 // done: the key the change-password modal already decrypted with the old password, and the new one
 export const changePassword = actionCreator.async<void, { privateKey: string, newPassword: string }, string>('CHANGE_PASSWORD');

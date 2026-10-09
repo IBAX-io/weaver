@@ -21,6 +21,8 @@ export interface IPasswordPromptProps {
 
 const PasswordPrompt: React.FC<IPasswordPromptProps> = props => {
     const intl = useIntl();
+    // A module wallet signs in with its token's PIN (empty: the token's own PIN reader asks for it)
+    const pin = !!props.wallet.wallet.module;
     const onSubmit = (values: { [key: string]: any }) =>
         props.onSubmit({
             password: values.password
@@ -44,13 +46,18 @@ const PasswordPrompt: React.FC<IPasswordPromptProps> = props => {
                         {`${props.wallet.wallet.address} (${props.wallet.access.name || props.wallet.access.ecosystem})`}
                     </h4>
                     <p>
-                        <FormattedMessage id="auth.session.prompt" defaultMessage="Please enter your password to sign in" />
+                        {pin
+                            ? <FormattedMessage id="auth.session.prompt.pin" defaultMessage="Enter the PIN of the token your key is in to sign in. Leave it empty if the token has its own PIN pad." />
+                            : <FormattedMessage id="auth.session.prompt" defaultMessage="Please enter your password to sign in" />}
                     </p>
                     <div className="password-prompt">
                         <Validation.components.ValidatedControl
                             type="password"
                             name="password"
-                            placeholder={intl.formatMessage({ id: 'auth.password', defaultMessage: 'Enter your password...' })}
+                            autoComplete={pin ? 'off' : 'current-password'}
+                            placeholder={pin
+                                ? intl.formatMessage({ id: 'auth.pin', defaultMessage: 'Enter the PIN...' })
+                                : intl.formatMessage({ id: 'auth.password', defaultMessage: 'Enter your password...' })}
                         />
                         <Validation.components.ValidatedSubmit variant="secondary">
                             <em className="icon icon-login" />

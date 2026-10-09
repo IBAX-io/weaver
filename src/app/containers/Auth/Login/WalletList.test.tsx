@@ -12,8 +12,8 @@ import { IntlProvider } from 'react-intl';
 import { describe, expect, it } from 'vitest';
 import mockState from 'test/mockStore';
 import { IRootState } from 'modules';
-import { createWallet } from 'lib/keyring';
-import { ICryptoSuiteId } from 'lib/crypto/suites';
+import { createModuleWallet, createWallet } from 'lib/keyring';
+import { ICryptoSuiteId, resolveCryptoSuite } from 'lib/crypto/suites';
 import { formatAddress } from 'lib/crypto/address';
 import { enableWalletOnNetwork } from 'modules/auth/actions';
 import WalletList from './WalletList';
@@ -26,16 +26,17 @@ const SM2: ICryptoSuiteId = { cryptoer: 'SM2', hasher: 'SM3' };
 const KEYS = ['e5a87a96a445cb55a214edaad3661018061ef2936e63a0a93bdb76eb28251c1f', '1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727'];
 
 // The login page on a network of the given suite (offline: none), with one wallet stored before
-// SM2 was supported and, unless `onlyOld`, one stored since
-interface IView { suite?: ICryptoSuiteId | null, locale?: string, signedOutBecause?: IRootState['auth']['signedOutBecause'], onlyOld?: boolean }
-const renderList = async ({ suite = SM2, locale = 'en-US', signedOutBecause = null, onlyOld = false }: IView = {}) => {
+// SM2 was supported and, unless `onlyOld`, one stored since; `fips`: the network runs in FIPS
+// mode, `module`: a wallet of a key on a token is stored too
+interface IView { suite?: ICryptoSuiteId | null, locale?: string, signedOutBecause?: IRootState['auth']['signedOutBecause'], onlyOld?: boolean, fips?: boolean, module?: IRootState['storage']['wallets'][number] }
+const renderList = async ({ suite = SM2, locale = 'en-US', signedOutBecause = null, onlyOld = false, fips = false, module = null }: IView = {}) => {
     const [old, currentWallet] = await Promise.all(KEYS.map(key => createWallet(key, 'password')));
     const before = { ...old, identities: Object.fromEntries(Object.entries(old.identities).filter(([key]) => !key.startsWith('SM2/'))) };
     const state: IRootState = {
         ...mockState,
         auth: { ...mockState.auth, signedOutBecause },
-        engine: { ...mockState.engine, guestSession: suite ? { network: { uuid: 'net', apiHost: 'http://node' }, sessionToken: '', cryptoSuite: suite } : null },
-        storage: { ...mockState.storage, wallets: onlyOld ? [before] : [before, currentWallet], networks: [{ uuid: 'net', id: 1, name: 'Net', honorNodes: ['http://node'] }] }
+        engine: { ...mockState.engine, guestSession: suite ? { network: { uuid: 'net', apiHost: 'http://node' }, sessionToken: '', cryptoSuite: suite, fips } : null },
+        storage: { ...mockState.storage, wallets: [...(onlyOld ? [before] : [before, currentWallet]), ...(module ? [module] : [])], networks: [{ uuid: 'net', id: 1, name: 'Net', honorNodes: ['http://node'] }] }
     };
     const dispatched: Action[] = [];
     let current = state;
@@ -190,4 +191,37 @@ describe('login page on a network of other key algorithms', () => {
         view.container.remove();
         await view.unmount();
     });
+});
+
+describe('login page of a network in FIPS mode, in the web app', () => {
+    const P256: ICryptoSuiteId = { cryptoer: 'ECC_P256', hasher: 'SHA256' };
+    const moduleWallet = createModuleWallet({
+        token: { serial: 'S1', label: 'Token' }, id: '01', label: 'Key', cryptoer: 'ECC_P256',
+        publicKey: resolveCryptoSuite(P256).publicKey(KEYS[0])
+    });
+    const createButton = (container: HTMLElement) =>
+        [...container.querySelectorAll('button')].find(button => button.textContent.includes('Create or import account'));
+
+    it('says only the desktop app signs for it, lists no account with a key in memory and offers to make none', async () => {
+        const view = await renderList({ suite: P256, fips: true });
+        expect(view.container.querySelector('.alert-info').textContent).toBe(en['auth.fips.web']);
+        expect(view.usable()).toBe(0);
+        expect(view.enableSection()).toBeNull();
+        expect(createButton(view.container)).toBeUndefined();
+        view.unmount();
+    }, 20000);
+
+    it('lists an account of a key on a token', async () => {
+        const view = await renderList({ suite: P256, fips: true, module: moduleWallet });
+        expect(view.usable()).toBe(1);
+        view.unmount();
+    }, 20000);
+
+    it('lists every account and offers to make one elsewhere (positive control)', async () => {
+        const view = await renderList({ suite: P256, module: moduleWallet });
+        expect(view.container.querySelector('.alert-info')).toBeNull();
+        expect(view.usable()).toBe(3);
+        expect(createButton(view.container)).toBeDefined();
+        view.unmount();
+    }, 20000);
 });

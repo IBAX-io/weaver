@@ -9,7 +9,6 @@ import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { txCall, txAuthorize, txExec } from '../actions';
 import { isType } from 'typescript-fsa';
-import { isValidPrivateKey } from 'lib/keyring';
 
 // Every transaction of the app passes here, so this is where it is decided whether it may be
 // signed at all. Each call ends in txExec.done or txExec.failed, whatever happens.
@@ -24,9 +23,9 @@ const txCallEpic: Epic = (action$, state$) => action$.pipe(
             }));
         }
 
-        // Ask for the password if the private key is locked
+        // Ask for the password (a module key: the PIN) if the key is locked
         return iif(
-            () => isValidPrivateKey(state$.value.auth.privateKey),
+            () => !!state$.value.auth.signingKey,
             of(txExec.started(action.payload)),
             merge(
                 of(txAuthorize.started({})),

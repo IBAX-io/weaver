@@ -84,7 +84,7 @@ describe('desktop app', () => {
         });
         expect(bridge.keys).toEqual([
             'args', 'closeWindow', 'getWindowState', 'loadState', 'minimizeWindow', 'onWindowState', 'openDevTools',
-            'openExternal', 'platform', 'saveState', 'setBadgeCount', 'takeLaunchKey', 'toggleFullScreen', 'toggleMaximizeWindow'
+            'openExternal', 'pkcs11', 'platform', 'saveState', 'setBadgeCount', 'takeLaunchKey', 'toggleFullScreen', 'toggleMaximizeWindow'
         ]);
         expect(bridge.platform).toBe(process.platform);
         expect(bridge.dry).toBe(true);

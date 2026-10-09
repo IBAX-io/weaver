@@ -18,9 +18,9 @@ describe('go-ibax vectors', () => {
         expect(doc.vectors.every(v => v.clientSignature)).toBe(true);
     });
 
-    it('hold the transactions this client writes, each judged by the node', () => {
+    it('hold the transactions this client writes, each judged by the node', async () => {
         const doc = transfers as unknown as { cases: ITransferCase[] };
-        expect(writeTransfers(doc)).toEqual(doc);
+        expect(await writeTransfers(doc)).toEqual(doc);
         expect(doc.cases.filter(c => !c.node.error && !c.node.type)).toEqual([]);
     }, VECTOR_TIMEOUT);
 
@@ -31,9 +31,9 @@ describe('go-ibax vectors', () => {
         expect([...accepted].sort()).toEqual(ALL_SUITES.map(s => `${s.cryptoer}/${s.hasher}`).sort());
     });
 
-    it('hold the contract call this client writes, decoded by the node', () => {
+    it('hold the contract call this client writes, decoded by the node', async () => {
         const doc = params as unknown as IContractParamsFile;
-        expect(writeContractParams(doc)).toEqual(doc);
+        expect(await writeContractParams(doc)).toEqual(doc);
         expect(doc.header).not.toBe('');
     });
 });

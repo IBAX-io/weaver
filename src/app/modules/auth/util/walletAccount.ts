@@ -24,6 +24,7 @@ export const walletAccount = (wallet: IWallet, suite: ICryptoSuiteId, keyInfo: I
         address: keyInfo.account,
         encKey: wallet.encKey,
         publicKey: identity.publicKey,
+        module: wallet.module,
         access: keyInfo.ecosystems.map(key => ({
             ...key,
             roles: key.roles || []

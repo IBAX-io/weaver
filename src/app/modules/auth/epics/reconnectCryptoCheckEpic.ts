@@ -7,7 +7,7 @@ import { Epic } from 'modules';
 import { defer, EMPTY, of } from 'rxjs';
 import { catchError, exhaustMap, filter, mergeMap } from 'rxjs/operators';
 import { ofAction } from 'lib/rx/ofAction';
-import { sameCryptoSuite } from 'lib/crypto/suites';
+import { sameNodeCrypto } from 'lib/crypto/signer';
 import { reconnected } from 'modules/socket/actions';
 import { signedInSession } from '../selectors';
 import { signOutForCryptoChange } from '../util/cryptoChange';
@@ -26,7 +26,7 @@ const reconnectCryptoCheckEpic: Epic = (action$, state$, { api }) => action$.pip
         });
 
         return defer(() => client.getUid()).pipe(
-            mergeMap(uid => sameCryptoSuite(uid.cryptoSuite, session.cryptoSuite)
+            mergeMap(uid => sameNodeCrypto(uid, session)
                 ? EMPTY
                 : of(...signOutForCryptoChange(state$.value, session, 'session'))
             ),

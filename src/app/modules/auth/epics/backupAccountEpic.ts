@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { defer, EMPTY, iif, merge, of } from 'rxjs';
-import { mergeMap, take } from 'rxjs/operators';
+import { filter, mergeMap, take } from 'rxjs/operators';
 import { Epic } from 'modules';
 import { ofAction } from 'lib/rx/ofAction';
 import { backupAccount } from '../actions';
@@ -14,9 +14,11 @@ import { isType } from 'typescript-fsa';
 
 const backupAccountEpic: Epic = (action$, state$) => action$.pipe(
     ofAction(backupAccount),
+    // A module key never leaves the module: there is nothing to back up
+    filter(() => !state$.value.auth.wallet?.wallet.module),
     mergeMap(action =>
         iif(
-            () => !!state$.value.auth.privateKey,
+            () => 'software' === state$.value.auth.signingKey?.kind,
             defer(() => of(modalShow({
                 id: 'BACKUP',
                 type: 'BACKUP',

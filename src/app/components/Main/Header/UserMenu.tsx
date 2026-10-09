@@ -90,7 +90,8 @@ const UserMenu: React.FC<Props> = (props) =>
       menuWidth={216}
       content={
         <div>
-          {!props.isDefaultWallet && (
+          {/* A module key has no password and never leaves the module */}
+          {!props.isDefaultWallet && !props.wallet.wallet.module && (
             <>
               <Item onClick={props.onChangePassword} icon="icon-key text-muted">
                 <FormattedMessage

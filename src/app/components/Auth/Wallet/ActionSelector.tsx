@@ -13,6 +13,8 @@ import HeadingNetwork from 'containers/Auth/HeadingNetwork';
 export interface IActionSelectorProps {
   onImport: () => void;
   onCreate: () => void;
+  // Desktop app only: a key in a PKCS#11 module
+  onHardware?: () => void;
 }
 
 const ActionSelector: React.FC<IActionSelectorProps> = (props) => (
@@ -67,6 +69,33 @@ const ActionSelector: React.FC<IActionSelectorProps> = (props) => (
           }
           onClick={props.onCreate}
         />
+        {props.onHardware && (
+          <>
+            <hr />
+            <Action
+              icon="icon-key"
+              title={
+                <FormattedMessage
+                  id="auth.hardware"
+                  defaultMessage="My key is on a hardware token"
+                />
+              }
+              description={
+                <FormattedMessage
+                  id="auth.hardware.desc"
+                  defaultMessage="Use a key in a smart card, USB token or HSM through its PKCS#11 module. The key never leaves the token; networks in FIPS mode accept only such keys"
+                />
+              }
+              action={
+                <FormattedMessage
+                  id="auth.hardware.use"
+                  defaultMessage="Use hardware key"
+                />
+              }
+              onClick={props.onHardware}
+            />
+          </>
+        )}
       </div>
     </div>
   </LocalizedDocumentTitle>

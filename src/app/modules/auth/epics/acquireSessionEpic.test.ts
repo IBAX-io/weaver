@@ -15,6 +15,7 @@ import IbaxAPI from 'lib/ibaxAPI';
 import { acquireSession, cryptoChanged, E_CRYPTO_CHANGED, E_TOKENEXPIRED, login, loginGuest, logout, sessionExpired } from '../actions';
 import reducer, { initialState } from '../reducer';
 import acquireSessionEpic from './acquireSessionEpic';
+import { softwareKey } from 'lib/crypto/signer';
 
 const session: ISession = { network: { uuid: 'net', apiHost: 'http://node' }, sessionToken: 'token', cryptoSuite: DEFAULT_CRYPTO_SUITE };
 // The session being acquired is the one open
@@ -155,10 +156,10 @@ describe('acquireSessionEpic', () => {
         // Signing in again clears it, and still signs in: the session and account taken
         const fresh = { ...session, cryptoSuite: { cryptoer: 'SM2', hasher: 'SM3' } } as ISession;
         const wallet = { wallet: { id: '7', walletID: '7', address: '0000-0000-0000-0000-0007', encKey: '', publicKey: '04', access: [] }, access: { ecosystem: '1', name: '', roles: [], notifications: [] } };
-        const guest = reducer(signedOut, loginGuest.done({ params: undefined, result: { session: fresh, wallet, privateKey: 'k', publicKey: '04' } }));
+        const guest = reducer(signedOut, loginGuest.done({ params: undefined, result: { session: fresh, wallet, signingKey: softwareKey('k'), publicKey: '04' } }));
         expect(guest).toMatchObject({ signedOutBecause: null, isAuthenticated: true, session: fresh, wallet });
         const selected = { ...signedOut, wallet };
-        const user = reducer(selected, login.done({ params: { password: 'p' }, result: { session: fresh, privateKey: 'k', publicKey: '04' } }));
+        const user = reducer(selected, login.done({ params: { password: 'p' }, result: { session: fresh, signingKey: softwareKey('k'), publicKey: '04' } }));
         expect(user).toMatchObject({ signedOutBecause: null, isAuthenticated: true, session: fresh, id: '7' });
     });
 });

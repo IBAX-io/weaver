@@ -30,7 +30,17 @@ const bridge: IDesktopBridge = {
     closeWindow: () => ipcRenderer.send(CHANNELS.closeWindow),
     openDevTools: () => ipcRenderer.send(CHANNELS.openDevTools),
     setBadgeCount: count => ipcRenderer.send(CHANNELS.setBadgeCount, count),
-    openExternal: url => ipcRenderer.send(CHANNELS.openExternal, url)
+    openExternal: url => ipcRenderer.send(CHANNELS.openExternal, url),
+    pkcs11: {
+        module: () => ipcRenderer.invoke(CHANNELS.pkcs11Module),
+        chooseModule: () => ipcRenderer.invoke(CHANNELS.pkcs11ChooseModule),
+        tokens: () => ipcRenderer.invoke(CHANNELS.pkcs11, 'tokens'),
+        login: (serial, pin) => ipcRenderer.invoke(CHANNELS.pkcs11, 'login', serial, pin),
+        logout: serial => ipcRenderer.invoke(CHANNELS.pkcs11, 'logout', serial),
+        keys: serial => ipcRenderer.invoke(CHANNELS.pkcs11, 'keys', serial),
+        generateKey: (serial, cryptoer, label) => ipcRenderer.invoke(CHANNELS.pkcs11, 'generateKey', serial, cryptoer, label),
+        sign: request => ipcRenderer.invoke(CHANNELS.pkcs11, 'sign', request)
+    }
 };
 
 contextBridge.exposeInMainWorld('weaverDesktop', bridge);

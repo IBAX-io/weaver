@@ -34,7 +34,8 @@ export const parseLaunchArgs = (argv: string[]): ILaunchArguments => {
             'disable-full-nodes-sync': { type: 'boolean', short: 'u' },
             'guest-mode': { type: 'boolean', short: 'g' },
             'activation-email': { type: 'string', short: 'e' },
-            'dev-server': { type: 'string' }
+            'dev-server': { type: 'string' },
+            'pkcs11-module': { type: 'string' }
         }
     });
     const text = (name: string) => typeof values[name] === 'string' ? values[name] as string : undefined;
@@ -56,7 +57,8 @@ export const parseLaunchArgs = (argv: string[]): ILaunchArguments => {
         disableHonorNodesSync: flag('disable-full-nodes-sync'),
         activationEmail: text('activation-email'),
         guestMode: flag('guest-mode'),
-        devServer: text('dev-server')
+        devServer: text('dev-server'),
+        pkcs11Module: text('pkcs11-module')
     };
 };
 

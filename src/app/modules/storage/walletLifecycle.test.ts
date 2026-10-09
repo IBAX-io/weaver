@@ -10,6 +10,7 @@ import { createWallet } from 'lib/keyring';
 import { authorize, deauthorize, login, loginGuest, logout, selectWallet } from 'modules/auth/actions';
 import { DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
 import { saveWallet } from './actions';
+import { softwareKey } from 'lib/crypto/signer';
 
 // The whole store, the way the app runs it: every slice sees every action
 const reducer = combineReducers(rootReducer);
@@ -46,11 +47,11 @@ describe('stored wallets across sign-in and sign-out', () => {
             access: { ecosystem, name: '', roles: [], notifications: [] }
         });
         const steps = [
-            loginGuest.done({ params: null, result: { privateKey: 'k', publicKey: 'p', wallet: context('guest', '1'), session } }),
+            loginGuest.done({ params: null, result: { signingKey: softwareKey('k'), publicKey: 'p', wallet: context('guest', '1'), session } }),
             logout.done({ params: null, result: null }),
             selectWallet(context('a', '1')),
-            login.done({ params: { password: 'x' }, result: { session, privateKey: 'k', publicKey: 'p' } }),
-            authorize('k'),
+            login.done({ params: { password: 'x' }, result: { session, signingKey: softwareKey('k'), publicKey: 'p' } }),
+            authorize(softwareKey('k')),
             deauthorize(null),
             selectWallet(context('a', '2')),
             logout.done({ params: null, result: null }),

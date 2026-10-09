@@ -21,6 +21,7 @@ import * as keyring from 'lib/keyring';
 import { encryptPrivateKey } from 'lib/keyring';
 import { authorize } from 'modules/auth/actions';
 import { enqueueNotification } from 'modules/notifications/actions';
+import { softwareKey } from 'lib/crypto/signer';
 
 const PRIVATE_KEY = '1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727';
 const CALL: ITransactionCall = { uuid: 'tx-1', contracts: [{ name: 'Test', params: [{}] }] };
@@ -51,19 +52,19 @@ const answerPassword = (reason: 'CANCEL' | 'RESULT', data: string = null) => (ac
 
 describe('txCallEpic', () => {
     it('signs right away when the key is unlocked', async () => {
-        const out = await runEpicLoop(txCallEpic, [txCall(CALL)], { state: signedIn({ privateKey: PRIVATE_KEY }) });
+        const out = await runEpicLoop(txCallEpic, [txCall(CALL)], { state: signedIn({ signingKey: softwareKey(PRIVATE_KEY) }) });
         expect(types(out)).toEqual([txCall.type, txExec.started.type]);
     });
 
     it('never signs with the public demo key, whoever asks', async () => {
-        const out = await runEpicLoop(txCallEpic, [txCall(CALL)], { state: signedIn({ isDefaultWallet: true, privateKey: PRIVATE_KEY }) });
+        const out = await runEpicLoop(txCallEpic, [txCall(CALL)], { state: signedIn({ isDefaultWallet: true, signingKey: softwareKey(PRIVATE_KEY) }) });
         expect(out).toContainEqual(txExec.failed({ params: CALL, error: { type: 'E_GUEST_VIOLATION', error: '' } }));
         expect(types(out)).not.toContain(txExec.started.type);
     });
 
     it('ends the call when the password prompt is cancelled', async () => {
         const epic = combineEpics(txCallEpic, txAuthorizeEpic);
-        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: answerPassword('CANCEL'), state: signedIn({ privateKey: null }) });
+        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: answerPassword('CANCEL'), state: signedIn({ signingKey: null }) });
         expect(types(out)).toEqual([txCall.type, txAuthorize.started.type, modalShow.type, modalClose.type, txAuthorize.failed.type, txExec.failed.type]);
         expect(out[out.length - 1]).toEqual(txExec.failed({ params: CALL, error: { type: 'E_AUTH_CANCELLED', error: '' } }));
     });
@@ -71,7 +72,7 @@ describe('txCallEpic', () => {
     it('ends the call when the password is wrong', async () => {
         const epic = combineEpics(txCallEpic, txAuthorizeEpic);
         // A wrong password is only known after the full key derivation
-        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: answerPassword('RESULT', 'wrong'), state: signedIn({ privateKey: null }), quietMs: 3000 });
+        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: answerPassword('RESULT', 'wrong'), state: signedIn({ signingKey: null }), quietMs: 3000 });
         expect(types(out)).toContain(txAuthorize.failed.type);
         expect(out).toContainEqual(expect.objectContaining({ type: enqueueNotification.type, payload: expect.objectContaining({ type: 'INVALID_PASSWORD' }) }));
         expect(out).toContainEqual(txExec.failed({ params: CALL, error: { type: 'E_AUTH_CANCELLED', error: '' } }));
@@ -79,7 +80,7 @@ describe('txCallEpic', () => {
 
     it('says the stored key is corrupt rather than the password wrong', async () => {
         const epic = combineEpics(txCallEpic, txAuthorizeEpic);
-        const state = signedIn({ privateKey: null });
+        const state = signedIn({ signingKey: null });
         state.auth.wallet.wallet.encKey = 'v1.1.AA.AA.AA';
         const out = await runEpicLoop(epic, [txCall(CALL)], { respond: answerPassword('RESULT', 'right'), state });
         expect(out).toContainEqual(modalShow({ id: 'AUTH_ERROR', type: 'AUTH_ERROR', params: { error: 'E_INVALID_KEY' } }));
@@ -88,8 +89,8 @@ describe('txCallEpic', () => {
 
     it('unlocks the key with the right password, and keeps the password out of the result', async () => {
         const epic = combineEpics(txCallEpic, txAuthorizeEpic);
-        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: answerPassword('RESULT', 'right'), state: signedIn({ privateKey: null }), quietMs: 3000 });
-        expect(out).toContainEqual(authorize(PRIVATE_KEY));
+        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: answerPassword('RESULT', 'right'), state: signedIn({ signingKey: null }), quietMs: 3000 });
+        expect(out).toContainEqual(authorize(softwareKey(PRIVATE_KEY)));
         expect(out).toContainEqual(txAuthorize.done({ params: {} }));
         expect(types(out)).toContain(txExec.started.type);
     });
@@ -98,7 +99,7 @@ describe('txCallEpic', () => {
         const epic = combineEpics(txCallEpic, txAuthorizeEpic);
         const other = (action: Action) => modalShow.match(action) ? [modalClose({ id: 'SOMETHING_ELSE', reason: 'RESULT', data: 'not a password' })] : [];
         const decrypt = vi.spyOn(keyring, 'decryptPrivateKey');
-        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: other, state: signedIn({ privateKey: null }) });
+        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: other, state: signedIn({ signingKey: null }) });
         // Still waiting for the password: the other answer was never tried as one
         expect(decrypt).not.toHaveBeenCalled();
         expect(types(out)).not.toContain(txAuthorize.failed.type);
@@ -109,12 +110,12 @@ describe('txCallEpic', () => {
     it('says why nothing happened when another dialog replaced the password prompt', async () => {
         const epic = combineEpics(txCallEpic, txAuthorizeEpic);
         const replaced = (action: Action) => modalShow.match(action) && action.payload.id === 'TX_AUTHORIZE' ? [modalClose({ id: 'TX_AUTHORIZE', reason: 'OVERLAP', data: null })] : [];
-        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: replaced, state: signedIn({ privateKey: null }) });
+        const out = await runEpicLoop(epic, [txCall(CALL)], { respond: replaced, state: signedIn({ signingKey: null }) });
         expect(out).toContainEqual(expect.objectContaining({ type: enqueueNotification.type, payload: expect.objectContaining({ type: 'TX_INTERRUPTED' }) }));
         expect(types(out)).not.toContain(txExec.started.type);
 
         // Cancelled by the user: no message
-        const cancelled = await runEpicLoop(epic, [txCall(CALL)], { respond: answerPassword('CANCEL'), state: signedIn({ privateKey: null }) });
+        const cancelled = await runEpicLoop(epic, [txCall(CALL)], { respond: answerPassword('CANCEL'), state: signedIn({ signingKey: null }) });
         expect(cancelled.some(action => enqueueNotification.match(action))).toBe(false);
     });
 
@@ -127,7 +128,7 @@ describe('txCallEpic', () => {
         const user = (action: Action) => modalShow.match(action) && action.payload.id === 'WALLET_TRANSFER_CONFIRM'
             ? [modalClose({ id: 'WALLET_TRANSFER_CONFIRM', reason: 'RESULT', data: true })]
             : answerPassword('CANCEL')(action);
-        const out = await runEpicLoop(epic, [sendTransfer.started(call)], { respond: user, state: signedIn({ privateKey: null }) });
+        const out = await runEpicLoop(epic, [sendTransfer.started(call)], { respond: user, state: signedIn({ signingKey: null }) });
         expect(types(out)).toContain(sendTransfer.failed.type);
         expect(types(out)).not.toContain(fetchBalance.started.type);
     });

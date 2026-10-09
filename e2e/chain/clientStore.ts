@@ -13,6 +13,7 @@ import { createEpicMiddleware } from 'redux-observable';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import rootReducer, { IRootState, IStoreDependencies, rootEpic } from 'modules';
+import { IPkcs11 } from 'ibax/pkcs11';
 import dependencies from 'modules/dependencies';
 import { mergePersistedState, selectPersistedState, TPersistedState } from 'lib/persistence';
 import { restorePersistedState } from 'modules/restorePersistedState';
@@ -56,9 +57,11 @@ export interface IClientOptions {
     // What an earlier start stored; none on the first start
     persisted?: TPersistedState | null;
     answer?: TDialogAnswer;
+    // Module access, as the desktop app has it (see softToken)
+    pkcs11?: IPkcs11 | null;
 }
 
-export const startClient = ({ settings, persisted = null, answer = () => undefined }: IClientOptions): IClient => {
+export const startClient = ({ settings, persisted = null, answer = () => undefined, pkcs11 = null }: IClientOptions): IClient => {
     serveSettings(settings);
     const actions: Action[] = [];
     const navigations: string[] = [];
@@ -67,6 +70,7 @@ export const startClient = ({ settings, persisted = null, answer = () => undefin
 
     const clientDependencies: IStoreDependencies = {
         ...dependencies,
+        pkcs11,
         navigation: { navigate: ({ to }) => { navigations.push(to); } }
     };
     const record: Middleware = api => next => (action: AnyAction) => {

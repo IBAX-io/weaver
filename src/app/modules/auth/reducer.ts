@@ -10,6 +10,7 @@ import { reducerWithInitialState } from 'typescript-fsa-reducers';
 import { ISession, IAccountContext } from 'ibax/auth';
 import { IAccount } from 'ibax/api';
 import { TSessionRetryError } from './util/sessionRetry';
+import { TSigningKey } from 'lib/crypto/signer';
 import loginHandler from './reducers/loginHandler';
 import loginDoneHandler from './reducers/loginDoneHandler';
 import loginFailedHandler from './reducers/loginFailedHandler';
@@ -47,7 +48,8 @@ export type State = {
     readonly session: ISession | null;
     readonly wallet: IAccountContext;
     readonly wallets: IAccount[];
-    readonly privateKey: string;
+    // What signs the signed-in user's transactions; null while locked (asked for again)
+    readonly signingKey: TSigningKey | null;
     // Why the user was signed out of which network, shown on its sign-in page until the next sign-in
     readonly signedOutBecause: ISignOutReason | null;
     // Why the restored session is not acquired yet while it is being asked for again
@@ -66,7 +68,7 @@ export const initialState: State = {
     id: null,
     session: null,
     wallet: null,
-    privateKey: null,
+    signingKey: null,
     wallets: [],
     signedOutBecause: null,
     sessionRetryReason: null

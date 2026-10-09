@@ -13,7 +13,7 @@ const loginDoneHandler: Reducer<typeof login.done, State> = (state, payload) => 
     isLoggingIn: false,
     ecosystem: state.wallet.access.ecosystem,
     session: payload.result.session,
-    privateKey: payload.result.privateKey,
+    signingKey: payload.result.signingKey,
     id: state.wallet.wallet.id,
     isDefaultWallet: false,
     // Signed in again: the reason for the last sign-out is no longer news

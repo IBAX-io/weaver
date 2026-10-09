@@ -12,6 +12,8 @@ import resolveTagHandler from 'lib/constructor/tags';
 import * as routerService from 'services/router';
 import { navigationService } from 'lib/routing/navigation';
 import { INavigationService } from 'modules/router/types';
+import { IPkcs11 } from 'ibax/pkcs11';
+import pkcs11 from 'lib/pkcs11';
 
 export interface IStoreDependencies {
     api: IAPIDependency;
@@ -22,6 +24,8 @@ export interface IStoreDependencies {
     constructorModule: IConstructorDependenies;
     routerService: typeof routerService;
     navigation: INavigationService;
+    // PKCS#11 module keys (desktop app); null in the browser
+    pkcs11: IPkcs11 | null;
 }
 
 export interface IAPIDependency {
@@ -65,7 +69,8 @@ const storeDependencies: IStoreDependencies = {
         Properties
     },
     routerService,
-    navigation: navigationService
+    navigation: navigationService,
+    pkcs11
 };
 
 export default storeDependencies;
