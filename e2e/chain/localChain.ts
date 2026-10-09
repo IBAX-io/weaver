@@ -16,6 +16,21 @@ import { ICryptoSuiteId } from 'ibax/crypto';
 
 const run = promisify(execFile);
 
+// CHAIN_E2E_FIPS=<module>: the node is built against that frozen Go Cryptographic Module
+// (GOFIPS140: v1.0.0-c2097c7c, the certified one without ML-DSA, or v1.26.0) and every node command
+// runs with GODEBUG=fips140=only, where any non-approved primitive fails
+export const FIPS_MODULE = process.env.CHAIN_E2E_FIPS || null;
+const nodeEnv = FIPS_MODULE ? { ...process.env, GODEBUG: 'fips140=only' } : process.env;
+
+// The suites a node can run: in FIPS mode the approved ones, with ML-DSA only from a module that
+// implements it (v1.0.0 does not)
+const FIPS_CRYPTOERS = ['ECC_P256', 'MLDSA65', 'MLDSA87'];
+const FIPS_HASHERS = ['SHA256', 'SHA384', 'SHA512', 'SHA3_256'];
+export const nodeRuns = (suite: ICryptoSuiteId) => !FIPS_MODULE || (
+    FIPS_CRYPTOERS.includes(suite.cryptoer) && FIPS_HASHERS.includes(suite.hasher) &&
+    !(suite.cryptoer.startsWith('MLDSA') && /^(v1\.0\.|certified$)/.test(FIPS_MODULE))
+);
+
 export interface IPostgres {
     bin: string;
     port: number;
@@ -40,8 +55,8 @@ export interface ILocalNetwork {
     // (Re)starts node i with its data; with a suite, under that suite's crypto settings from now on
     startNode(i: number, options?: { suite?: ICryptoSuiteId }): Promise<void>;
     // The network starts over under another suite: every node gets a new genesis, database and
-    // keys behind the same addresses (a chain does not change its suite in place: go-ibax then
-    // stops producing blocks)
+    // keys behind the same addresses (a chain does not change its suite in place: a node refuses
+    // to start under another suite than its genesis block's)
     redeploy(suite: ICryptoSuiteId): Promise<void>;
     stop(): Promise<void>;
 }
@@ -95,10 +110,11 @@ export const startPostgres = async (root: string): Promise<IPostgres & { stop():
     };
 };
 
-// Builds the node from a go-ibax checkout (GO_IBAX_DIR)
+// Builds the node from a go-ibax checkout (GO_IBAX_DIR), against FIPS_MODULE if set
 export const buildNode = async (goIbaxDir: string, root: string) => {
     const binary = path.join(root, 'go-ibax');
-    await run('go', ['build', '-o', binary, '.'], { cwd: goIbaxDir, maxBuffer: 1 << 24 });
+    const env = FIPS_MODULE ? { ...process.env, GOFIPS140: FIPS_MODULE } : process.env;
+    await run('go', ['build', '-o', binary, '.'], { cwd: goIbaxDir, env, maxBuffer: 1 << 24 });
     return binary;
 };
 
@@ -137,15 +153,17 @@ const configureNode = async (options: INodeOptions): Promise<ILocalNode> => {
     const dataDir = path.join(dir, 'data');
     mkdirSync(dataDir, { recursive: true });
     const [httpPort, tcpPort] = [await freePort(), await freePort()];
+    // Without Centrifugo the node still signs its tokens with the secret, and in FIPS mode refuses
+    // one under 112 bits, such as the default
     const centrifugo = options.centrifugo
         ? [`--centUrl=${options.centrifugo.url}`, `--centSecret=${options.centrifugo.secret}`, `--centKey=${options.centrifugo.key}`]
-        : [];
+        : [`--centSecret=${randomBytes(16).toString('hex')}`];
     await run(binary, ['config',
         `--dataDir=${dataDir}`, `--tempDir=${path.join(dir, 'tmp')}`,
         '--dbHost=127.0.0.1', `--dbPort=${postgres.port}`, `--dbName=${options.database}`, '--dbUser=postgres', '--dbPassword=',
         '--httpHost=127.0.0.1', `--httpPort=${httpPort}`, '--tcpHost=127.0.0.1', `--tcpPort=${tcpPort}`,
         `--networkID=${networkID}`, `--cryptoer=${suite.cryptoer}`, `--hasher=${suite.hasher}`,
-        `--bootNodes=${options.bootNodes.join(',')}`, '--logLevel=WARN', ...centrifugo], { cwd: dir });
+        `--bootNodes=${options.bootNodes.join(',')}`, '--logLevel=WARN', ...centrifugo], { cwd: dir, env: nodeEnv });
     return {
         apiHost: `http://127.0.0.1:${httpPort}`,
         tcpAddress: `127.0.0.1:${tcpPort}`,
@@ -162,7 +180,7 @@ const configureNode = async (options: INodeOptions): Promise<ILocalNode> => {
 const deployNode = async (binary: string, postgres: IPostgres, database: string, node: ILocalNode, genesis: string | null) => {
     const dir = path.dirname(node.dataDir);
     const config = ['--config', path.join(node.dataDir, 'config.toml')];
-    const command = (...args: string[]) => run(binary, args, { cwd: dir });
+    const command = (...args: string[]) => run(binary, args, { cwd: dir, env: nodeEnv });
     const db = ['-h', '127.0.0.1', '-p', String(postgres.port), '-U', 'postgres'];
 
     await run(path.join(postgres.bin, 'dropdb'), [...db, '--if-exists', '--force', database]);
@@ -187,7 +205,7 @@ const deployNode = async (binary: string, postgres: IPostgres, database: string,
 const runNode = async (binary: string, node: ILocalNode) => {
     const dir = path.dirname(node.dataDir);
     const out = openSync(node.log, 'a');
-    const child: ChildProcess = spawn(binary, ['start', '--config', path.join(node.dataDir, 'config.toml')], { cwd: dir, stdio: ['ignore', out, out] });
+    const child: ChildProcess = spawn(binary, ['start', '--config', path.join(node.dataDir, 'config.toml')], { cwd: dir, env: nodeEnv, stdio: ['ignore', out, out] });
     closeSync(out);
     let exited: number | string | null = null;
     child.once('exit', (code, signal) => { exited = code ?? signal; });

@@ -6,7 +6,8 @@
 // For every crypto suite a chain can run with: a local network of that suite, the client logging
 // in, transferring and calling a contract with its own code, the node refusing what was signed for
 // another suite or network, and a peer downloading and checking every block the first node signed.
-// CHAIN_E2E_BLOCKS (default 10): blocks each network must reach. One suite: -t ECC_P256/SHA256
+// CHAIN_E2E_BLOCKS (default 10): blocks each network must reach. One suite: -t ECC_P256/SHA256.
+// With CHAIN_E2E_FIPS (see localChain), the suites a FIPS node runs, in FIPS mode.
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import IbaxAPI from 'lib/ibaxAPI';
@@ -18,7 +19,7 @@ import { ISignedTransaction, signTransaction, TTxPayload } from 'lib/tx/transact
 import Contract from 'lib/tx/contract';
 import defaultSchema from 'lib/tx/schema/defaultSchema';
 import { ALL_SUITES, CONTRACT_PARAMS } from 'test/cryptovectors';
-import { ILocalNetwork, startNetwork } from './localChain';
+import { FIPS_MODULE, ILocalNetwork, nodeRuns, startNetwork } from './localChain';
 import { execute, maxBlockID, refusal, sleep } from './chainApi';
 
 const NETWORK_ID = 7;
@@ -64,7 +65,7 @@ const refusalFor = (suite: ICryptoSuiteId, other: ICryptoSuiteId, privateKey: st
     return size === nodeKeySize(suite, privateKey) ? 'Incorrect sign' : `invalid parameters len(public) = ${size}`;
 };
 
-describe.each(ALL_SUITES.map(suite => [cryptoSuiteKey(suite), suite] as const))('%s network', (_, suite) => {
+describe.each(ALL_SUITES.filter(nodeRuns).map(suite => [cryptoSuiteKey(suite), suite] as const))('%s network', (_, suite) => {
     let network: ILocalNetwork;
     let api: IbaxAPI;
     let client: IbaxAPI;
@@ -88,6 +89,9 @@ describe.each(ALL_SUITES.map(suite => [cryptoSuiteKey(suite), suite] as const))(
             const uid = await api.to(node.apiHost).getUid();
             expect(uid.cryptoSuite).toEqual(suite);
             expect(uid.networkID).toBe(NETWORK_ID);
+            // The client does not read it: only what the node runs in
+            const { fips } = await (await fetch(`${node.apiHost}/api/v2/getuid`)).json() as { fips: boolean };
+            expect(fips).toBe(null !== FIPS_MODULE);
         }
     });
 

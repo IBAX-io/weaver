@@ -5,8 +5,8 @@
 
 // The client's session when the network's key algorithms change under it, run as the app runs:
 // its reducers and epics against a local network with Centrifugo. A chain's suite changes by
-// redeploying it (new genesis behind the same node addresses): go-ibax does not switch a running
-// chain in place. The cases build on each other, in order.
+// redeploying it (new genesis behind the same node addresses): a go-ibax node refuses to start under
+// another suite than its genesis block's. The cases build on each other, in order.
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it, onTestFailed, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { rmSync } from 'node:fs';
@@ -20,13 +20,12 @@ import { signTransaction } from 'lib/tx/transaction';
 import dependencies from 'modules/dependencies';
 import { acquireSession, cryptoChanged, importWallet, ISignOutReason, loadWallets, login, logout, selectWallet, sessionExpired, TSignOutReason } from 'modules/auth/actions';
 import { SESSION_RETRY_MS } from 'modules/auth/util/sessionRetry';
-import { discoverNetwork } from 'modules/engine/actions';
 import { modalShow } from 'modules/modal/actions';
 import { reconnected } from 'modules/socket/actions';
 import { txExec } from 'modules/tx/actions';
 import { sendTransfer } from 'modules/wallet/actions';
 import { TPersistedState } from 'lib/persistence';
-import { ILocalCentrifugo, ILocalNetwork, startCentrifugo, startNetwork } from './localChain';
+import { FIPS_MODULE, ILocalCentrifugo, ILocalNetwork, startCentrifugo, startNetwork } from './localChain';
 import { execute, maxBlockID, register, sleep } from './chainApi';
 import { describeActions, IClient, startClient, TDialogAnswer } from './clientStore';
 import { ISettings, ISettingsNetwork, settingsFor } from './appConfig';
@@ -34,8 +33,11 @@ import { ISettings, ISettingsNetwork, settingsFor } from './appConfig';
 vi.mock('modules/engine/util/ConfigObservable', () => import('./appConfig'));
 
 const NETWORK_ID = 7;
-const A: ICryptoSuiteId = { cryptoer: 'ECC_Secp256k1', hasher: 'KECCAK256' };
-const B: ICryptoSuiteId = { cryptoer: 'SM2', hasher: 'SM3' };
+// Two suites the node runs in either mode (see localChain's nodeRuns): FIPS mode has no other
+// cryptoer than ECC_P256 in every module
+const [A, B]: ICryptoSuiteId[] = FIPS_MODULE
+    ? [{ cryptoer: 'ECC_P256', hasher: 'SHA3_256' }, { cryptoer: 'ECC_P256', hasher: 'SHA384' }]
+    : [{ cryptoer: 'ECC_Secp256k1', hasher: 'KECCAK256' }, { cryptoer: 'SM2', hasher: 'SM3' }];
 const PASSWORD = 'e2e-password';
 // 1 coin in base units (12 digits)
 const COIN = '1000000000000';
@@ -355,46 +357,24 @@ describe('session across crypto suite changes', () => {
         await expectSignedOut(client, from, 'E_CRYPTO_CHANGED', 'session');
     }, 300000);
 
-    // Measured, not specified: what happens when one peer of a network alone runs other settings
-    it('a peer alone switched in place: the session on it ends, the first node goes on', async () => {
+    // A node checks at startup that its suite is the one its chain's genesis block was made with
+    it('a peer alone switched to another suite refuses to start, the first node goes on', async () => {
         await prepare(network);
-        const [first, peer] = network.nodes;
-        const onPeer: ISettingsNetwork = { ...deployed, key: 'E2E_PEER', honorNodes: [peer.apiHost] };
-        client.close();
-        client = open(settingsFor(onPeer));
-        await signIn(client, B);
-
+        const [first] = network.nodes;
         const api = new IbaxAPI({ apiHost: first.apiHost });
-        const before = { first: await maxBlockID(first.apiHost), peer: await maxBlockID(peer.apiHost) };
-        await network.startNode(1, { suite: A });
+        const before = await maxBlockID(first.apiHost);
 
-        // Blocks keep coming from the first node
+        await expect(network.startNode(1, { suite: A })).rejects.toThrow('the genesis block does not match the configured crypto suite');
+
+        // Blocks keep coming from the first node, under the chain's suite
         const founder = await register(api, first.privateKey, NETWORK_ID);
         await execute(api.authorize(founder.result.token), signTransaction(
             { ecosystemID: 1, networkID: NETWORK_ID, cryptoSuite: B },
             { type: 'utxo', toID: keyIDOf(B), value: '1', comment: '' },
             first.privateKey
         ));
-        await sleep(10000);
-        const after = { first: await maxBlockID(first.apiHost), peer: await maxBlockID(peer.apiHost) };
-        const suites = {
-            first: cryptoSuiteKey((await api.getUid()).cryptoSuite),
-            peer: cryptoSuiteKey((await api.to(peer.apiHost).getUid()).cryptoSuite)
-        };
-
-        client = restart(client);
-        await expectSignedOut(client, 0, 'E_CRYPTO_CHANGED', 'session');
-        const discovery = await client.waitForAction(
-            (action: Action): action is Action => discoverNetwork.done.match(action) || discoverNetwork.failed.match(action),
-            'the peer discovered again'
-        );
-        const peerLogin = await register(new IbaxAPI({ apiHost: peer.apiHost }), USER_KEY, NETWORK_ID)
-            .then(session => ({ keyID: session.keyID }), error => ({ error }));
-
-        // Straight to the output: the reporter shows console logs of failed tests only
-        process.stdout.write(`peer switched in place: ${JSON.stringify({ before, after, suites, discovery: discovery.type, peerLogin })}\n`);
-        expect(suites).toEqual({ first: cryptoSuiteKey(B), peer: cryptoSuiteKey(A) });
-        expect(after.first).toBeGreaterThan(before.first);
+        expect(await maxBlockID(first.apiHost)).toBeGreaterThan(before);
+        expect((await api.getUid()).cryptoSuite).toEqual(B);
 
         await network.startNode(1, { suite: B });
     }, 300000);
