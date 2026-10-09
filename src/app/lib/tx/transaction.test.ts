@@ -12,7 +12,7 @@ import params from './fixtures/go-ibax-contract-params.json';
 import Contract, { ContractParamError } from './contract';
 import defaultSchema from './schema/defaultSchema';
 import { DEFAULT_CRYPTO_SUITE, resolveCryptoSuite } from 'lib/crypto/suites';
-import { CONTRACT_PARAMS, splitTransaction } from 'test/cryptovectors';
+import { CONTRACT_PARAMS, splitTransaction, VECTOR_TIMEOUT } from 'test/cryptovectors';
 
 // Transactions the node's own client-transaction entry point decoded (or rejected). The same inputs
 // must reproduce the exact bytes the node took, but for the signature: hedged (fresh randomness in
@@ -61,7 +61,7 @@ describe('signTransaction', () => {
             expect(c.node.type).toBe(c.payload.type === 'utxo' ? 5 : 6);
             expect(c.node.keyMatchesPublicKey).toBe(true);
         }
-    });
+    }, VECTOR_TIMEOUT);
 
     it('keeps the node rejections that the UI must prevent (control)', () => {
         const errors = cases.filter(c => c.node.error).map(c => c.node.error);
@@ -75,7 +75,7 @@ describe('signTransaction', () => {
         for (const c of cases.filter(item => item.node.error && !item.tampered)) {
             expectSameTransaction(resign(c).data, c.data, { cryptoer: c.cryptoer, hasher: c.hasher }, c.privateKey);
         }
-    });
+    }, VECTOR_TIMEOUT);
 
     it('sets the contract id only for contract calls', () => {
         const context = { ecosystemID: 2, networkID: 5, cryptoSuite: { cryptoer: 'ECC_Secp256k1', hasher: 'KECCAK256' } as const, time: 1 };

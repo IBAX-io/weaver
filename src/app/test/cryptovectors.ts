@@ -19,8 +19,8 @@ import defaultSchema from 'lib/tx/schema/defaultSchema';
 import { DEFAULT_CRYPTO_SUITE } from 'lib/crypto/suites';
 
 // Every suite go-ibax implements (ECC_P512 is only named)
-export const CRYPTOERS: ICryptoSuiteId['cryptoer'][] = ['ECC_Secp256k1', 'ECC_P256', 'SM2', 'MLDSA65'];
-export const HASHERS: ICryptoSuiteId['hasher'][] = ['SHA256', 'KECCAK256', 'SHA3_256', 'SM3'];
+export const CRYPTOERS: ICryptoSuiteId['cryptoer'][] = ['ECC_Secp256k1', 'ECC_P256', 'SM2', 'MLDSA65', 'MLDSA87'];
+export const HASHERS: ICryptoSuiteId['hasher'][] = ['SHA256', 'KECCAK256', 'SHA3_256', 'SM3', 'SHA384', 'SHA512'];
 export const ALL_SUITES: ICryptoSuiteId[] = CRYPTOERS.flatMap(cryptoer => HASHERS.map(hasher => ({ cryptoer, hasher })));
 
 // Test keys only
@@ -40,6 +40,9 @@ const TRANSFER_PAYLOADS: TTxPayload[] = [
 ];
 
 // Every contract parameter type a form can fill in
+// Re-signing and verifying every vector, on every suite, outlasts the default test timeout
+export const VECTOR_TIMEOUT = 30_000;
+
 export const CONTRACT_PARAMS: { [name: string]: IContractParam } = {
     I1: { type: 'int', value: '42' },
     I2: { type: 'int', value: '-9223372036854775808' },

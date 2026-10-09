@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import suites from 'lib/crypto/fixtures/go-ibax-vectors.json';
 import transfers from 'lib/tx/fixtures/go-ibax-transfers.json';
 import params from 'lib/tx/fixtures/go-ibax-contract-params.json';
-import { ALL_SUITES, IContractParamsFile, ISuiteVector, ITransferCase, writeContractParams, writeSuiteVectors, writeTransfers } from './cryptovectors';
+import { ALL_SUITES, IContractParamsFile, ISuiteVector, ITransferCase, writeContractParams, writeSuiteVectors, writeTransfers, VECTOR_TIMEOUT } from './cryptovectors';
 
 // The fixtures come from go-ibax; their client fields must be what this client writes today
 // (npm run vectors:client), and the node must have judged every one of them
@@ -22,7 +22,7 @@ describe('go-ibax vectors', () => {
         const doc = transfers as unknown as { cases: ITransferCase[] };
         expect(writeTransfers(doc)).toEqual(doc);
         expect(doc.cases.filter(c => !c.node.error && !c.node.type)).toEqual([]);
-    });
+    }, VECTOR_TIMEOUT);
 
     it('cover every suite with transfers the node accepted', () => {
         const accepted = new Set((transfers.cases as unknown as ITransferCase[])

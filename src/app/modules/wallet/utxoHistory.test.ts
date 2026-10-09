@@ -189,6 +189,7 @@ describe('finding UTXO transfers in the block explorer', () => {
         expect(transfers(rows).filter(hash => !found.has(hash))).toEqual([]);
     });
 
+    // Builds and searches 13,000 rows, which takes seconds when the other suites run alongside
     it('finds where it stopped in a few requests, however far the list moved', async () => {
         const rows = blocks(LAYOUT);
         const explorer = explorerOf(rows);
@@ -200,7 +201,7 @@ describe('finding UTXO transfers in the block explorer', () => {
         expect(page.found[0].block).toBeLessThanOrEqual(first.next.block);
         // Halving: about twice the log of the pages moved, then the pages it reads
         expect(explorer.calls() - before).toBeLessThanOrEqual(20 + 2 * EXPLORER_REQUESTS);
-    });
+    }, 15_000);
 
     it('goes on from the same place when the list moves between finding it and reading it', async () => {
         // Stopped inside a block too large to be read whole
