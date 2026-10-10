@@ -11,7 +11,6 @@ const disconnectDone: Reducer<typeof disconnect.done, State> = (state, payload) 
     ...state,
     socket: null,
     session: null,
-    subscriptions: [],
     connected: false
 });
 

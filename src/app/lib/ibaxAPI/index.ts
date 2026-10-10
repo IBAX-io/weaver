@@ -7,7 +7,7 @@ import queryString from 'query-string';
 import urlJoin from 'url-join';
 import { cryptoSuiteFromNode } from 'lib/crypto/suites';
 import urlTemplate from 'url-template';
-import { IUIDResponse, ILoginRequest, ILoginGuestRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, IListWhereRequest, IListWhereResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, TConfigRequest, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo, IBalanceRequest, IBalanceResponse } from 'ibax/api';
+import { IUIDResponse, ILoginRequest, ILoginGuestRequest, ILoginResponse, IRowRequest, IRowResponse, IPageResponse, IBlockResponse, IMenuResponse, IContentRequest, IContentResponse, IContentTestRequest, IContentJsonRequest, IContentJsonResponse, ITableResponse, ISegmentRequest, ITablesResponse, IDataRequest, IDataResponse, IListWhereRequest, IListWhereResponse, ISectionsRequest, ISectionsResponse, IHistoryRequest, IHistoryResponse, IParamResponse, IParamsRequest, IParamsResponse, IParamRequest, ITemplateRequest, IContractRequest, IContractResponse, IContractsResponse, ITableRequest, ICentrifugoEndpoint, ISystemParamsRequest, ISystemParamsResponse, IContentHashRequest, IContentHashResponse, TTxCallRequest, TTxCallResponse, TTxStatusRequest, TTxStatusResponse, ITxStatus, IKeyInfo, IBalanceRequest, IBalanceResponse } from 'ibax/api';
 
 import { isApiError, UntrustedNodeError } from './errors';
 
@@ -259,7 +259,7 @@ class IbaxAPI {
   public getEcosystemName = this.setEndpoint<{ id: string | number }, string>('get', 'ecosystemname', {
     responseTransformer: response => response.ecosystem_name
   });
-  public getConfig = this.setEndpoint<{ name: TConfigRequest }, string>('get', 'config/{name}', { requestTransformer: request => null });
+  public getCentrifugo = this.setEndpoint<ICentrifugoEndpoint>('get', 'config/centrifugo', { requestTransformer: request => null });
   public getBalance = this.setEndpoint<IBalanceRequest, IBalanceResponse>('get', 'balance/{wallet}', {
     requestTransformer: request => ({ ecosystem: request.ecosystem })
   });

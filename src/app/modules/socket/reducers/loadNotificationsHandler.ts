@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { State } from '../reducer';
-import { subscribe } from '../actions';
+import { loadNotifications } from '../actions';
 import { Reducer } from 'modules';
 import { IAccount } from 'ibax/api';
 import { INotificationsMessage } from 'ibax/socket';
@@ -25,7 +25,7 @@ const flattenNotifications = (id: string, info: IAccount) => {
     return stack;
 };
 
-const subscribeHandler: Reducer<typeof subscribe.started, State> = (state, payload) => ({
+const loadNotificationsHandler: Reducer<typeof loadNotifications, State> = (state, payload) => ({
     ...state,
     notifications: [
         ...state.notifications.filter(l => l.id !== payload.id),
@@ -33,4 +33,4 @@ const subscribeHandler: Reducer<typeof subscribe.started, State> = (state, paylo
     ]
 });
 
-export default subscribeHandler;
+export default loadNotificationsHandler;

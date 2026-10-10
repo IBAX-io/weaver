@@ -104,18 +104,27 @@ const isUsableSession = (session: unknown) => {
         !!cryptoSuite && 'string' === typeof cryptoSuite.cryptoer && 'string' === typeof cryptoSuite.hasher;
 };
 
+// A signed-in session as this version stores it: with its token for Centrifugo besides
+const isUsableSignedInSession = (session: unknown) =>
+    isUsableSession(session) && 'string' === typeof (session as { notifyKey?: unknown }).notifyKey;
+
 // Sessions stored that cannot be used, dropped as the app starts:
 // - one kept after signing out (Weaver up to 1.4 kept it, its token valid for months): dropped
 // - one stored without the network's key algorithms (Weaver up to 1.4), or damaged, cannot sign:
 //   the signed-in one is dropped with its account (the user signs in again), the network one too
 //   (connected to again at start)
+// - a signed-in one stored without its token for Centrifugo (Weaver up to 1.4) cannot connect to
+//   the account's notifications: dropped with its account
 export const discardStaleSessions = (persisted: TPersistedState | null): TPersistedState | null => {
     if (!persisted) {
         return persisted;
     }
     const { auth, engine } = persisted;
     const result = { ...persisted };
-    if (auth && auth.session && !isUsableSession(auth.session)) {
+    if (auth && auth.session && true === auth.isAuthenticated && !isUsableSignedInSession(auth.session)) {
+        result.auth = { ...auth, session: null, wallet: null, id: null, isAuthenticated: false, isDefaultWallet: false };
+    }
+    else if (auth && auth.session && !isUsableSession(auth.session)) {
         result.auth = { ...auth, session: null, wallet: null, id: null, isAuthenticated: false, isDefaultWallet: false };
     }
     else if (auth && auth.session && true !== auth.isAuthenticated) {

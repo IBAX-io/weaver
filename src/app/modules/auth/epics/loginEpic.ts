@@ -78,6 +78,7 @@ const loginEpic: Epic = (action$, state$, { api, pkcs11 }) => action$.pipe(
                         }
                         const session = {
                             sessionToken: result.token,
+                            notifyKey: result.notify_key,
                             network: networkEndpoint,
                             cryptoSuite,
                             fips
