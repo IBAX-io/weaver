@@ -138,7 +138,7 @@ describe('persistence', () => {
         });
         // Sessions with them stay as they are
         const current = {
-            auth: { ...old.auth, session: { ...old.auth.session, cryptoSuite: suite } },
+            auth: { ...old.auth, session: { ...old.auth.session, cryptoSuite: suite, notifyKey: 'n' } },
             engine: { guestSession: { ...old.engine.guestSession, cryptoSuite: suite } }
         };
         expect(discardStaleSessions(current)).toEqual(current);
@@ -149,6 +149,14 @@ describe('persistence', () => {
         const signedOut = { ...current, auth: { ...current.auth, isAuthenticated: false, wallet: null } };
         expect(discardStaleSessions(signedOut)).toEqual({ ...signedOut, auth: { ...signedOut.auth, session: null } });
         expect(JSON.stringify(discardStaleSessions(signedOut).auth)).not.toContain('"t"');
+    });
+
+    it('drops a signed-in session stored without its token for Centrifugo, with its account', () => {
+        const session = { network: { uuid: 'net', apiHost: 'http://node' }, sessionToken: 't', cryptoSuite: { cryptoer: 'SM2', hasher: 'SM3' } };
+        const stored = { auth: { isAuthenticated: true, isDefaultWallet: false, session, id: '7', wallet: { wallet: { id: '7' } } } };
+        expect(discardStaleSessions(stored)).toEqual({
+            auth: { isAuthenticated: false, isDefaultWallet: false, session: null, id: null, wallet: null }
+        });
     });
 
     it('drops a damaged network session, keeping the rest', () => {

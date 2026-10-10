@@ -10,7 +10,7 @@ import { ofAction } from 'lib/rx/ofAction';
 import { removeWallet } from '../actions';
 import { removeStoredWallet } from 'modules/storage/actions';
 import ModalObservable from 'modules/modal/util/ModalObservable';
-import { unsubscribe } from 'modules/socket/actions';
+import { clearNotifications } from 'modules/socket/actions';
 
 const removeWalletEpic: Epic = action$ => action$.pipe(
     ofAction(removeWallet),
@@ -24,7 +24,7 @@ const removeWalletEpic: Epic = action$ => action$.pipe(
         },
         success: () => of(
             removeStoredWallet(action.payload.walletID),
-            unsubscribe.started(action.payload)
+            clearNotifications(action.payload)
         )
     }))
 );

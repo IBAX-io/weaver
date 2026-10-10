@@ -49,7 +49,7 @@
 - **networks.name** - A readable network name to be displayed in the page
 - **networks.networkID** - The unique identifier defined for all transactions, please refer to the configuration of the go-ibax instance
 - **networks.honorNodes** - List of prebuilt urls to be synchronized
-- **networks.socketUrl** - An optional parameter for the connection end-points of the writing centrifuge. Default value: to be provided by the go-ibax configuration
+- **networks.socketUrl** - Optional. The address (`ws://` or `wss://`, without `/connection/websocket`) the client reaches the network's Centrifugo 6 at, for the signed-in account's notifications. Default: the address the node gives (`GET config/centrifugo`)
 - **networks.activationEmail** - An optional parameter, to be displayed for the user for KYC when there is no activated node to be logged in.
 - **networks.enableDemoMode** - Guest authorization with private key will be enabled when set to true
 - **networks.disableSync** - An optional parameter to disable the synchronization of a full node. Please be cautious in using it for security reason

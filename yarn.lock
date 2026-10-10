@@ -1884,12 +1884,13 @@ camelize@^1.0.0:
   resolved "https://registry.yarnpkg.com/camelize/-/camelize-1.0.1.tgz#89b7e16884056331a35d6b5ad064332c91daa6c3"
   integrity sha512-dU+Tx2fsypxTgtLoE36npi3UqcjSSMNYfkqgmoEhtZrraP5VWq0K7FkWVTYa8eMPtnU/G2txVsfdCJTn9uzpuQ==
 
-centrifuge@^2.8.5:
-  version "2.8.5"
-  resolved "https://registry.yarnpkg.com/centrifuge/-/centrifuge-2.8.5.tgz#94accdd105ddffe026f05994eaedc21e1ba82339"
-  integrity sha512-t06HyieeB2k7uSJSbVM4e7xMF+mfY8xvDtTJLF95ho0ba/X4MSoZcisi2PBzdCLyxG2BhkYW1Wcg6RUiPYTIlQ==
+centrifuge@^5.7.4:
+  version "5.7.4"
+  resolved "https://registry.yarnpkg.com/centrifuge/-/centrifuge-5.7.4.tgz#5c84af18c7f89e6bf71e3b19561abc8eedc2ec91"
+  integrity sha512-PnkJSS5uDPcdIDK4kkrgVCiT7RT+4xUTVjO9FfUjrUpOdPNKXgjfY+6gdG+RQKGSRP7AxP4NxCuFk0Eb4sjrWw==
   dependencies:
-    protobufjs "^6.11.2"
+    events "^3.3.0"
+    protobufjs "^7.6.0"
 
 chai@^6.2.2:
   version "6.3.0"
@@ -2741,6 +2742,11 @@ event-stream@^4.0.1:
     split "^1.0.1"
     stream-combiner "^0.2.2"
     through "^2.3.8"
+
+events@^3.3.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/events/-/events-3.3.0.tgz#31a95ad0a924e2d2c419a813aeb2c4e878ea7400"
+  integrity sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==
 
 expect-type@^1.4.0:
   version "1.4.0"
@@ -3916,7 +3922,7 @@ property-expr@^2.0.5:
   resolved "https://registry.yarnpkg.com/property-expr/-/property-expr-2.0.6.tgz#f77bc00d5928a6c748414ad12882e83f24aec1e8"
   integrity sha512-SVtmxhRE/CGkn3eZY1T6pC8Nln6Fr/lu1mKSgRud0eC73whjGfoAogbn78LkD8aFL0zz3bAFerKSnOl7NlErBA==
 
-protobufjs@^6.11.2, protobufjs@^7.6.6:
+protobufjs@^7.6.0, protobufjs@^7.6.6:
   version "7.6.6"
   resolved "https://registry.yarnpkg.com/protobufjs/-/protobufjs-7.6.6.tgz#7a3923e8e32b0ee2ff689f8eed6e455c090ac67e"
   integrity sha512-dYDWdjSl5RNb7SgPxGQcRU+GtvP7s2fpkrY0r432PcOIaZ0/rBcxEZnQN67iJhFuQiVw754JDoPruPCNdGsbjg==

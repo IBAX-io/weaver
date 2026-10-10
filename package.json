@@ -23,7 +23,7 @@
     "@scure/bip32": "^2.4.0",
     "@scure/bip39": "^2.4.0",
     "bootstrap": "^5.3.8",
-    "centrifuge": "^2.8.5",
+    "centrifuge": "^5.7.4",
     "chart.js": "^4.5.1",
     "classnames": "2.3.2",
     "cropperjs": "^1.5.13",

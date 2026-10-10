@@ -40,7 +40,6 @@ export const discover = async (network: INetworkEndpoint, networkID?: number) =>
 
   try {
     const securedClient = client.authorize(login.result.token);
-    const socketUrl: string | undefined = await client.getConfig({ name: 'centrifugo' }).catch(() => undefined);
     const honorNodesPlain = (await securedClient.getSystemParams({ names: ['honor_nodes'] }))
       .list
       .find(l => 'honor_nodes' === l.name)
@@ -58,7 +57,6 @@ export const discover = async (network: INetworkEndpoint, networkID?: number) =>
       networkID: uid.networkID,
       cryptoSuite: login.cryptoSuite,
       fips: login.fips,
-      socketUrl,
       loginResult: login.result,
       honorNodes
     };

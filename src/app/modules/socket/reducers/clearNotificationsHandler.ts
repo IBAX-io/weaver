@@ -4,18 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { State } from '../reducer';
-import { subscribe } from '../actions';
+import { clearNotifications } from '../actions';
 import { Reducer } from 'modules';
 
-const subscribeDoneHandler: Reducer<typeof subscribe.done, State> = (state, payload) => ({
+const clearNotificationsHandler: Reducer<typeof clearNotifications, State> = (state, payload) => ({
     ...state,
-    subscriptions: [
-        ...state.subscriptions,
-        {
-            wallet: payload.params,
-            instance: payload.result
-        }
-    ]
+    notifications: state.notifications.filter(l => l.id !== payload.id)
 });
 
-export default subscribeDoneHandler;
+export default clearNotificationsHandler;

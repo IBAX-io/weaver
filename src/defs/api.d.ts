@@ -105,8 +105,14 @@ declare module 'ibax/api' {
     }[];
   }
 
-  type TConfigRequest =
-    'centrifugo'
+  // Where and how clients connect to the node's Centrifugo (config/centrifugo)
+  interface ICentrifugoEndpoint {
+    // The server's address with the WebSocket scheme, without /connection/websocket
+    url: string;
+    protocol: string;
+    // The major version of the server
+    version: string;
+  }
 
   interface IContractRequest {
     name: string;

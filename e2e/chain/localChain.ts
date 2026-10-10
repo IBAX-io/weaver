@@ -358,7 +358,9 @@ export interface ILocalCentrifugo extends ICentrifugoEndpoint {
     stop(): Promise<void>;
 }
 
-// A Centrifugo v3 server (the protocol the client's centrifuge-js 2.x speaks) on a free port
+// A Centrifugo server on a free port, configured as the node's notifications need it: tokens signed
+// with the secret, the server API behind the key, the channel of an account subscribed to on the
+// server side by the token (no subscription from clients)
 export const startCentrifugo = async (binary: string, root: string): Promise<ILocalCentrifugo> => {
     const dir = path.join(root, 'centrifugo');
     mkdirSync(dir, { recursive: true });
@@ -367,18 +369,17 @@ export const startCentrifugo = async (binary: string, root: string): Promise<ILo
     const key = randomBytes(16).toString('hex');
     const config = path.join(dir, 'config.json');
     writeFileSync(config, JSON.stringify({
-        token_hmac_secret_key: secret,
-        api_key: key,
-        allowed_origins: ['*'],
-        allow_subscribe_for_client: true,
-        health: true
+        http_server: { address: '127.0.0.1', port: String(port) },
+        client: { token: { hmac_secret_key: secret }, allowed_origins: ['*'] },
+        http_api: { key },
+        health: { enabled: true }
     }));
     const log = path.join(dir, 'centrifugo.log');
     let child: ChildProcess | null = null;
 
     const start = async () => {
         const out = openSync(log, 'a');
-        child = spawn(binary, ['--config', config, '--address=127.0.0.1', `--port=${port}`], { cwd: dir, stdio: ['ignore', out, out] });
+        child = spawn(binary, ['--config', config], { cwd: dir, stdio: ['ignore', out, out] });
         closeSync(out);
         writeFileSync(path.join(dir, 'centrifugo.pid'), String(child.pid));
         const deadline = Date.now() + 30000;
@@ -417,11 +418,13 @@ export const buildCentrifugo = async (root: string) => {
         return process.env.CENTRIFUGO_BIN;
     }
     const bin = path.join(root, 'bin');
-    await run('go', ['install', `github.com/centrifugal/centrifugo/v3@${CENTRIFUGO_VERSION}`], {
+    // The version the server reports (config/centrifugo) is set at build time
+    await run('go', ['install', `-ldflags=-X github.com/centrifugal/centrifugo/v6/internal/build.Version=${CENTRIFUGO_VERSION.slice(1)}`,
+        `github.com/centrifugal/centrifugo/v6@${CENTRIFUGO_VERSION}`], {
         env: { ...process.env, GOBIN: bin, GOFLAGS: '-mod=mod' },
         maxBuffer: 1 << 24
     });
     return path.join(bin, 'centrifugo');
 };
 
-const CENTRIFUGO_VERSION = 'v3.2.3';
+export const CENTRIFUGO_VERSION = 'v6.9.7';

@@ -216,12 +216,10 @@ test('GetBalance', () => {
     });
 });
 
-test('GetConfig', () => {
-    const testRequest = 'centrifugo';
-
-    return paramTestingAPIMock().getConfig({ name: 'centrifugo' }).then((response: any) => {
+test('GetCentrifugo', () => {
+    return paramTestingAPIMock().getCentrifugo().then((response: any) => {
         expect(response).toEqual({
-            __requestUrl: `${paramTestingAPIHost}/${paramTestingAPIEndpoint}/config/${testRequest}`,
+            __requestUrl: `${paramTestingAPIHost}/${paramTestingAPIEndpoint}/config/centrifugo`,
             body: null
         });
     });

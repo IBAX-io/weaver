@@ -62,6 +62,9 @@ declare module 'ibax/auth' {
     cryptoSuite: import('ibax/crypto').ICryptoSuiteId;
     // The network runs in FIPS 140-3 mode (/getuid): only module keys sign for it
     fips?: boolean;
+    // A signed-in session's token for Centrifugo (notify_key), which connects to the account's
+    // notifications until the session expires
+    notifyKey?: string;
   }
 
   interface IAccountContext {
