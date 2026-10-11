@@ -1,5 +1,10 @@
 # Weaver
 
+> **Archived.** Weaver 1.x is no longer developed here. Its successor is
+> [weaver-next](https://github.com/IBAX-io/weaver-next), the client of the new chain (go-ibax
+> `develop` with the dapps `develop` applications, interfaces in WTL). Severe fixes to 1.x go to the
+> `maintenance/1.x` branch, which starts at the tag `v1.4.0`.
+
 - Provide the user interface for ibax.
 - Provide the IDE for App development.
 - Save the private key of the user account and grant the permissions.
